@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.venv/
+coverage/
+dist/
+build/
+.next/
+.turbo/
+.mypy_cache/
+.ruff_cache/
+pnpm-lock.yaml
+uv.lock
+
+# Canonical specifications and agent instructions retain their supplied formatting.
+AGENTS.md
+phases/
+specs/

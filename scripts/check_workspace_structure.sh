@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+# Validate the Phase 1 repository contract without installing dependencies or touching files.
+set -euo pipefail
+
+required_paths=(
+  "apps/api"
+  "apps/api/pyproject.toml"
+  "apps/api/src/app"
+  "apps/api/src/app/__init__.py"
+  "apps/api/src/app/api"
+  "apps/api/src/app/core"
+  "apps/api/src/app/db"
+  "apps/api/src/app/services"
+  "apps/api/src/app/workers"
+  "apps/api/tests/unit"
+  "apps/api/tests/integration"
+  "apps/api/tests/api"
+  "apps/api/tests/contract"
+  "apps/web"
+  "apps/web/package.json"
+  "apps/web/tsconfig.json"
+  "docs/adr"
+  "docs/adr/0001-architecture-style.md"
+  "docs/adr/0002-langgraph-for-agent-workflows.md"
+  "docs/adr/0003-postgresql-and-pgvector.md"
+  "docs/adr/0004-azure-deployment-target.md"
+  "docs/README.md"
+  "docs/development.md"
+  "docker-compose.yml"
+  "infra/azure"
+  "infra/docker"
+  "infra/docker/api.dev.Dockerfile"
+  "infra/docker/minio.dev.Dockerfile"
+  "infra/docker/worker.dev.Dockerfile"
+  "infra/docker/web-readiness.html"
+  "infra/github-actions"
+  "packages/shared_schemas/pyproject.toml"
+  "packages/shared_schemas/src/shared_schemas"
+  "packages/shared_schemas/src/shared_schemas/__init__.py"
+  "packages/shared_schemas/tests"
+  "sample-data/README.md"
+  "sample-data/public-sector"
+  "sample-data/banking"
+  "sample-data/energy"
+  "sample-data/internal-policy"
+  "sample-data/evaluation"
+  "services/agent_orchestrator/pyproject.toml"
+  "services/agent_orchestrator/src/agent_orchestrator"
+  "services/agent_orchestrator/src/agent_orchestrator/__init__.py"
+  "services/agent_orchestrator/src/agent_orchestrator/graphs"
+  "services/agent_orchestrator/src/agent_orchestrator/state"
+  "services/agent_orchestrator/src/agent_orchestrator/nodes"
+  "services/agent_orchestrator/src/agent_orchestrator/tools"
+  "services/agent_orchestrator/src/agent_orchestrator/memory"
+  "services/agent_orchestrator/src/agent_orchestrator/prompts"
+  "services/agent_orchestrator/src/agent_orchestrator/model_providers"
+  "services/agent_orchestrator/tests/unit"
+  "services/agent_orchestrator/tests/graph"
+  "services/agent_orchestrator/tests/regression"
+  "services/retrieval/pyproject.toml"
+  "services/retrieval/src/retrieval"
+  "services/retrieval/src/retrieval/__init__.py"
+  "services/retrieval/src/retrieval/chunking"
+  "services/retrieval/src/retrieval/embeddings"
+  "services/retrieval/src/retrieval/hybrid_search"
+  "services/retrieval/src/retrieval/reranking"
+  "services/retrieval/src/retrieval/citations"
+  "services/retrieval/src/retrieval/evaluation"
+  "services/retrieval/tests"
+  "services/document_processor/pyproject.toml"
+  "services/document_processor/src/document_processor"
+  "services/document_processor/src/document_processor/__init__.py"
+  "services/document_processor/src/document_processor/parsers"
+  "services/document_processor/src/document_processor/validators"
+  "services/document_processor/src/document_processor/metadata"
+  "services/document_processor/src/document_processor/pii"
+  "services/document_processor/tests"
+  "services/evaluation/pyproject.toml"
+  "services/evaluation/src/evaluation"
+  "services/evaluation/src/evaluation/__init__.py"
+  "services/evaluation/src/evaluation/datasets"
+  "services/evaluation/src/evaluation/metrics"
+  "services/evaluation/src/evaluation/runners"
+  "services/evaluation/src/evaluation/reports"
+  "services/evaluation/tests"
+  ".editorconfig"
+  ".dockerignore"
+  ".env.example"
+  ".gitattributes"
+  ".gitignore"
+  ".prettierignore"
+  ".prettierrc.json"
+  "eslint.config.mjs"
+  "package.json"
+  "pnpm-lock.yaml"
+  "pnpm-workspace.yaml"
+  "pyproject.toml"
+  "README.md"
+  "tsconfig.base.json"
+  "uv.lock"
+)
+
+missing=0
+
+for path in "${required_paths[@]}"; do
+  if [[ ! -e "$path" ]]; then
+    printf 'Missing required path: %s\n' "$path" >&2
+    missing=1
+  fi
+done
+
+if [[ "$missing" -ne 0 ]]; then
+  printf 'Workspace structure check failed. Create the paths listed above and run it again.\n' >&2
+  exit 1
+fi
+
+printf 'Workspace structure check passed (%s required paths verified).\n' "${#required_paths[@]}"

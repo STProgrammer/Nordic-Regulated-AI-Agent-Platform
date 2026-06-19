@@ -1,0 +1,39 @@
+{
+  "name": "@nordic-regulated-ai-agent-platform/workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace tooling for the Nordic Regulated AI Agent Platform.",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": ">=11.8.0 <12"
+  },
+  "scripts": {
+    "check:workspace": "bash scripts/check_workspace_structure.sh",
+    "format": "pnpm format:write && pnpm format:python",
+    "format:write": "prettier --write .",
+    "format:check": "pnpm format:check:js && pnpm format:check:python",
+    "format:check:js": "prettier --check .",
+    "format:python": "uv run ruff format apps services packages scripts",
+    "format:check:python": "uv run ruff format --check apps services packages scripts",
+    "lint": "pnpm lint:web && pnpm lint:python",
+    "lint:web": "eslint . --max-warnings=0",
+    "lint:python": "uv run ruff check apps services packages scripts",
+    "typecheck": "pnpm typecheck:web && pnpm typecheck:python",
+    "typecheck:web": "tsc --noEmit --project apps/web/tsconfig.json",
+    "typecheck:python": "uv run mypy apps services packages scripts",
+    "test:health": "uv run pytest apps/api/tests/api/test_health.py",
+    "test:api": "uv run pytest apps/api/tests",
+    "dev:up": "docker compose --env-file .env.example up --build --wait --detach",
+    "dev:down": "docker compose --env-file .env.example down",
+    "dev:logs": "docker compose --env-file .env.example logs --follow",
+    "verify:local-stack": "bash scripts/verify_local_stack.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

@@ -1,0 +1,13 @@
+[project]
+name = "nordic-regulated-ai-agent-platform-document-processor"
+version = "0.0.0"
+description = "Reserved workspace for future secure document processing."
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/document_processor"]

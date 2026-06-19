@@ -1,38 +1,59 @@
-# Python
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Node
-node_modules/
-.next/
-dist/
-build/
-coverage/
-
-# Environment
+# Environment files and credentials
 .env
 .env.*
 !.env.example
 
-# IDE
-.vscode/
-.idea/
+# JavaScript tooling and build output
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.next/
+.turbo/
+dist/
+build/
 
-# OS
+# Python environments, caches, and build output
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Logs, editor state, and operating-system files
+*.log
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
 
-# Logs
-*.log
-
-# Docker/local data
+# Local service and object-storage data (introduced in later phases)
+data/
+storage/
+object-storage/
+minio-data/
 docker-data/
 .minio/
 postgres-data/
 redis-data/
+
+# Terraform local state and overrides (infrastructure is added in a later phase)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log

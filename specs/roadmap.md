@@ -6,21 +6,21 @@ Every phase must include at least one validation method. A phase is not complete
 
 ---
 
-## Phase 1 — Repository and Workspace Foundation
+## Phase 1 — Repository and Workspace Foundation (DONE)
 
 - Set up the monorepo structure for frontend, backend API, agent orchestration, retrieval, document processing, evaluation, infrastructure, shared schemas, scripts, documentation, and sample data.
 - Add standard project configuration files for formatting, linting, type checking, environment examples, Git hygiene, and editor consistency.
 - Add initial architecture decision records for the chosen architecture style, LangGraph workflows, PostgreSQL with pgvector, and Azure deployment target.
 - Validation: Repository structure matches `architecture.md`; formatting and lint commands run successfully on the empty workspace.
 
-## Phase 2 — Local Docker Development Environment
+## Phase 2 — Local Docker Development Environment (DONE)
 
 - Add Docker Compose services for frontend, API, worker, PostgreSQL, Redis, MinIO, and optional local support services.
 - Add local environment configuration using `.env.example` without secrets.
 - Add local health endpoints for API and worker readiness.
 - Validation: A developer can run the local stack with one command; API, frontend, PostgreSQL, Redis, and MinIO are reachable; health checks pass.
 
-## Phase 3 — Backend API Skeleton
+## Phase 3 — Backend API Skeleton (DONE)
 
 - Set up the FastAPI application with structured configuration, logging, error handling, dependency wiring, and OpenAPI documentation.
 - Add route groups for auth, users, cases, documents, workflows, approvals, retrieval, evaluations, audit, and admin as stable API boundaries.

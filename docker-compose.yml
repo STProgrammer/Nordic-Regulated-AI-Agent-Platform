@@ -1,0 +1,166 @@
+name: ${COMPOSE_PROJECT_NAME:-nordic-regulated-ai}
+
+services:
+  web:
+    image: nginx:1.27.5-alpine
+    ports:
+      - '127.0.0.1:${WEB_HOST_PORT:-3000}:80'
+    volumes:
+      - ./infra/docker/web-readiness.html:/usr/share/nginx/html/index.html:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1/ || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.dev.Dockerfile
+    image: nordic-regulated-ai-api-local:phase2
+    environment: &health_environment
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-nordic_local}
+      POSTGRES_USER: ${POSTGRES_USER:-nordic_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-postgres-password-not-for-production}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      MINIO_HEALTH_URL: http://${MINIO_HOST:-minio}:${MINIO_PORT:-9000}/minio/health/live
+    ports:
+      - '127.0.0.1:${API_HOST_PORT:-8000}:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live',
+          timeout=2).read()",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/worker.dev.Dockerfile
+    image: nordic-regulated-ai-worker-local:phase2
+    command: ['uvicorn', 'app.workers.readiness:app', '--host', '0.0.0.0', '--port', '8001']
+    environment: *health_environment
+    ports:
+      - '127.0.0.1:${WORKER_HOST_PORT:-8001}:8001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/live',
+          timeout=2).read()",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:0.8.0-pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nordic_local}
+      POSTGRES_USER: ${POSTGRES_USER:-nordic_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-postgres-password-not-for-production}
+    ports:
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '127.0.0.1:${REDIS_HOST_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  minio:
+    build:
+      context: .
+      dockerfile: infra/docker/minio.dev.Dockerfile
+    image: nordic-regulated-ai-minio-local:phase2
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-local-minio-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-local-minio-password-not-for-production}
+    ports:
+      - '127.0.0.1:${MINIO_API_HOST_PORT:-9000}:9000'
+      - '127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:9000/minio/health/live']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-local-minio-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-local-minio-password-not-for-production}
+      MINIO_BUCKET: ${MINIO_BUCKET:-nordic-local}
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; mc mb
+        --ignore-existing "local/$${MINIO_BUCKET}"
+    restart: 'no'
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-nordic-regulated-ai}_default
+    driver: bridge

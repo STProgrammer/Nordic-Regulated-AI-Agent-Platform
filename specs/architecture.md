@@ -121,7 +121,7 @@ Next.js and TypeScript show strong modern frontend competence. shadcn/ui and Tai
 - **Alembic**
 - **asyncpg**
 - **Uvicorn / Gunicorn**
-- **httpx**
+- **httpx2**
 - **structlog**
 - **OpenAPI/Swagger**
 

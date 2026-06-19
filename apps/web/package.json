@@ -1,0 +1,10 @@
+{
+  "name": "@nordic-regulated-ai-agent-platform/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reserved workspace for the Phase 7 Next.js application.",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": ">=11.8.0 <12"
+  }
+}

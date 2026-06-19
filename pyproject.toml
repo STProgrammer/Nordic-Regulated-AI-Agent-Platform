@@ -1,0 +1,60 @@
+[project]
+name = "nordic-regulated-ai-agent-platform-workspace"
+version = "0.1.0"
+description = "Workspace tooling for the Nordic Regulated AI Agent Platform."
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18,<2",
+  "pytest>=8.3,<9",
+  "ruff>=0.12,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+  "apps/api",
+  "packages/shared_schemas",
+  "services/agent_orchestrator",
+  "services/document_processor",
+  "services/evaluation",
+  "services/retrieval",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+explicit_package_bases = true
+mypy_path = [
+  "apps/api/src",
+  "packages/shared_schemas/src",
+  "services/agent_orchestrator/src",
+  "services/document_processor/src",
+  "services/evaluation/src",
+  "services/retrieval/src",
+]
+files = [
+  "apps/api/src",
+  "packages/shared_schemas/src",
+  "services/agent_orchestrator/src",
+  "services/document_processor/src",
+  "services/evaluation/src",
+  "services/retrieval/src",
+]
