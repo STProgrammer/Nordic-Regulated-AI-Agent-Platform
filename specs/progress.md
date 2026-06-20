@@ -23,7 +23,7 @@ implementation, tests, and validation checks pass within its defined scope.
 | 16    | Agent Orchestrator Foundation        | DONE   |
 | 17    | Intake Graph                         | DONE   |
 | 18    | Evidence Graph                        | DONE   |
-| 19    | Extraction Graph                      | TODO   |
+| 19    | Extraction Graph                      | DONE   |
 | 20    | Drafting Graph                        | TODO   |
 
 ## Phase 18 — Evidence Graph (DONE)
@@ -49,6 +49,30 @@ Validation: graph tests (5 passed), API suite (253 collected, passing), web unit
 browser smoke test (1 passed) with a disposable synthetic account, workspace/format/lint/type checks,
 and rebuilt local-stack migration/health/OpenAPI verification all passed. The local stack used the
 explicit deterministic embedding provider for plumbing only; it does not assert retrieval quality.
+
+## Phase 19 — Extraction Graph (DONE)
+
+Completed on 2026-06-21.
+
+Delivered the Evidence-backed structured-information workflow slice:
+
+- A fixed five-node Extraction Graph with a closed taxonomy for people, organizations, dates,
+  deadlines, amounts, references, obligations, tasks, risk observations, missing information, and
+  suggested next actions. Provider output is validated per kind and citation membership before any
+  field is persisted; raw case/evidence/model data remains out of snapshots and audit records.
+- Closed UUID-only extraction dispatch, latest eligible Evidence revalidation, stable field
+  persistence, terminal safe status projections, and non-destructive reruns. Missing or stale
+  Evidence returns an ordinary `needs_more_evidence` extraction outcome without changing case
+  lifecycle or risk.
+- Dedicated latest-result field read and typed edit endpoints. Edits retain the original source link,
+  mark `human_edited`, update the row timestamp, and atomically write a content-free audit event.
+  The localized Case Detail panel renders typed values, confidence bands, source context, and bounded
+  field-specific editing; it exposes no generic JSON editor, draft, approval, or final-risk control.
+
+Validation: graph tests (7 passed), API suite (253 collected, passing), web unit suite (20 passed),
+and the browser smoke test (1 passed) all passed. A rebuilt deterministic local stack passed Alembic
+head, local-stack verification, documentation endpoints, Evidence-to-Extraction execution, typed
+field edit, and durable human-edit persistence checks.
 
 ## Phases 16–17 — Agent Orchestrator Foundation and Intake Graph (DONE)
 

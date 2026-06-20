@@ -150,5 +150,26 @@ async def seed_local(
                         is_active=True,
                     )
                 )
+            extraction_prompt = await session.scalar(
+                select(PromptVersion).where(
+                    PromptVersion.organization_id == organization.id,
+                    PromptVersion.name == "extraction_fields",
+                    PromptVersion.version == "local-v1",
+                )
+            )
+            if extraction_prompt is None:
+                session.add(
+                    PromptVersion(
+                        organization_id=organization.id,
+                        name="extraction_fields",
+                        version="local-v1",
+                        content=(
+                            "Return only the server-declared structured source-linked "
+                            "Extraction JSON. This synthetic local prompt is not production policy."
+                        ),
+                        description="Synthetic local Extraction fixture prompt.",
+                        is_active=True,
+                    )
+                )
 
     return 1, len(ROLE_DESCRIPTIONS), len(SEED_USERS)

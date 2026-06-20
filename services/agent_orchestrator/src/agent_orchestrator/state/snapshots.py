@@ -21,6 +21,7 @@ _SCALAR_KEYS = frozenset(
         "suggested_workflow",
         "classification_source",
         "evidence_outcome",
+        "extraction_schema",
         "node_count",
         "vector_candidate_count",
         "keyword_candidate_count",
@@ -29,6 +30,8 @@ _SCALAR_KEYS = frozenset(
         "permitted_source_count",
         "approved_source_count",
         "evidence_source_count",
+        "extracted_field_count",
+        "low_confidence_field_count",
     }
 )
 _BOOLEAN_KEYS = frozenset(
@@ -41,6 +44,7 @@ _BOOLEAN_KEYS = frozenset(
         "prompt_injection_detected",
         "evidence_sufficient",
         "contradiction_detected",
+        "evidence_available",
     }
 )
 _CODE_LIST_KEYS = frozenset(

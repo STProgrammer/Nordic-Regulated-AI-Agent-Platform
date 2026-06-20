@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
@@ -11,6 +11,7 @@ from app.api.dependencies import (
     CaseServiceDependency,
     CurrentPrincipalDependency,
     get_evidence_workflow_service,
+    get_extraction_workflow_service,
     get_intake_workflow_service,
 )
 from app.api.schemas.cases import (
@@ -33,13 +34,20 @@ from app.api.schemas.common import (
     ResponseMeta,
     SuccessResponse,
 )
-from app.api.schemas.workflows import WorkflowRunData, WorkflowStartRequest
+from app.api.schemas.workflows import (
+    ExtractedFieldData,
+    ExtractedFieldEditRequest,
+    ExtractedFieldListData,
+    WorkflowRunData,
+    WorkflowStartRequest,
+)
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, Unset
 from app.services.cases.service import CaseCreate, CasePatch
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
 from app.services.workflows.evidence import EvidenceWorkflowService
+from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
 
 PREFIX = "/cases"
@@ -263,15 +271,59 @@ async def start_case_workflow(
     principal: CurrentPrincipalDependency,
     workflows: Annotated[IntakeWorkflowService, Depends(get_intake_workflow_service)],
     evidence_workflows: Annotated[EvidenceWorkflowService, Depends(get_evidence_workflow_service)],
+    extraction_workflows: Annotated[
+        ExtractionWorkflowService, Depends(get_extraction_workflow_service)
+    ],
 ) -> SuccessResponse[WorkflowRunData]:
     """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
 
     run = (
         await workflows.start(principal, case_id)
         if payload.workflow == "intake"
-        else await evidence_workflows.start(principal, case_id)
+        else (
+            await evidence_workflows.start(principal, case_id)
+            if payload.workflow == "evidence"
+            else await extraction_workflows.start(principal, case_id)
+        )
     )
     return SuccessResponse(data=_workflow_run_data(run), meta=_meta(request))
+
+
+@router.get(
+    "/{case_id}/extraction/fields",
+    response_model=SuccessResponse[ExtractedFieldListData],
+    responses=_CASE_ERROR_RESPONSES,
+    summary="List typed fields from the latest completed Extraction run",
+)
+async def list_extracted_fields(
+    case_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    workflows: Annotated[ExtractionWorkflowService, Depends(get_extraction_workflow_service)],
+) -> SuccessResponse[ExtractedFieldListData]:
+    fields = await workflows.list_fields(principal, case_id)
+    return SuccessResponse(
+        data=ExtractedFieldListData(items=tuple(_extracted_field_data(field) for field in fields)),
+        meta=_meta(request),
+    )
+
+
+@router.patch(
+    "/{case_id}/extraction/fields/{field_id}",
+    response_model=SuccessResponse[ExtractedFieldData],
+    responses=_CASE_ERROR_RESPONSES,
+    summary="Apply one schema-validated human edit to a latest Extraction field",
+)
+async def edit_extracted_field(
+    case_id: UUID,
+    field_id: UUID,
+    payload: ExtractedFieldEditRequest,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    workflows: Annotated[ExtractionWorkflowService, Depends(get_extraction_workflow_service)],
+) -> SuccessResponse[ExtractedFieldData]:
+    field = await workflows.edit_field(principal, case_id, field_id, payload.field_value)
+    return SuccessResponse(data=_extracted_field_data(field), meta=_meta(request))
 
 
 def _case_data(case: Case) -> CaseData:
@@ -325,3 +377,37 @@ def _workflow_run_data(run: object) -> WorkflowRunData:
     from app.api.routes.workflows import workflow_run_data
 
     return workflow_run_data(run)
+
+
+def _extracted_field_data(field: object) -> ExtractedFieldData:
+    """Return the dedicated typed business-field view, never a graph snapshot."""
+
+    from agent_orchestrator.config import AgentSettings
+    from agent_orchestrator.graphs.extraction_types import (
+        ConfidenceBand,
+        ExtractionFieldKind,
+        validate_extraction_value,
+    )
+
+    from app.db.repositories.extraction import ExtractedFieldWithDocument
+
+    view = cast(ExtractedFieldWithDocument, field)
+    record = view.field
+    kind = ExtractionFieldKind(record.field_name)
+    value = validate_extraction_value(kind, record.field_value)
+    confidence = float(record.confidence) if record.confidence is not None else 0.0
+    return ExtractedFieldData(
+        field_id=record.id,
+        workflow_run_id=record.workflow_run_id,
+        field_kind=kind,
+        field_value=value,
+        confidence_band=(
+            ConfidenceBand.HIGH
+            if confidence >= AgentSettings().extraction_confidence_threshold
+            else ConfidenceBand.LOW
+        ),
+        source_document_id=view.document_id,
+        source_chunk_id=record.source_chunk_id,
+        human_edited=record.human_edited,
+        updated_at=record.updated_at,
+    )

@@ -35,6 +35,7 @@ from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
 from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
 from app.services.workflows.evidence import EvidenceWorkflowService
+from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
 
 # The runtime setting defaults to this name. The dependency itself reads the
@@ -209,6 +210,20 @@ def get_evidence_workflow_service(
     return EvidenceWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
+def get_extraction_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ExtractionWorkflowService:
+    """Construct the Evidence-backed extraction service with server-owned bounds."""
+
+    from agent_orchestrator.config import AgentSettings
+
+    return ExtractionWorkflowService(
+        session,
+        confidence_threshold=AgentSettings().extraction_confidence_threshold,
+        dispatcher=CeleryWorkflowTaskDispatcher(),
+    )
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -282,6 +297,9 @@ IntakeWorkflowServiceDependency = Annotated[
 ]
 EvidenceWorkflowServiceDependency = Annotated[
     EvidenceWorkflowService, Depends(get_evidence_workflow_service)
+]
+ExtractionWorkflowServiceDependency = Annotated[
+    ExtractionWorkflowService, Depends(get_extraction_workflow_service)
 ]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

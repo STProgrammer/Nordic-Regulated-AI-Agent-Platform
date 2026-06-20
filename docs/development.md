@@ -240,6 +240,17 @@ traces, and errors. The Case Detail Evidence Package panel can open the existing
 source-context view for a persisted citation. It does not draft, answer, approve, or expose a
 user-adjustable retrieval form.
 
+### Extraction workflow
+
+`{"workflow":"extraction"}` uses only the latest completed, sufficient, non-contradictory Evidence
+package for the same current-tenant case. The worker rechecks the Evidence run and its currently
+approved source rows before invoking the fixed structured-output operation. It persists
+source-linked, closed-schema fields and exposes values only through the dedicated case field
+endpoint; workflow status contains aggregate counts and confidence bands only. Human edits validate
+against the existing field kind, retain the source link, set `human_edited`, and create a
+content-free audit event. Extraction does not retrieve again, set case risk, change lifecycle state,
+draft prose, or approve an output.
+
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
 write/delete evidence without a cloud account (it creates and removes one synthetic object):
 

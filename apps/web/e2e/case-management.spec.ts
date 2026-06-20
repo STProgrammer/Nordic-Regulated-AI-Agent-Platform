@@ -18,7 +18,7 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
   await page.getByLabel('E-postadresse').fill(email!);
   await page.getByLabel('Passord').fill(password!);
   await page.getByRole('button', { name: 'Logg inn' }).click();
-  await expect(page.getByRole('heading', { name: 'Saksinnboks' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saksinnboks' })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('link', { name: 'Ny sak' }).click();
   await page.getByLabel('Tittel').fill(title);
@@ -33,7 +33,10 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
     form.set('case_id', currentCaseId);
     form.set(
       'email_text',
-      'From: sender@example.invalid\n\nSyntetisk dokumenttekst for lokal nettlesertest.',
+      'From: sender@example.invalid\n\nSyntetisk dokumenttekst for lokal nettlesertest. ' +
+        'Kilden beskriver et syntetisk kontrollforhold og skal bare brukes i lokal validering. ' +
+        'Det finnes ingen persondata eller produksjonsinnhold i denne teksten. ' +
+        'Kildepakken trenger nok innhold til at den kontrollerte Evidence-flyten kan fullføres.',
     );
     form.set('title', 'E2E syntetisk dokument');
     form.set('source_status', 'approved');
@@ -74,7 +77,7 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
   const contextDialog = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
   await expect(contextDialog).toBeVisible();
   await expect(
-    contextDialog.getByText('Syntetisk dokumenttekst for lokal nettlesertest.'),
+    contextDialog.getByText(/Syntetisk dokumenttekst for lokal nettlesertest\./),
   ).toBeVisible();
   await contextDialog.getByRole('button', { name: 'Lukk' }).click();
 
@@ -85,6 +88,19 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
     ),
   ).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('S1')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Start ekstraksjon' }).click();
+  await expect(page.getByText('Ekstraksjon er klar for menneskelig kontroll.')).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.getByText('SYNTHETIC-1')).toBeVisible();
+  await page.getByRole('button', { name: 'Rediger opplysning' }).click();
+  const extractionEditor = page.getByLabel('Verdi (én opplysning per linje)');
+  await extractionEditor.fill('SYNTHETIC-2');
+  await page.getByRole('button', { name: 'Lagre endring' }).click();
+  await expect(page.getByText('Redigert av menneske.')).toBeVisible();
+  await expect(page.getByText('SYNTHETIC-2')).toBeVisible();
+
   await page.getByRole('button', { name: 'Be om reindeksering' }).click();
   await expect(page.getByText('Reindeksering er forespurt.')).toBeVisible();
 

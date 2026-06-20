@@ -7,6 +7,11 @@ from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
+from agent_orchestrator.graphs.extraction_types import (
+    ConfidenceBand,
+    ExtractionFieldKind,
+    ExtractionValue,
+)
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.schemas.cases import CaseDomain, CaseRiskLevel
@@ -64,8 +69,16 @@ class EvidenceStartRequest(BaseModel):
     workflow: Literal["evidence"]
 
 
+class ExtractionStartRequest(BaseModel):
+    """Closed extraction selector; Evidence source choice and schema remain server-owned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workflow: Literal["extraction"]
+
+
 WorkflowStartRequest = Annotated[
-    IntakeStartRequest | EvidenceStartRequest,
+    IntakeStartRequest | EvidenceStartRequest | ExtractionStartRequest,
     Field(discriminator="workflow"),
 ]
 
@@ -132,15 +145,57 @@ class EvidenceResultData(BaseModel):
     sources: tuple[EvidenceSourceData, ...] = ()
 
 
+class ExtractionResultData(BaseModel):
+    """Safe Extraction status data; typed business values are available only from the field API."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    evidence_available: bool | None = None
+    extraction_schema: str | None = None
+    extracted_field_count: int | None = None
+    low_confidence_field_count: int | None = None
+
+
+class ExtractedFieldData(BaseModel):
+    """One source-linked typed business field from the latest completed extraction run."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    field_id: UUID
+    workflow_run_id: UUID
+    field_kind: ExtractionFieldKind
+    field_value: ExtractionValue
+    confidence_band: ConfidenceBand
+    source_document_id: UUID | None
+    source_chunk_id: UUID | None
+    human_edited: bool
+    updated_at: datetime
+
+
+class ExtractedFieldListData(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    items: tuple[ExtractedFieldData, ...]
+
+
+class ExtractedFieldEditRequest(BaseModel):
+    """Only the pre-existing field's typed value may change; kind/source/run stay server-owned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_value: ExtractionValue
+
+
 class WorkflowRunData(BaseModel):
     """Safe status view for a supported current-tenant workflow run."""
 
     model_config = ConfigDict(frozen=True)
 
     workflow_run_id: UUID
-    workflow: Literal["intake", "evidence"]
+    workflow: Literal["intake", "evidence", "extraction"]
     status: WorkflowRunStatus
     started_at: datetime
     finished_at: datetime | None
     intake: IntakeResultData | None = None
     evidence: EvidenceResultData | None = None
+    extraction: ExtractionResultData | None = None

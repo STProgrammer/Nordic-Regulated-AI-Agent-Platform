@@ -132,7 +132,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Link evidence results to the case detail page.
 - Validation: Graph and integration tests verify expected evidence routing, weak-evidence handling, contradiction flags, and source trace persistence.
 
-## Phase 19 — Extraction Graph
+## Phase 19 — Extraction Graph (DONE)
 
 - Implement structured extraction for names, organizations, dates, deadlines, amounts, reference numbers, obligations, tasks, risks, missing information, and suggested next actions.
 - Validate structured outputs with typed schemas and mark low-confidence fields.

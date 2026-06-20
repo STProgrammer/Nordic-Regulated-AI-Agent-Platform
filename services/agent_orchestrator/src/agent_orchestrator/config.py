@@ -37,6 +37,7 @@ class AgentSettings(BaseSettings):
     evidence_maximum_excerpt_characters: int = Field(default=5_000, ge=64, le=20_000)
     evidence_minimum_sources: int = Field(default=1, ge=1, le=20)
     evidence_minimum_excerpt_characters: int = Field(default=200, ge=1, le=20_000)
+    extraction_confidence_threshold: float = Field(default=0.8, ge=0.5, le=1.0)
 
     @field_validator("model", "azure_api_version")
     @classmethod

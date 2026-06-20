@@ -47,7 +47,7 @@ def test_only_implemented_route_modules_define_operations() -> None:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_seventeen_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_nineteen_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -67,6 +67,8 @@ def test_aggregate_router_mounts_the_phase_seventeen_business_operations() -> No
         "/api/cases/{case_id}",
         "/api/cases/{case_id}/archive",
         "/api/cases/{case_id}/workflows/run",
+        "/api/cases/{case_id}/extraction/fields",
+        "/api/cases/{case_id}/extraction/fields/{field_id}",
         "/api/documents",
         "/api/documents/upload",
         "/api/documents/{document_id}",

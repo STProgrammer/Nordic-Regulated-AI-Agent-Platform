@@ -112,6 +112,11 @@ server-enforced RBAC policy. The closed workflow selectors are `{"workflow":"int
 query, or source controls. Evidence is a source-gathering workflow that persists a safe citation
 package or `needs_more_evidence`; it does not answer, draft, approve, or expose a trace.
 
+The closed `{"workflow":"extraction"}` operation uses only a completed eligible Evidence package for
+that case. It produces bounded source-linked structured observations and permits typed edits to the
+latest Extraction result; it never creates a new search, changes case risk/lifecycle, drafts text,
+or approves an output.
+
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`
 does not physically archive or delete a document. The bounded context operation reuses retrieval

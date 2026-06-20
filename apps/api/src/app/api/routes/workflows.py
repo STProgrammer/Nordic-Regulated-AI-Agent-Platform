@@ -22,6 +22,7 @@ from app.api.schemas.common import (
 )
 from app.api.schemas.workflows import (
     EvidenceResultData,
+    ExtractionResultData,
     IntakeCorrectionRequest,
     IntakeResultData,
     WorkflowRunData,
@@ -96,7 +97,7 @@ def workflow_run_data(run: object) -> WorkflowRunData:
 
     workflow_run = cast(WorkflowRun, run)
     snapshot = workflow_run.state_snapshot
-    if workflow_run.workflow_name not in {"intake", "evidence"}:
+    if workflow_run.workflow_name not in {"intake", "evidence", "extraction"}:
         raise NotFoundError("Workflow run")
     intake = (
         _intake_data(snapshot)
@@ -109,14 +110,21 @@ def workflow_run_data(run: object) -> WorkflowRunData:
         and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
         else None
     )
+    extraction = (
+        _extraction_data(snapshot)
+        if workflow_run.workflow_name == "extraction"
+        and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
+        else None
+    )
     return WorkflowRunData(
         workflow_run_id=workflow_run.id,
-        workflow=cast(Literal["intake", "evidence"], workflow_run.workflow_name),
+        workflow=cast(Literal["intake", "evidence", "extraction"], workflow_run.workflow_name),
         status=WorkflowRunStatus(workflow_run.status),
         started_at=workflow_run.started_at,
         finished_at=workflow_run.finished_at,
         intake=intake,
         evidence=evidence,
+        extraction=extraction,
     )
 
 
@@ -166,6 +174,25 @@ def _evidence_data(snapshot: dict[str, object]) -> EvidenceResultData | None:
         if value is not None:
             data[target] = value
     return EvidenceResultData.model_validate(data) if data else None
+
+
+def _extraction_data(snapshot: dict[str, object]) -> ExtractionResultData | None:
+    """Map only aggregate safe extraction lifecycle signals into the status DTO."""
+
+    if not snapshot:
+        return None
+    data: dict[str, object] = {}
+    mapping = {
+        "evidence_available": "evidence_available",
+        "extraction_schema": "extraction_schema",
+        "extracted_field_count": "extracted_field_count",
+        "low_confidence_field_count": "low_confidence_field_count",
+    }
+    for source, target in mapping.items():
+        value = snapshot.get(source)
+        if value is not None:
+            data[target] = value
+    return ExtractionResultData.model_validate(data) if data else None
 
 
 def _meta(request: Request) -> ResponseMeta:

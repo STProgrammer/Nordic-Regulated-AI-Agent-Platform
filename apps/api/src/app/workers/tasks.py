@@ -16,6 +16,12 @@ from agent_orchestrator.graphs.evidence_graph import (
     EvidenceGraphDependencies,
 )
 from agent_orchestrator.graphs.evidence_types import EvidenceWorkflowState
+from agent_orchestrator.graphs.extraction_graph import (
+    ExtractionCaseInput,
+    ExtractionGraph,
+    ExtractionGraphDependencies,
+)
+from agent_orchestrator.graphs.extraction_types import ExtractionWorkflowState
 from agent_orchestrator.graphs.intake_graph import (
     IntakeCaseInput,
     IntakeGraph,
@@ -29,7 +35,7 @@ from agent_orchestrator.graphs.intake_types import (
     LanguageDetectionResult,
 )
 from agent_orchestrator.model_providers.factory import build_model_provider
-from agent_orchestrator.types import RetryPolicy, WorkflowContext
+from agent_orchestrator.types import RetryPolicy, RuntimeStatus, WorkflowContext
 from celery import Task  # type: ignore[import-untyped]
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,6 +65,11 @@ from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowCont
 from app.services.workflows.evidence import (
     EVIDENCE_WORKFLOW_NAME,
     persist_evidence_case_result,
+)
+from app.services.workflows.extraction import (
+    EXTRACTION_WORKFLOW_NAME,
+    load_eligible_evidence,
+    persist_extracted_fields,
 )
 from app.services.workflows.intake import INTAKE_WORKFLOW_NAME
 from app.services.workflows.orchestrator import (
@@ -340,6 +351,128 @@ async def _process_evidence_workflow(workflow_run_id: UUID, settings: AppSetting
         await dispose_database_engines()
 
 
+async def _process_extraction_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Reload one queued Extraction run and compose only its eligible persisted Evidence input."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if (
+                run is None
+                or run.workflow_name != EXTRACTION_WORKFLOW_NAME
+                or run.status != "queued"
+            ):
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            case = await CaseRepository(session).get(context.organization_id, context.case_id)
+            user = await UserRepository(session).get(
+                context.organization_id, context.initiated_by_user_id
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            if case is None or user is None or not user.is_active:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="case_not_available",
+                    )
+                    await session.commit()
+                return "failed"
+            evidence = await load_eligible_evidence(
+                session, context.organization_id, context.case_id
+            )
+            if evidence is None:
+                if await persistence.claim_run(context):
+                    await persistence.complete_run(
+                        context,
+                        status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "needs_more_evidence",
+                            "evidence_available": False,
+                        },
+                        duration_ms=0,
+                    )
+                    await session.commit()
+                return "needs_more_evidence"
+            try:
+                agent_settings = AgentSettings()
+                fixture_fields: list[dict[str, object]] = []
+                if evidence.sources:
+                    fixture_fields = [
+                        {
+                            "kind": "reference_numbers",
+                            "value": {"references": ["SYNTHETIC-1"]},
+                            "source_citation": evidence.sources[0].citation_label,
+                            "confidence": 0.9,
+                        }
+                    ]
+                fixtures = {"extraction_fields": {"fields": fixture_fields}}
+                graph = ExtractionGraph(
+                    ExtractionGraphDependencies(
+                        case_input=ExtractionCaseInput(
+                            title=case.title,
+                            description=case.description,
+                            case_type=case.case_type,
+                            domain=case.domain,
+                            language=case.language,
+                        ),
+                        evidence_sources=evidence.sources,
+                        prompt_loader=SqlAlchemyPromptLoader(session),
+                        model_provider=build_model_provider(
+                            agent_settings,
+                            deterministic_fixtures=(
+                                fixtures if agent_settings.provider == "deterministic" else None
+                            ),
+                        ),
+                        persistence=persistence,
+                        persist_fields=lambda graph_context, state, fields: (
+                            persist_extracted_fields(session, graph_context, state, fields)
+                        ),
+                        confidence_threshold=agent_settings.extraction_confidence_threshold,
+                        retry_policy=RetryPolicy(
+                            maximum_retries=agent_settings.node_maximum_retries
+                        ),
+                    )
+                )
+                result = await graph.run(context, ExtractionWorkflowState(context=context))
+                await session.commit()
+                return result.outcome.status.value
+            except Exception:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                            "evidence_available": True,
+                        },
+                        duration_ms=0,
+                        error_code="workflow_configuration_unavailable",
+                    )
+                    await session.commit()
+                return "failed"
+    finally:
+        await dispose_database_engines()
+
+
 def _retry_delay(retries: int) -> int:
     """Small finite exponential backoff suitable for local and production-like queues."""
 
@@ -564,6 +697,33 @@ def run_evidence_workflow_task(task: Task, workflow_run_id: str) -> str:
     except Exception as error:
         _logger.warning(
             "workflow.evidence_task_runtime_unavailable", error_type=type(error).__name__
+        )
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_extraction_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_extraction_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only Extraction task with bounded infrastructure retries."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("workflow.extraction_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_extraction_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning(
+            "workflow.extraction_task_runtime_unavailable", error_type=type(error).__name__
         )
         if task.request.retries >= settings.document_parser_task_max_retries:
             return "failed"

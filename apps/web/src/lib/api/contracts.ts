@@ -243,6 +243,7 @@ export const caseCreateInputSchema = z.object({
 
 export const intakeStartInputSchema = z.object({ workflow: z.literal('intake') }).strict();
 export const evidenceStartInputSchema = z.object({ workflow: z.literal('evidence') }).strict();
+export const extractionStartInputSchema = z.object({ workflow: z.literal('extraction') }).strict();
 export const intakeCorrectionInputSchema = z
   .object({
     case_type: intakeCaseTypeSchema,
@@ -289,14 +290,80 @@ export const evidenceResultSchema = z.object({
   sources: z.array(evidenceSourceSchema),
 });
 
+export const extractionFieldKindSchema = z.enum([
+  'people',
+  'organizations',
+  'dates',
+  'deadlines',
+  'amounts',
+  'reference_numbers',
+  'obligations',
+  'tasks',
+  'risks',
+  'missing_information',
+  'suggested_next_actions',
+]);
+export const confidenceBandSchema = z.enum(['high', 'low']);
+export const stringItemsValueSchema = z
+  .object({ items: z.array(z.string().min(1).max(500)).min(1).max(12) })
+  .strict();
+export const datesValueSchema = z.object({ dates: z.array(isoDateSchema).min(1).max(12) }).strict();
+export const amountsValueSchema = z
+  .object({
+    amounts: z
+      .array(
+        z
+          .object({
+            amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+            currency: z.string().regex(/^[A-Z]{3}$/),
+            label: z.string().max(160).nullable(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(12),
+  })
+  .strict();
+export const referencesValueSchema = z
+  .object({ references: z.array(z.string().min(2).max(100)).min(1).max(12) })
+  .strict();
+export const extractionValueSchema = z.union([
+  stringItemsValueSchema,
+  datesValueSchema,
+  amountsValueSchema,
+  referencesValueSchema,
+]);
+export const extractionResultSchema = z.object({
+  evidence_available: z.boolean().nullable(),
+  extraction_schema: z.string().nullable(),
+  extracted_field_count: z.number().int().nonnegative().nullable(),
+  low_confidence_field_count: z.number().int().nonnegative().nullable(),
+});
+export const extractedFieldSchema = z.object({
+  field_id: z.string().uuid(),
+  workflow_run_id: z.string().uuid(),
+  field_kind: extractionFieldKindSchema,
+  field_value: extractionValueSchema,
+  confidence_band: confidenceBandSchema,
+  source_document_id: z.string().uuid().nullable(),
+  source_chunk_id: z.string().uuid().nullable(),
+  human_edited: z.boolean(),
+  updated_at: isoTimestampSchema,
+});
+export const extractedFieldListSchema = z.object({ items: z.array(extractedFieldSchema) });
+export const extractedFieldEditInputSchema = z
+  .object({ field_value: extractionValueSchema })
+  .strict();
+
 export const workflowRunSchema = z.object({
   workflow_run_id: z.string().uuid(),
-  workflow: z.enum(['intake', 'evidence']),
+  workflow: z.enum(['intake', 'evidence', 'extraction']),
   status: workflowRunStatusSchema,
   started_at: isoTimestampSchema,
   finished_at: isoTimestampSchema.nullable(),
-  intake: intakeResultSchema.nullable(),
-  evidence: evidenceResultSchema.nullable(),
+  intake: intakeResultSchema.nullable().optional(),
+  evidence: evidenceResultSchema.nullable().optional(),
+  extraction: extractionResultSchema.nullable().optional(),
 });
 
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
@@ -328,9 +395,14 @@ export type WorkflowRunStatus = z.infer<typeof workflowRunStatusSchema>;
 export type IntakeResult = z.infer<typeof intakeResultSchema>;
 export type EvidenceResult = z.infer<typeof evidenceResultSchema>;
 export type EvidenceSource = z.infer<typeof evidenceSourceSchema>;
+export type ExtractionFieldKind = z.infer<typeof extractionFieldKindSchema>;
+export type ExtractionValue = z.infer<typeof extractionValueSchema>;
+export type ExtractedField = z.infer<typeof extractedFieldSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
 export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
 export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
+export type ExtractionStartInput = z.infer<typeof extractionStartInputSchema>;
+export type ExtractedFieldEditInput = z.infer<typeof extractedFieldEditInputSchema>;
 export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
 export type DocumentData = z.infer<typeof documentDataSchema>;
 export type DocumentList = z.infer<typeof documentListSchema>;
