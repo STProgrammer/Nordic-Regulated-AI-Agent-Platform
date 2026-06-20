@@ -7,20 +7,25 @@ interface language.
 
 ## Current status
 
-This repository is at **Phase 6: Authentication, Sessions, and RBAC**. The API now supports local
-email/password login with Argon2id, opaque HTTP-only Redis-backed sessions, failed-login rate
-limiting, current-user lookup, logout, and backend-enforced organization-scoped Admin user/role
-management. PostgreSQL remains the source of truth for identities, roles, and append-only audit
-events; each protected request reloads the active user and current roles.
+This repository is at **Phase 14: Evidence Panel and Document UI**. The Next.js web application
+provides Norwegian Bokmål by default, optional English, localized login/logout, opaque HTTP-only
+session integration, and accessible authenticated navigation. Authorized users can submit a
+synthetic case, find it in the server-backed Case Inbox, and open its Case Detail view. Case Detail
+now shows safe document metadata, parsing/indexing/source-governance state, permitted re-indexing
+intent, governed source search, and explicitly opened bounded source context. It does not upload,
+download, preview, browse raw documents, or generate AI answers. Workflow output, extracted fields,
+risk, approvals, and audit data remain unavailable until their owning phases.
 
-Only authentication and user/role APIs are product operations at this stage. Cases, documents,
-workflows, approvals, audit reads, retrieval, AI workflows, and frontend session UX remain owned by
-later phases.
+The protected Case API supports organization-scoped submission, listing, detail, lifecycle updates,
+assignment, filtering, search, archiving, and minimal append-only audit events. Its Case-read-only
+`GET /api/cases/assignees` view exposes only display names and ids of active users assigned to
+visible current-organization cases, so the inbox can filter by a human-readable assignee without
+turning the Admin-only Users API into a directory.
 
 ## Repository map
 
 ```text
-apps/          Future API and web application boundaries
+apps/          API and Next.js web applications
 services/      Future agent orchestration, retrieval, document, and evaluation services
 packages/      Future shared schemas
 docs/          Developer guidance and architecture decision records
@@ -50,6 +55,7 @@ pnpm check:workspace
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test:web
 pnpm test:api
 ```
 
@@ -74,20 +80,42 @@ docker compose --env-file .env.example up --build --wait --detach
 
 The default services are deliberately local-only: all published ports bind to `127.0.0.1`.
 
-| Service    | Local endpoint                                        | Current role                                                   |
-| ---------- | ----------------------------------------------------- | -------------------------------------------------------------- |
-| Web        | http://127.0.0.1:3000/                                | Static readiness page, not the Phase 7 UI                      |
-| API        | http://127.0.0.1:8000/docs and `/health/live`         | Health, local auth/session APIs, Admin user/role APIs, OpenAPI |
-| Worker     | http://127.0.0.1:8001/health/live and `/health/ready` | Health-only worker-process contract; no jobs run               |
-| PostgreSQL | `127.0.0.1:5432`                                      | PostgreSQL 16 with pgvector; schema changes are explicit       |
-| Redis      | `127.0.0.1:6379`                                      | Opaque session and failed-login rate-limit state               |
-| Azurite    | http://127.0.0.1:10000/                               | Local Azure Blob Storage emulator (account `devstoreaccount1`) |
+| Service    | Local endpoint                                | Current role                                                           |
+| ---------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| Web        | http://127.0.0.1:3000/                        | Next.js application shell; `/` redirects to Norwegian Bokmål           |
+| API        | http://127.0.0.1:8000/docs and `/health/live` | Health, local auth/session, user/role, and Case APIs; OpenAPI          |
+| Worker     | Internal Compose service only                 | Celery consumer for private parser/index jobs; health uses broker ping |
+| PostgreSQL | `127.0.0.1:5432`                              | PostgreSQL 16 with pgvector; schema changes are explicit               |
+| Redis      | `127.0.0.1:6379`                              | Opaque session and failed-login rate-limit state                       |
+| Azurite    | http://127.0.0.1:10000/                       | Local Azure Blob Storage emulator (account `devstoreaccount1`)         |
 
-The API serves `/health/live`, `/health/ready`, `/openapi.json`, `/docs`, and `/redoc`. Phase 6 adds
+The API serves `/health/live`, `/health/ready`, `/openapi.json`, `/docs`, and `/redoc`. It exposes
 `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET/POST /api/users`,
-`GET/PATCH /api/users/{user_id}`, `PUT /api/users/{user_id}/roles`, and `GET /api/roles`. All user
-and role operations require the persisted **Admin** role in the current organization. The remaining
-`/api` route groups are still operation-free.
+`GET/PATCH /api/users/{user_id}`, `PUT /api/users/{user_id}/roles`, `GET /api/roles`, and the
+protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
+`POST /api/cases/{case_id}/archive`, plus the Case-read-only `GET /api/cases/assignees`,
+`POST /api/documents/upload`, case-scoped `GET /api/documents`, `GET /api/documents/{document_id}`,
+`PATCH /api/documents/{document_id}/source-status`, bounded
+`GET /api/documents/{document_id}/context`, `POST /api/documents/{document_id}/reprocess`,
+`POST /api/documents/{document_id}/reindex`, and `POST /api/retrieval/search`. Case dates use ISO
+calendar dates (`YYYY-MM-DD`); the frontend localizes them for display. User and role operations
+require the persisted **Admin** role in the current organization; Case actions use their documented
+server-enforced RBAC policy. The remaining future `/api` route groups, other than the implemented
+retrieval search boundary, are still operation-free.
+
+Document list/detail responses are always metadata-only. A source-status update accepts only the
+closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`
+does not physically archive or delete a document. The bounded context operation reuses retrieval
+role, tenant, lifecycle, source-status, and restricted-confidentiality checks before returning one
+server-limited window. `POST /api/retrieval/search` is case-contextual and returns only bounded,
+tenant-governed source excerpts using deterministic hybrid rank fusion. Approved sources are the
+default; non-approved selection is backend-authorized and may return a source warning. Neither the
+API nor Evidence Panel generates answers or verified answer references.
+
+For local plumbing verification only, explicitly set `NORDIC_API_EMBEDDING_PROVIDER=deterministic`
+in an untracked local environment file. Those stable vectors are non-semantic and must not be used
+as a claim of embedding or retrieval quality. Use an explicit OpenAI or Azure OpenAI configuration
+for real embedding behavior; keys and endpoints stay out of tracked files.
 
 `azurite-init` is a one-shot helper, not a long-running service. It creates the configured empty
 local blob container idempotently and then exits successfully.
@@ -97,6 +125,20 @@ Verify an already-running stack without adding business data:
 ```bash
 pnpm verify:local-stack
 ```
+
+The web container has a server-only `API_ORIGIN=http://api:8000` and proxies browser requests from
+same-origin `/api/...`; no browser-visible environment variable, token, or cookie handling is added
+by the frontend. For host-only web development with the API running on its loopback port, use:
+
+```bash
+API_ORIGIN=http://127.0.0.1:8000 pnpm --filter @nordic-regulated-ai-agent-platform/web dev
+```
+
+Open `http://127.0.0.1:3000/`. The application defaults to `/nb`; the language selector preserves
+the current route when switching to `/en`. The Case Inbox is available at `/nb/cases`, with
+submission at `/nb/cases/new`; other authenticated destinations remain placeholders. Use the
+synthetic local-account workflow below before testing login; do not use a personal or production
+password.
 
 ## Database migrations and synthetic local fixtures
 
@@ -125,6 +167,23 @@ docker compose --env-file .env.example exec -e NORDIC_LOCAL_SEED_PASSWORD api \
   python scripts/seed_local.py --password-env NORDIC_LOCAL_SEED_PASSWORD
 unset NORDIC_LOCAL_SEED_PASSWORD
 ```
+
+To run the optional browser smoke test after the stack has been migrated and seeded, start the local
+stack with the deterministic local/test-only embedding provider, install the project-managed
+Chromium binary once, then provide the synthetic case-worker email and the same local-only password
+variable without printing the password:
+
+```bash
+pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
+NORDIC_API_EMBEDDING_PROVIDER=deterministic pnpm dev:up
+export NORDIC_E2E_CASE_WORKER_EMAIL='kari.eksempel+caseworker@demo.invalid'
+pnpm test:e2e
+unset NORDIC_E2E_CASE_WORKER_EMAIL
+```
+
+On Linux, the browser dependency installation may require an interactive `sudo` prompt.
+`pnpm test:e2e` requires `NORDIC_LOCAL_SEED_PASSWORD`; it uses only a unique synthetic case and
+disables browser screenshots, video, and tracing.
 
 This provisions local passwords for the synthetic `demo.invalid` fixtures only. Login sets an opaque
 HTTP-only cookie; use the same client/cookie jar for `/api/auth/me` and `/api/auth/logout`. Wrong

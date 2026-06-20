@@ -29,6 +29,19 @@ _FORBIDDEN_DATA_KEYS = frozenset(
         "request_body",
         "secret",
         "token",
+        "query",
+        "query_hash",
+        "query_text",
+        "excerpt",
+        "chunk_id",
+        "embedding",
+        "vector",
+        "score",
+        "checksum",
+        "storage_key",
+        "provider_response",
+        "exception",
+        "sql",
     }
 )
 
@@ -46,6 +59,7 @@ class AuditEventCreate:
     ip_address: str | None = None
     user_agent: str | None = None
     event_data: dict[str, JSONValue] = field(default_factory=dict)
+    include_archived_case: bool = False
 
 
 def _safe_json(value: JSONValue) -> JSONValue:
@@ -90,7 +104,12 @@ class AuditService:
             raise NotFoundError("User")
         if (
             command.case_id is not None
-            and await self.cases.get(command.organization_id, command.case_id) is None
+            and await self.cases.get(
+                command.organization_id,
+                command.case_id,
+                include_archived=command.include_archived_case,
+            )
+            is None
         ):
             raise NotFoundError("Case")
         event_data = _safe_json(command.event_data)

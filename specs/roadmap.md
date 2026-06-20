@@ -48,49 +48,49 @@ Every phase must include at least one validation method. A phase is not complete
 - Add authorization checks for organization-scoped resources and separation-of-duties rules for high-risk approval.
 - Validation: Auth and RBAC tests pass; unauthorized and cross-organization requests are blocked; OpenAPI documents protected routes.
 
-## Phase 7 — Frontend Application Shell
+## Phase 7 — Frontend Application Shell (DONE)
 
 - Set up the Next.js frontend with TypeScript, routing, layout, shared UI components, API client, form handling, and server-state management.
 - Add Norwegian Bokmål as the default interface language and English as an optional language.
 - Add authenticated navigation for case inbox, approvals, evaluations, admin, and audit areas.
 - Validation: Frontend lint, type checks, and component tests pass; local UI connects to the API; language switching works.
 
-## Phase 8 — Case Management Backend
+## Phase 8 — Case Management Backend (DONE)
 
 - Implement case submission, case listing, case detail, status updates, assignment, filtering, search, archiving, and audit events.
 - Support Norwegian date formatting requirements at API boundary through consistent data modeling and frontend formatting support.
 - Add validation for title, description, domain, priority, language, due date, and external reference.
 - Validation: API tests cover case submission, filters, status transitions, organization isolation, and audit logging.
 
-## Phase 9 — Case Management UI
+## Phase 9 — Case Management UI (DONE)
 
 - Implement Case Inbox with filtering by status, risk level, assignee, domain, and priority.
 - Implement Case Detail with metadata, status, documents, extracted fields placeholder, evidence placeholder, workflow placeholder, risk placeholder, approval placeholder, and audit timeline placeholder.
 - Add accessible forms, error messages, loading states, and empty states in Norwegian Bokmål.
 - Validation: Frontend tests and Playwright smoke test cover login, case submission, case list, and case detail navigation.
 
-## Phase 10 — Secure Document Upload and Storage
+## Phase 10 — Secure Document Upload and Storage (DONE)
 
 - Implement secure document upload for PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted email text.
 - Store raw files in Azurite locally and add object-storage-compatible storage abstractions for cloud.
 - Add file type validation, file size limits, checksums, metadata, source status, confidentiality level, and audit logging.
 - Validation: Upload API tests cover allowed files, rejected files, size limits, metadata persistence, and audit events.
 
-## Phase 11 — Document Parsing Pipeline
+## Phase 11 — Document Parsing Pipeline (DONE)
 
 - Implement background document parsing for supported formats with safe error handling.
 - Store parsed text separately from raw files, preserve page or section context where available, and detect language.
 - Add parsing status, parsing error summaries, and reprocessing support.
 - Validation: Parser tests cover each supported file type using safe sample files; failed parsing does not corrupt case or document state.
 
-## Phase 12 — Chunking, Embeddings, and Indexing
+## Phase 12 — Chunking, Embeddings, and Indexing (DONE)
 
 - Implement tokenizer-aware chunking with document identity, page, section, chunk index, token count, and metadata preservation.
 - Add embedding generation and pgvector indexing for document chunks.
 - Add keyword/full-text indexing for exact terms, policy names, numbers, and Norwegian text.
 - Validation: Integration tests verify chunk persistence, vector index availability, full-text search, and re-indexing behavior.
 
-## Phase 13 — Retrieval Service Foundation
+## Phase 13 — Retrieval Service Foundation (DONE)
 
 - Implement retrieval service boundaries for query rewriting, vector search, keyword search, candidate merging, permissions filtering, source-status filtering, and ranked source return.
 - Add support for approved, draft, deprecated, restricted, and archived source behavior.

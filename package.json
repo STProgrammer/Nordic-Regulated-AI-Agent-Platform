@@ -24,13 +24,16 @@
     "typecheck:python": "uv run mypy apps services packages scripts",
     "test:health": "uv run pytest apps/api/tests/api/test_health.py",
     "test:api": "uv run pytest apps/api/tests",
-    "dev:up": "docker compose --env-file .env.example up --build --wait --detach",
+    "test:web": "pnpm --filter @nordic-regulated-ai-agent-platform/web test",
+    "test:e2e": "pnpm --filter @nordic-regulated-ai-agent-platform/web test:e2e",
+    "dev:up": "docker compose --env-file .env.example up --build --wait --detach web api worker postgres redis azurite && docker compose --env-file .env.example up --detach azurite-init",
     "dev:down": "docker compose --env-file .env.example down",
     "dev:logs": "docker compose --env-file .env.example logs --follow",
     "verify:local-stack": "bash scripts/verify_local_stack.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@next/eslint-plugin-next": "15.5.9",
     "eslint": "^9.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",

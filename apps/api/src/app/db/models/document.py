@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -9,6 +10,7 @@ from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -55,8 +57,13 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, ArchivableMixin, Base):
         UniqueConstraint("id", "organization_id", name="uq_documents_id_organization"),
         CheckConstraint("file_size_bytes >= 0", name="file_size_bytes_nonnegative"),
         CheckConstraint("page_count IS NULL OR page_count >= 0", name="page_count_nonnegative"),
+        CheckConstraint(
+            "indexing_status IN ('not_ready', 'pending', 'indexing', 'indexed', 'failed')",
+            name="indexing_status_valid",
+        ),
         Index("ix_documents_organization_case", "organization_id", "case_id"),
         Index("ix_documents_organization_source_status", "organization_id", "source_status"),
+        Index("ix_documents_indexing_status", "indexing_status"),
         Index("ix_documents_checksum_sha256", "checksum_sha256"),
     )
 
@@ -78,6 +85,13 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, ArchivableMixin, Base):
     page_count: Mapped[int | None] = mapped_column(Integer)
     parsing_status: Mapped[str] = mapped_column(String(50), nullable=False)
     parsing_error: Mapped[str | None] = mapped_column(Text)
+    # Parsing and indexing deliberately have independent lifecycles. A previous
+    # good chunk set remains durable while a reparse or re-index is pending.
+    indexing_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default=text("'not_ready'")
+    )
+    indexing_error: Mapped[str | None] = mapped_column(Text)
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     organization: Mapped[Organization] = relationship(back_populates="documents", lazy="raise")
     case: Mapped[Case | None] = relationship(
         foreign_keys=[organization_id, case_id], lazy="raise", viewonly=True

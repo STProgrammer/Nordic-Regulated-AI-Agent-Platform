@@ -12,6 +12,7 @@ node_modules/
 .turbo/
 dist/
 build/
+apps/web/test-results/
 
 # Python environments, caches, and build output
 .venv/

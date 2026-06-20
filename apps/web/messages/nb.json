@@ -1,0 +1,297 @@
+{
+  "app": {
+    "name": "Nordisk regulert KI-plattform"
+  },
+  "common": {
+    "loading": "Laster sikker økt …",
+    "retry": "Prøv på nytt",
+    "current": "aktiv"
+  },
+  "navigation": {
+    "label": "Hovednavigasjon",
+    "cases": "Saker",
+    "approvals": "Godkjenninger",
+    "evaluations": "Evalueringer",
+    "admin": "Administrasjon",
+    "audit": "Revisjon",
+    "skipToContent": "Hopp til hovedinnhold"
+  },
+  "language": {
+    "label": "Språk",
+    "nb": "Norsk bokmål",
+    "en": "English"
+  },
+  "account": {
+    "label": "Konto",
+    "logout": "Logg ut",
+    "logoutPending": "Logger ut …",
+    "role": {
+      "admin": "Administrator",
+      "complianceReviewer": "Etterlevelseskontrollør",
+      "caseWorker": "Saksbehandler",
+      "manager": "Leder",
+      "readOnlyAuditor": "Skrivebeskyttet revisor"
+    }
+  },
+  "login": {
+    "title": "Logg inn",
+    "description": "Logg inn med en lokalt opprettet, syntetisk konto.",
+    "emailLabel": "E-postadresse",
+    "emailHint": "Bruk bare en syntetisk demo.invalid-adresse i lokal utvikling.",
+    "passwordLabel": "Passord",
+    "submit": "Logg inn",
+    "submitting": "Logger inn …",
+    "emailRequired": "Skriv inn en gyldig e-postadresse.",
+    "passwordRequired": "Skriv inn passordet.",
+    "passwordTooLong": "Passordet kan ikke være lengre enn 512 tegn.",
+    "invalidCredentials": "E-postadressen eller passordet er feil.",
+    "rateLimited": "For mange innloggingsforsøk. Prøv igjen om {seconds} sekunder.",
+    "unavailable": "Innlogging er midlertidig utilgjengelig. Prøv igjen.",
+    "genericError": "Kunne ikke logge inn. Prøv igjen.",
+    "requestId": "Referanse for brukerstøtte: {requestId}"
+  },
+  "session": {
+    "unavailableTitle": "Økten kan ikke kontrolleres nå",
+    "unavailableDescription": "Tjenesten svarte ikke som forventet. Prøv på nytt før du fortsetter.",
+    "redirecting": "Sender deg til innlogging …"
+  },
+  "cases": {
+    "title": "Saksinnboks",
+    "newCase": "Ny sak",
+    "newCaseTitle": "Opprett ny sak",
+    "newCaseDescription": "Oppgi bare informasjon som er klar for registrering i saken.",
+    "backToInbox": "Tilbake til saksinnboksen",
+    "results": "{count, plural, =0 {Ingen saker} one {# sak} other {# saker}}",
+    "searchLabel": "Søk i saker",
+    "searchHint": "Søk på saksnummer, tittel eller beskrivelse.",
+    "searchPlaceholder": "Saksnummer eller tittel",
+    "applyFilters": "Bruk filtre",
+    "clearFilters": "Nullstill filtre",
+    "filterStatus": "Status",
+    "filterRisk": "Risikonivå",
+    "filterAssignee": "Tildelt saksbehandler",
+    "filterDomain": "Fagområde",
+    "filterPriority": "Prioritet",
+    "allStatuses": "Alle statuser",
+    "allRiskLevels": "Alle risikonivåer",
+    "allAssignees": "Alle saksbehandlere",
+    "allDomains": "Alle fagområder",
+    "allPriorities": "Alle prioriteter",
+    "tableCaption": "Saker i saksinnboksen",
+    "caseNumber": "Saksnummer",
+    "caseTitle": "Tittel",
+    "status": "Status",
+    "priority": "Prioritet",
+    "risk": "Risiko",
+    "assignee": "Tildelt",
+    "dueDate": "Frist",
+    "updated": "Sist oppdatert",
+    "domain": "Fagområde",
+    "workflow": "Arbeidsflyt",
+    "workflowUnavailable": "Ikke startet",
+    "notAssessed": "Ikke vurdert",
+    "unassigned": "Ikke tildelt",
+    "noDueDate": "Ingen frist",
+    "emptyTitle": "Ingen saker ennå",
+    "emptyDescription": "Opprett en ny sak for å komme i gang.",
+    "filterEmptyTitle": "Ingen saker samsvarer med filtrene",
+    "filterEmptyDescription": "Endre eller nullstill filtrene og prøv på nytt.",
+    "previous": "Forrige side",
+    "next": "Neste side",
+    "page": "Side {page}",
+    "loading": "Laster saker …",
+    "unavailableTitle": "Sakene er ikke tilgjengelige",
+    "unavailableDescription": "Kunne ikke hente saker på en trygg måte. Prøv igjen.",
+    "notFoundTitle": "Saken er ikke tilgjengelig",
+    "notFoundDescription": "Saken finnes ikke eller er ikke tilgjengelig for deg.",
+    "invalidLinkTitle": "Ugyldig sakskobling",
+    "invalidLinkDescription": "Koblingen til saken er ugyldig eller ikke tilgjengelig.",
+    "permissionDescription": "Din rolle kan ikke opprette saker. Du kan fortsatt lese saker du har tilgang til.",
+    "fields": {
+      "title": "Tittel",
+      "description": "Beskrivelse",
+      "domain": "Fagområde",
+      "priority": "Prioritet",
+      "language": "Saksspråk",
+      "dueDate": "Frist (valgfri)",
+      "externalReference": "Ekstern referanse (valgfri)",
+      "caseNumber": "Saksnummer",
+      "caseType": "Sakstype",
+      "submittedBy": "Registrert av",
+      "created": "Opprettet",
+      "updated": "Sist oppdatert",
+      "externalReferenceDetail": "Ekstern referanse"
+    },
+    "submit": "Opprett sak",
+    "submitting": "Oppretter sak …",
+    "cancel": "Avbryt",
+    "requiredError": "Fyll ut dette feltet.",
+    "tooLongError": "Verdien er for lang.",
+    "dateError": "Oppgi en gyldig dato.",
+    "submitError": "Kunne ikke opprette saken. Prøv igjen.",
+    "requestId": "Referanse for brukerstøtte: {requestId}",
+    "created": "Saken ble opprettet.",
+    "identityUnavailable": "Ikke tilgjengelig",
+    "future": {
+      "fields": "Ekstraherte felt blir tilgjengelige i fase 19.",
+      "workflow": "Arbeidsflytresultater blir tilgjengelige i fase 16–17.",
+      "risk": "Risiko og etterlevelse blir tilgjengelig i fase 21.",
+      "approval": "Godkjenninger blir tilgjengelige i fase 22.",
+      "audit": "Revisjonstidslinjen blir tilgjengelig i fase 23."
+    },
+    "futureTitles": {
+      "fields": "Ekstraherte felt",
+      "workflow": "Arbeidsflyt",
+      "risk": "Risiko og etterlevelse",
+      "approval": "Godkjenning",
+      "audit": "Revisjonstidslinje"
+    },
+    "statusLabels": {
+      "new": "Ny",
+      "processing": "Under behandling",
+      "waiting_for_human_review": "Venter på manuell vurdering",
+      "needs_more_evidence": "Trenger mer grunnlag",
+      "approved": "Godkjent",
+      "rejected": "Avvist",
+      "completed": "Fullført",
+      "failed": "Mislyktes",
+      "archived": "Arkivert"
+    },
+    "priorityLabels": { "low": "Lav", "normal": "Normal", "high": "Høy", "urgent": "Haster" },
+    "riskLabels": { "low": "Lav", "medium": "Middels", "high": "Høy", "critical": "Kritisk" },
+    "domainLabels": {
+      "public_sector": "Offentlig sektor",
+      "banking_compliance": "Bank og etterlevelse",
+      "energy_operations": "Energidrift",
+      "internal_policy": "Intern policy"
+    },
+    "languageLabels": { "nb": "Norsk bokmål", "en": "Engelsk" }
+  },
+  "documents": {
+    "title": "Dokumenter",
+    "metadataOnly": "Viser bare sikker metadata",
+    "loading": "Laster dokumenter …",
+    "unavailable": "Dokumentene er ikke tilgjengelige akkurat nå.",
+    "retry": "Prøv igjen",
+    "empty": "Det er ingen aktive dokumenter i denne saken.",
+    "listLabel": "Dokumenter i saken",
+    "moreAvailable": "Flere dokumenter er tilgjengelige.",
+    "inspect": "Se metadata",
+    "detailLoading": "Laster dokumentmetadata …",
+    "detailUnavailable": "Dokumentmetadata er ikke tilgjengelig.",
+    "close": "Lukk",
+    "detailTitle": "Dokumentmetadata",
+    "fileLabel": "Fil",
+    "sizeLabel": "Størrelse",
+    "languageLabel": "Språk",
+    "pagesLabel": "Sider",
+    "parsingLabel": "Tolking",
+    "indexingLabel": "Indeksering",
+    "sourceStatusLabel": "Kildestatus",
+    "confidentialityLabel": "Konfidensialitet",
+    "updatedLabel": "Sist oppdatert",
+    "unknown": "Ukjent",
+    "parsingError": "Dokumentet kunne ikke tolkes på en trygg måte.",
+    "indexingError": "Dokumentet kunne ikke indekseres på en trygg måte.",
+    "changeSourceStatus": "Endre kildestatus",
+    "archivedHelp": "Arkivert er en kildeetikett for gjenfinning. Det sletter eller fysisk arkiverer ikke dokumentet.",
+    "saving": "Lagrer …",
+    "saveStatus": "Lagre kildestatus",
+    "reindexing": "Ber om reindeksering …",
+    "reindex": "Be om reindeksering",
+    "reindexUnavailable": "Reindeksering kan først bes når tolkingen er ferdig og indeksering ikke pågår.",
+    "actionConflict": "Handlingen kan ikke utføres mens dokumentet er i en annen tilstand.",
+    "actionFailed": "Handlingen kunne ikke fullføres på en trygg måte. Prøv igjen.",
+    "statusSaved": "Kildestatus er lagret.",
+    "reindexRequested": "Reindeksering er forespurt.",
+    "sourceStatuses": {
+      "approved": "Godkjent",
+      "draft": "Utkast",
+      "deprecated": "Utdatert",
+      "restricted": "Begrenset",
+      "archived": "Arkivert"
+    },
+    "confidentiality": {
+      "public": "Offentlig",
+      "internal": "Intern",
+      "confidential": "Fortrolig",
+      "restricted": "Begrenset"
+    },
+    "parsing": {
+      "pending": "Venter",
+      "processing": "Behandles",
+      "parsed": "Ferdig",
+      "failed": "Mislyktes"
+    },
+    "indexing": {
+      "not_ready": "Ikke klar",
+      "pending": "Venter",
+      "indexing": "Indekserer",
+      "indexed": "Indeksert",
+      "failed": "Mislyktes"
+    }
+  },
+  "evidence": {
+    "title": "Kildegrunnlag",
+    "description": "Søk i tillatte dokumentkilder. Resultatene er kildeutdrag, ikke et AI-svar.",
+    "unavailableForRole": "Din rolle kan se dokumentmetadata, men kan ikke søke i eller åpne kildeinnhold.",
+    "queryLabel": "Hva vil du finne i kildene?",
+    "documentScopeLabel": "Avgrens til dokument (valgfritt)",
+    "approvedScope": "Bare godkjente kilder",
+    "documentScopeHelp": "Valgt dokument og kildestatus kontrolleres på nytt av tjenesten.",
+    "searching": "Søker …",
+    "search": "Søk i kilder",
+    "unavailable": "Kildesøket er ikke tilgjengelig akkurat nå.",
+    "forbidden": "Du har ikke tilgang til denne kildeforespørselen.",
+    "empty": "Ingen tillatte kilder samsvarte med søket.",
+    "resultsTitle": "Kilder",
+    "page": "Side {page}",
+    "section": "Del {section}",
+    "rankSignal": "Rang {rank} · rangeringssignal {score}",
+    "methodsLabel": "Søkemetoder",
+    "methods": { "semantic": "semantisk", "keyword": "nøkkelord" },
+    "sourceStatusLabel": "Kildestatus",
+    "sourceStatuses": {
+      "approved": "Godkjent",
+      "draft": "Utkast",
+      "deprecated": "Utdatert",
+      "restricted": "Begrenset",
+      "archived": "Arkivert"
+    },
+    "warnings": {
+      "source_draft": "Denne kilden er merket som utkast.",
+      "source_deprecated": "Denne kilden er merket som utdatert.",
+      "source_restricted": "Denne kilden er begrenset.",
+      "source_archived": "Denne kilden er merket som arkivert."
+    },
+    "openContext": "Åpne kildekontekst",
+    "contextTitle": "Avgrenset kildekontekst",
+    "close": "Lukk",
+    "contextLoading": "Laster avgrenset kontekst …",
+    "contextForbidden": "Du har ikke tilgang til denne kildekonteksten.",
+    "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
+    "truncated": "Denne konteksten er avkortet av tjenesten."
+  },
+  "placeholder": {
+    "cases": {
+      "title": "Saksinnboks",
+      "description": "Saksinnboksen kommer i fase 9. Det finnes ingen saksdata å vise ennå."
+    },
+    "approvals": {
+      "title": "Godkjenningskø",
+      "description": "Godkjenningsflyten kommer i fase 22. Det finnes ingen godkjenninger å vise ennå."
+    },
+    "evaluations": {
+      "title": "Evalueringsoversikt",
+      "description": "Evalueringsoversikten kommer i fase 26. Det finnes ingen evalueringsdata å vise ennå."
+    },
+    "admin": {
+      "title": "Administrasjon",
+      "description": "Administrasjonsgrensesnittet kommer i en senere fase. Det finnes ingen administrasjonsdata å vise her."
+    },
+    "audit": {
+      "title": "Revisjonsspor",
+      "description": "Revisjonsspor kommer i fase 23. Det finnes ingen revisjonsdata å vise ennå."
+    }
+  }
+}

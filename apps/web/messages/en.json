@@ -1,0 +1,297 @@
+{
+  "app": {
+    "name": "Nordic Regulated AI Platform"
+  },
+  "common": {
+    "loading": "Loading secure session …",
+    "retry": "Try again",
+    "current": "current"
+  },
+  "navigation": {
+    "label": "Primary navigation",
+    "cases": "Cases",
+    "approvals": "Approvals",
+    "evaluations": "Evaluations",
+    "admin": "Administration",
+    "audit": "Audit",
+    "skipToContent": "Skip to main content"
+  },
+  "language": {
+    "label": "Language",
+    "nb": "Norwegian Bokmål",
+    "en": "English"
+  },
+  "account": {
+    "label": "Account",
+    "logout": "Log out",
+    "logoutPending": "Logging out …",
+    "role": {
+      "admin": "Administrator",
+      "complianceReviewer": "Compliance Reviewer",
+      "caseWorker": "Case Worker",
+      "manager": "Manager",
+      "readOnlyAuditor": "Read-only Auditor"
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "description": "Sign in with a locally provisioned synthetic account.",
+    "emailLabel": "Email address",
+    "emailHint": "Use only a synthetic demo.invalid address in local development.",
+    "passwordLabel": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in …",
+    "emailRequired": "Enter a valid email address.",
+    "passwordRequired": "Enter your password.",
+    "passwordTooLong": "The password cannot be longer than 512 characters.",
+    "invalidCredentials": "The email address or password is incorrect.",
+    "rateLimited": "Too many sign-in attempts. Try again in {seconds} seconds.",
+    "unavailable": "Sign-in is temporarily unavailable. Try again.",
+    "genericError": "Could not sign in. Try again.",
+    "requestId": "Support reference: {requestId}"
+  },
+  "session": {
+    "unavailableTitle": "Your session cannot be checked right now",
+    "unavailableDescription": "The service did not respond as expected. Try again before continuing.",
+    "redirecting": "Taking you to sign in …"
+  },
+  "cases": {
+    "title": "Case inbox",
+    "newCase": "New case",
+    "newCaseTitle": "Create new case",
+    "newCaseDescription": "Provide only information that is ready to be recorded in the case.",
+    "backToInbox": "Back to case inbox",
+    "results": "{count, plural, =0 {No cases} one {# case} other {# cases}}",
+    "searchLabel": "Search cases",
+    "searchHint": "Search case number, title, or description.",
+    "searchPlaceholder": "Case number or title",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear filters",
+    "filterStatus": "Status",
+    "filterRisk": "Risk level",
+    "filterAssignee": "Assigned case worker",
+    "filterDomain": "Domain",
+    "filterPriority": "Priority",
+    "allStatuses": "All statuses",
+    "allRiskLevels": "All risk levels",
+    "allAssignees": "All case workers",
+    "allDomains": "All domains",
+    "allPriorities": "All priorities",
+    "tableCaption": "Cases in the case inbox",
+    "caseNumber": "Case number",
+    "caseTitle": "Title",
+    "status": "Status",
+    "priority": "Priority",
+    "risk": "Risk",
+    "assignee": "Assigned to",
+    "dueDate": "Due date",
+    "updated": "Last updated",
+    "domain": "Domain",
+    "workflow": "Workflow",
+    "workflowUnavailable": "Not started",
+    "notAssessed": "Not assessed",
+    "unassigned": "Unassigned",
+    "noDueDate": "No due date",
+    "emptyTitle": "No cases yet",
+    "emptyDescription": "Create a new case to get started.",
+    "filterEmptyTitle": "No cases match the filters",
+    "filterEmptyDescription": "Change or clear the filters and try again.",
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page {page}",
+    "loading": "Loading cases …",
+    "unavailableTitle": "Cases are unavailable",
+    "unavailableDescription": "Cases could not be retrieved safely. Try again.",
+    "notFoundTitle": "The case is unavailable",
+    "notFoundDescription": "The case does not exist or is unavailable to you.",
+    "invalidLinkTitle": "Invalid case link",
+    "invalidLinkDescription": "The link to the case is invalid or unavailable.",
+    "permissionDescription": "Your role cannot create cases. You can still read cases you are allowed to access.",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "domain": "Domain",
+      "priority": "Priority",
+      "language": "Case language",
+      "dueDate": "Due date (optional)",
+      "externalReference": "External reference (optional)",
+      "caseNumber": "Case number",
+      "caseType": "Case type",
+      "submittedBy": "Submitted by",
+      "created": "Created",
+      "updated": "Last updated",
+      "externalReferenceDetail": "External reference"
+    },
+    "submit": "Create case",
+    "submitting": "Creating case …",
+    "cancel": "Cancel",
+    "requiredError": "Complete this field.",
+    "tooLongError": "The value is too long.",
+    "dateError": "Enter a valid date.",
+    "submitError": "The case could not be created. Try again.",
+    "requestId": "Support reference: {requestId}",
+    "created": "The case was created.",
+    "identityUnavailable": "Unavailable",
+    "future": {
+      "fields": "Extracted fields will be available in Phase 19.",
+      "workflow": "Workflow results will be available in Phases 16–17.",
+      "risk": "Risk and compliance will be available in Phase 21.",
+      "approval": "Approvals will be available in Phase 22.",
+      "audit": "The audit timeline will be available in Phase 23."
+    },
+    "futureTitles": {
+      "fields": "Extracted fields",
+      "workflow": "Workflow",
+      "risk": "Risk and compliance",
+      "approval": "Approval",
+      "audit": "Audit timeline"
+    },
+    "statusLabels": {
+      "new": "New",
+      "processing": "Processing",
+      "waiting_for_human_review": "Waiting for human review",
+      "needs_more_evidence": "Needs more evidence",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "completed": "Completed",
+      "failed": "Failed",
+      "archived": "Archived"
+    },
+    "priorityLabels": { "low": "Low", "normal": "Normal", "high": "High", "urgent": "Urgent" },
+    "riskLabels": { "low": "Low", "medium": "Medium", "high": "High", "critical": "Critical" },
+    "domainLabels": {
+      "public_sector": "Public sector",
+      "banking_compliance": "Banking and compliance",
+      "energy_operations": "Energy operations",
+      "internal_policy": "Internal policy"
+    },
+    "languageLabels": { "nb": "Norwegian Bokmål", "en": "English" }
+  },
+  "documents": {
+    "title": "Documents",
+    "metadataOnly": "Safe metadata only",
+    "loading": "Loading documents …",
+    "unavailable": "Documents are unavailable right now.",
+    "retry": "Try again",
+    "empty": "There are no active documents in this case.",
+    "listLabel": "Documents in this case",
+    "moreAvailable": "More documents are available.",
+    "inspect": "Inspect metadata",
+    "detailLoading": "Loading document metadata …",
+    "detailUnavailable": "Document metadata is unavailable.",
+    "close": "Close",
+    "detailTitle": "Document metadata",
+    "fileLabel": "File",
+    "sizeLabel": "Size",
+    "languageLabel": "Language",
+    "pagesLabel": "Pages",
+    "parsingLabel": "Parsing",
+    "indexingLabel": "Indexing",
+    "sourceStatusLabel": "Source status",
+    "confidentialityLabel": "Confidentiality",
+    "updatedLabel": "Last updated",
+    "unknown": "Unknown",
+    "parsingError": "The document could not be parsed safely.",
+    "indexingError": "The document could not be indexed safely.",
+    "changeSourceStatus": "Change source status",
+    "archivedHelp": "Archived is a retrieval-governance label. It does not delete or physically archive the document.",
+    "saving": "Saving …",
+    "saveStatus": "Save source status",
+    "reindexing": "Requesting re-indexing …",
+    "reindex": "Request re-indexing",
+    "reindexUnavailable": "Re-indexing is available only after parsing has finished and indexing is not active.",
+    "actionConflict": "The action cannot be completed while the document is in another state.",
+    "actionFailed": "The action could not be completed safely. Try again.",
+    "statusSaved": "Source status saved.",
+    "reindexRequested": "Re-indexing requested.",
+    "sourceStatuses": {
+      "approved": "Approved",
+      "draft": "Draft",
+      "deprecated": "Deprecated",
+      "restricted": "Restricted",
+      "archived": "Archived"
+    },
+    "confidentiality": {
+      "public": "Public",
+      "internal": "Internal",
+      "confidential": "Confidential",
+      "restricted": "Restricted"
+    },
+    "parsing": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "parsed": "Completed",
+      "failed": "Failed"
+    },
+    "indexing": {
+      "not_ready": "Not ready",
+      "pending": "Pending",
+      "indexing": "Indexing",
+      "indexed": "Indexed",
+      "failed": "Failed"
+    }
+  },
+  "evidence": {
+    "title": "Source evidence",
+    "description": "Search permitted document sources. Results are source excerpts, not an AI answer.",
+    "unavailableForRole": "Your role may view document metadata but cannot search or open source content.",
+    "queryLabel": "What do you want to find in the sources?",
+    "documentScopeLabel": "Limit to a document (optional)",
+    "approvedScope": "Approved sources only",
+    "documentScopeHelp": "The service rechecks the selected document and its source status.",
+    "searching": "Searching …",
+    "search": "Search sources",
+    "unavailable": "Source search is unavailable right now.",
+    "forbidden": "You are not allowed to make this source request.",
+    "empty": "No permitted sources matched the search.",
+    "resultsTitle": "Sources",
+    "page": "Page {page}",
+    "section": "Section {section}",
+    "rankSignal": "Rank {rank} · ranking signal {score}",
+    "methodsLabel": "Search methods",
+    "methods": { "semantic": "semantic", "keyword": "keyword" },
+    "sourceStatusLabel": "Source status",
+    "sourceStatuses": {
+      "approved": "Approved",
+      "draft": "Draft",
+      "deprecated": "Deprecated",
+      "restricted": "Restricted",
+      "archived": "Archived"
+    },
+    "warnings": {
+      "source_draft": "This source is marked as a draft.",
+      "source_deprecated": "This source is marked as deprecated.",
+      "source_restricted": "This source is restricted.",
+      "source_archived": "This source is marked as archived."
+    },
+    "openContext": "Open source context",
+    "contextTitle": "Bounded source context",
+    "close": "Close",
+    "contextLoading": "Loading bounded context …",
+    "contextForbidden": "You are not allowed to open this source context.",
+    "contextUnavailable": "Source context is unavailable.",
+    "truncated": "This context has been truncated by the service."
+  },
+  "placeholder": {
+    "cases": {
+      "title": "Case inbox",
+      "description": "The case inbox arrives in Phase 9. There is no case data to display yet."
+    },
+    "approvals": {
+      "title": "Approval queue",
+      "description": "The approval workflow arrives in Phase 22. There are no approvals to display yet."
+    },
+    "evaluations": {
+      "title": "Evaluation dashboard",
+      "description": "The evaluation dashboard arrives in Phase 26. There is no evaluation data to display yet."
+    },
+    "admin": {
+      "title": "Administration",
+      "description": "The administration interface arrives in a later phase. There is no administration data to display here."
+    },
+    "audit": {
+      "title": "Audit trail",
+      "description": "Audit trails arrive in Phase 23. There is no audit data to display yet."
+    }
+  }
+}

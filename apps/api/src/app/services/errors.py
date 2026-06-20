@@ -54,3 +54,50 @@ class AuthorizationDeniedError(ServiceError):
 
     def __init__(self) -> None:
         super().__init__(code="forbidden", message="You are not allowed to perform this action.")
+
+
+class PayloadTooLargeError(ServiceError):
+    """An upload exceeded a server-enforced bounded payload limit."""
+
+    def __init__(self) -> None:
+        super().__init__(code="payload_too_large", message="The document payload is too large.")
+
+
+class UnsupportedMediaTypeError(ServiceError):
+    """An upload is not one of the structurally accepted document formats."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="unsupported_media_type",
+            message="The document type is not supported.",
+        )
+
+
+class StorageUnavailableError(ServiceError):
+    """The private object store could not complete a document operation."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="document_storage_unavailable",
+            message="Document storage is temporarily unavailable.",
+        )
+
+
+class QueueUnavailableError(ServiceError):
+    """The durable document state changed, but immediate worker dispatch was unavailable."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="document_queue_unavailable",
+            message="Document processing is temporarily unavailable.",
+        )
+
+
+class RetrievalUnavailableError(ServiceError):
+    """A retrieval provider or database cannot safely complete a search."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="retrieval_unavailable",
+            message="Retrieval is temporarily unavailable.",
+        )

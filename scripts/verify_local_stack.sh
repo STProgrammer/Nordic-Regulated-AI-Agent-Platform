@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Verify the already-running Phase 2 stack without creating business data or changing service state.
+# Verify the already-running local stack without creating business data or changing service state.
 set -euo pipefail
 
 compose_env_file="${COMPOSE_ENV_FILE:-}"
@@ -127,27 +127,23 @@ if [[ "$azurite_init_status" != "exited:0" ]]; then
   exit 1
 fi
 
-web_address="$(compose_port web 80)"
+web_address="$(compose_port web 3000)"
 api_address="$(compose_port api 8000)"
-worker_address="$(compose_port worker 8001)"
 azurite_address="$(compose_port azurite 10000)"
 postgres_address="$(compose_port postgres 5432)"
 redis_address="$(compose_port redis 6379)"
 
 assert_loopback_binding web "$web_address"
 assert_loopback_binding api "$api_address"
-assert_loopback_binding worker "$worker_address"
 assert_loopback_binding azurite "$azurite_address"
 assert_loopback_binding postgres "$postgres_address"
 assert_loopback_binding redis "$redis_address"
 
-check_http "http://${web_address}/" "Phase 2 local readiness page"
+check_http "http://${web_address}/" "nordic-app-shell"
 check_http "http://${api_address}/health/live" '"status":"alive"'
 check_http "http://${api_address}/health/ready" '"status":"ready"'
 check_http "http://${api_address}/openapi.json" '"openapi"'
 check_http "http://${api_address}/docs" "Swagger UI"
-check_http "http://${worker_address}/health/live" '"status":"alive"'
-check_http "http://${worker_address}/health/ready" '"status":"ready"'
 check_azurite_blob "http://${azurite_address}/devstoreaccount1"
 
 "${compose[@]}" exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null'

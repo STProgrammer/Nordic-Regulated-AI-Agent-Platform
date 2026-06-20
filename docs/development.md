@@ -2,17 +2,21 @@
 
 ## Scope of the current workspace
 
-This is the Phase 6 authentication, sessions, and RBAC implementation, built on the Phase 5 service
-layer, Phase 4 database schema, Phase 3 API shell, and Phase 2 local runtime. Docker Compose starts
-infrastructure and health/worker processes: a static web readiness page, the API process, the worker
-readiness process, PostgreSQL, Redis, Azurite, and an Azurite container initializer.
+This is the Phase 14 Evidence Panel and Document UI, built on the secure Phase 10–13 document,
+parsing, indexing, and governed retrieval boundaries, plus the Case Management UI/backend, frontend
+shell, authentication/session/RBAC API, service layer, database schema, API shell, and local
+runtime. Docker Compose starts the Next.js web application, API process, Redis-backed Celery worker,
+PostgreSQL, Redis, Azurite, and an Azurite container initializer.
 
-The API process has typed configuration, structured logging, request correlation, a consistent JSON
-error contract, local OpenAPI documentation, typed SQLAlchemy models, an Alembic database baseline,
-and internal repository/service modules. It now provides local Argon2id authentication, opaque
-server-side sessions, failed-login rate limiting, `me`/logout, and Admin-only user/role management.
-It does not provide a Next.js frontend, cases, documents, approvals, audit reads, background jobs,
-retrieval, or model-provider integration; those arrive in later phases.
+The web application provides localized session UX, an accessible server-backed Case Inbox, Case
+submission, and Case Detail. It proxies same-origin `/api/...` requests to the API service, while
+the API remains the authorization authority for opaque server-side sessions, tenant isolation, RBAC,
+and Case Management. The API accepts one safe, supported document attached to an active case and
+stores raw bytes privately in Azurite. The worker validates the stored byte length and checksum,
+then extracts canonical text and page/section context asynchronously. Case Detail now lists safe
+metadata, displays lifecycle/governance state, and delegates source search to Phase 13; only a
+user-requested, server-bounded source context can display text. There is still no browser upload,
+download, preview, raw-text browser, or model-answer feature.
 
 ## Required tools
 
@@ -45,10 +49,12 @@ Start the standard local stack from a clean checkout:
 pnpm dev:up
 ```
 
-The underlying command is:
+The stack first waits for long-running services, then launches the one-shot private-container
+initializer separately so Compose does not mistake its successful exit for a failed health check:
 
 ```bash
-docker compose --env-file .env.example up --build --wait --detach
+docker compose --env-file .env.example up --build --wait --detach web api worker postgres redis azurite
+docker compose --env-file .env.example up --detach azurite-init
 ```
 
 It creates named `postgres_data`, `redis_data`, and `azurite_data` volumes. Normal shutdown retains
@@ -65,9 +71,9 @@ intended:
 docker compose --env-file .env.example down --volumes --remove-orphans
 ```
 
-The default published ports bind to `127.0.0.1`: web 3000, API 8000, worker 8001, PostgreSQL 5432,
-Redis 6379, and Azurite blob 10000. Containers use Compose DNS names such as `postgres`, `redis`,
-and `azurite`; they must never use host `localhost` to reach each other.
+The default published ports bind to `127.0.0.1`: web 3000, API 8000, PostgreSQL 5432, Redis 6379,
+and Azurite blob 10000. The parser worker has no public port. Containers use Compose DNS names such
+as `postgres`, `redis`, and `azurite`; they must never use host `localhost` to reach each other.
 
 To customize a local port or default local value, copy the template and leave the copy untracked:
 
@@ -90,23 +96,29 @@ pnpm dev:logs
 ```
 
 `verify:local-stack` is non-destructive. It waits for all long-running services to become healthy,
-checks the web/API/worker/Azurite HTTP contracts through their loopback ports, verifies the API
-OpenAPI schema and Swagger documentation respond, runs `pg_isready`, checks that pgvector is
-available without enabling it, verifies Redis `PONG`, and confirms that the empty configured Azurite
-blob container exists. It neither creates business data nor runs migrations, queue tasks, or
-external calls.
+checks the real Next.js web shell plus API/Azurite HTTP contracts through their loopback ports,
+verifies the Celery worker broker/consumer ping, verifies the API OpenAPI schema and Swagger
+documentation respond, runs `pg_isready`, checks that pgvector is available without enabling it,
+verifies Redis `PONG`, and confirms that the private configured Azurite blob container exists. It
+neither creates business data nor runs migrations, queue tasks, or external calls.
 
-The API exposes health endpoints plus local API documentation; the worker remains health-only:
+The API exposes health endpoints plus local API documentation. The worker is an internal Celery
+consumer, and Compose marks it healthy only when `celery inspect ping` reaches its named worker:
 
-| Process | Endpoints                                                                           |
+| Process | Interface                                                                           |
 | ------- | ----------------------------------------------------------------------------------- |
 | API     | `GET /health/live`, `GET /health/ready`, `GET /openapi.json`, `GET /docs`, `/redoc` |
-| Worker  | `GET /health/live`, `GET /health/ready`                                             |
+| Worker  | Internal Celery parser/index consumers and periodic reconciliation                  |
+
+The web root redirects to `/nb` and includes a stable `nordic-app-shell` marker used only for local
+stack verification. Its server-side `API_ORIGIN` is `http://api:8000` inside Compose, preserving
+same-origin browser `/api/...` calls and the HTTP-only cookie. For host web development, set
+`API_ORIGIN=http://127.0.0.1:8000` when starting the web package; never expose this as
+`NEXT_PUBLIC_*`.
 
 Liveness is dependency-free. Readiness checks PostgreSQL, Redis, and Azurite and returns `503` with
 only safe dependency identifiers when a local dependency is unavailable; it never returns passwords,
-connection strings, exception details, or stack traces. The static web page explicitly says that the
-actual frontend begins in Phase 7.
+connection strings, exception details, or stack traces.
 
 ### API and authentication behavior
 
@@ -131,11 +143,87 @@ actual frontend begins in Phase 7.
 - **Rate limiting**: `POST /api/auth/login` limits normalized-email and client-origin counters
   through atomic Redis operations with HMAC-derived keys. It returns `429` and `Retry-After` when
   blocked; a Redis failure fails the login closed with a safe `503`.
-- **Route boundaries**: Phase 6 exposes only `POST /api/auth/login`, `POST /api/auth/logout`,
+- **Route boundaries**: Phase 12 exposes `POST /api/auth/login`, `POST /api/auth/logout`,
   `GET /api/auth/me`, `GET/POST /api/users`, `GET/PATCH /api/users/{user_id}`,
-  `PUT /api/users/{user_id}/roles`, and `GET /api/roles`. The Users operations are Admin-only and
-  derive organization solely from the authenticated principal. All remaining product groups stay
-  operation-free until their own phases.
+  `PUT /api/users/{user_id}/roles`, `GET /api/roles`, `POST/GET /api/cases`,
+  `GET/PATCH /api/cases/{case_id}`, `POST /api/cases/{case_id}/archive`, and the minimal Case-read
+  `GET /api/cases/assignees` option view. `POST /api/documents/upload` is an authenticated
+  `multipart/form-data` operation that attaches one validated raw document or pasted email to an
+  active current-organization case. `GET /api/documents/{document_id}` returns safe parser/indexing
+  metadata, `GET /api/documents?case_id={uuid}` returns a bounded case-scoped metadata page, and
+  `PATCH /api/documents/{document_id}/source-status` changes only the source-governance label for
+  Admin/Compliance Reviewer roles. `GET /api/documents/{document_id}/context?chunk_id={uuid}` is a
+  purpose-specific bounded source-context read with Phase 13 retrieval policy.
+  `POST /api/documents/{document_id}/reprocess` requests another asynchronous parse, and
+  `POST /api/documents/{document_id}/reindex` requests an authorized index replacement. User
+  operations are Admin-only; Case and document operations derive organization solely from the
+  authenticated principal and enforce backend RBAC. `POST /api/retrieval/search` is a protected,
+  case-contextual hybrid source search that returns bounded governed excerpts only. All other
+  product groups remain operation-free until their own phases.
+
+### Secure document upload and private storage
+
+Use `POST /api/documents/upload` in local Swagger (`http://127.0.0.1:8000/docs`) only after the
+normal migration and synthetic-password seed workflow. Admin, Case Worker, and Manager roles may
+upload. Supply an active current-tenant `case_id` and exactly one of `file` or `email_text`, plus
+optional `title`, `source_status`, and `confidentiality_level` form fields. The endpoint accepts
+PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted email text, with a configured 25 MiB hard cap.
+
+The API validates extension, claimed type, content signature/UTF-8 structure, and OOXML package
+structure before private storage. It calculates a SHA-256 checksum from the exact stored bytes,
+persists only document metadata in PostgreSQL with parsing status `pending`, and appends one safe
+`document.uploaded` audit event. Responses deliberately omit the checksum, blob key, blob URL,
+credentials, and raw content. A rejected upload creates no successful document or audit record.
+
+### Asynchronous parsing, chunking, and re-indexing
+
+Every durable upload is dispatched after its database transaction commits. The Celery payload is the
+document UUID only; the worker obtains tenant ownership, private storage key, checksum, and file
+type from PostgreSQL. It reads raw bytes privately with a hard size cap, verifies size and SHA-256,
+parses PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted-email EML, and stores normalized
+extracted text only in `document_texts`. On a successful parse commit, the document becomes pending
+for a UUID-only indexing task. That task tokenizes only the canonical text inside trusted parser
+spans, generates validated 1536-dimensional embeddings, and atomically replaces the document's chunk
+rows. The public API never returns text, spans, chunks, vectors, blob keys, checksums, task ids,
+broker URLs, or parser/provider exceptions.
+
+Use `/docs` for a safe local verification after migration and synthetic login provisioning:
+
+1. Create or select a synthetic active Case and upload a harmless supported file through
+   `POST /api/documents/upload`.
+2. Poll `GET /api/documents/{document_id}` until `parsing_status` becomes `parsed` or `failed`.
+3. Poll the same safe metadata view until `indexing_status` becomes `indexed` or `failed`. Confirm
+   it includes only lifecycle fields (`language`, optional `page_count`, timestamps, and neutral
+   errors), never content, locations, chunks, vectors, storage keys, or provider information.
+4. Request `POST /api/documents/{document_id}/reprocess`; it returns `202` unless a worker is
+   actively processing the document, in which case it returns `409`.
+5. Once parsing is `parsed` and indexing is terminal, request
+   `POST /api/documents/{document_id}/reindex`. It returns `202`, retains the prior complete chunks
+   until replacement succeeds, and returns `409` while an index job is pending or active.
+
+The worker retries transient private-storage/database failures with bounded exponential delay. A
+periodic reconciler resubmits pending parser/index work and releases expired leases. Failed parsing
+never deletes the last-good `document_texts` record; failed indexing never deletes the last-good
+chunk set. Configure OpenAI or Azure OpenAI credentials only through environment variables. For a
+clearly labelled local/test plumbing check, `NORDIC_API_EMBEDDING_PROVIDER=deterministic` is allowed
+and gives repeatable non-semantic vectors only. It is not an embedding-quality or retrieval test.
+Case Detail now exposes safe document metadata and authorized source-governance/re-index
+affordances. Once a synthetic document has `parsing_status=parsed` and `indexing_status=indexed`, an
+authorized retrieval role can use the Evidence Panel or call `POST /api/retrieval/search` with a
+readable case id and query. Omitted `source_statuses` searches approved sources only; explicit
+draft/deprecated sources receive status warnings, while restricted/archived selection is
+backend-authorized. The context route applies the same policy and returns one fixed server-bounded
+window only after explicit user action. Physical archives and noncurrent index states are always
+excluded. No endpoint or UI returns a raw document, vector, generic chunk list, download link,
+answer, or verified answer reference.
+
+With the Compose stack running, this opt-in host-side adapter test provides live Azurite
+write/delete evidence without a cloud account (it creates and removes one synthetic object):
+
+```bash
+AZURITE_HOST=127.0.0.1 NORDIC_RUN_AZURITE_TEST=1 \
+  uv run pytest apps/api/tests/integration/test_azurite_storage.py
+```
 
 ### Database foundation workflow
 
@@ -184,7 +272,8 @@ docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini 
 
 This operation removes project tables and their data. It intentionally retains `pgcrypto` and
 `vector`, since either extension may predate the project schema or be used by an operator-managed
-schema. Azurite still contains only its empty local blob container, and the worker consumes no jobs.
+schema. Azurite may contain synthetic raw uploads from local verification, and the worker consumes
+only document UUID jobs from the internal Redis queue.
 
 ### Internal repository and service layer
 
@@ -202,13 +291,16 @@ rows. List operations use immutable bounded pagination, model-owned sort allowli
 deterministic UUID tie breakers. Never pass a user-supplied field name, direction, or SQL fragment
 to a repository.
 
-`audit_events` are append-only. `AuditService.record_event` is explicit: reads and generic
-persistence operations do not manufacture audit rows. Event metadata must be JSON-safe and minimal;
-never include credentials, authorization tokens, cookies, password data, raw request bodies, raw
-exception text, or storage keys. Authentication dependencies now derive organization only from a
-persisted principal. The tenant guard and repository predicates together hide cross-organization
-resources; role checks are backend policy, not frontend or OpenAPI-only behavior. The high-risk
-approval policy is a pure service rule for the future approval phase, but no approval route exists.
+`audit_events` are append-only. The Case Management service writes exactly one minimal case audit
+row for each successful submit, patch, or archive; the Document service writes exactly one
+`document.uploaded` event only after an object, metadata row, and audit row can all succeed in the
+caller-owned transaction. Reads and rejected commands write none. Event metadata contains only
+operational facts—never case descriptions, filenames, titles, document content, checksums, storage
+keys, credentials, authorization tokens, cookies, password data, raw request bodies, or raw
+exception text. Authentication dependencies derive organization only from a persisted principal. The
+tenant guard and repository predicates together hide cross-organization resources; role checks are
+backend policy, not frontend or OpenAPI-only behavior. The high-risk approval policy is a pure
+service rule for the future approval phase, but no approval route exists.
 
 ### Troubleshooting
 
@@ -230,12 +322,14 @@ pnpm format
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test:web
 pnpm test:api
 ```
 
-`pnpm test:api` runs the full backend test suite (`apps/api/tests`). `pnpm test:health` runs only
-the Phase 2 health-compatibility tests. The aggregate commands run both language toolchains where
-applicable. Equivalent direct Python checks are:
+`pnpm test:web` runs the deterministic Vitest/Testing Library shell tests without Docker or a live
+API. `pnpm test:api` runs the full backend test suite (`apps/api/tests`). `pnpm test:health` runs
+only the Phase 2 health-compatibility tests. The aggregate commands run both language toolchains
+where applicable. Equivalent direct Python checks are:
 
 ```bash
 uv run ruff format --check apps services packages scripts
@@ -256,11 +350,28 @@ uv run pytest apps/api/tests/unit apps/api/tests/integration
 Run `pnpm format` before committing formatting changes. All checks must pass before a phase is
 marked complete.
 
+### Browser smoke test
+
+The independent `pnpm test:e2e` command covers login, Case submission, inbox search, and Case Detail
+navigation against a running local Compose stack. Install its project-managed browser once:
+
+```bash
+pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
+```
+
+On Linux, this command may ask for `sudo` to install browser libraries. Start Compose with
+`NORDIC_API_EMBEDDING_PROVIDER=deterministic` for this local-only plumbing test. After migrations
+and password provisioning, export `NORDIC_E2E_CASE_WORKER_EMAIL` with a synthetic seeded Case Worker
+address and retain `NORDIC_LOCAL_SEED_PASSWORD` in the shell. The spec rejects missing setup without
+printing values, creates/indexes one synthetic document through the API setup boundary, and disables
+traces, video, and screenshots. Run `unset NORDIC_E2E_CASE_WORKER_EMAIL NORDIC_LOCAL_SEED_PASSWORD`
+after the test.
+
 ## Working agreements
 
-- Keep application behavior within the roadmap phase that owns it. Phase 6 is limited to
-  authentication/sessions/RBAC and Admin identity management. Cases, documents, approvals, audit
-  reads, document processing, retrieval, and AI workflows belong to later phases.
+- Keep application behavior within the roadmap phase that owns it. Phase 14 owns safe document
+  metadata/governance UI, evidence-result rendering, and bounded context; document upload UI,
+  downloads, answer generation, approvals, audit reads, and AI workflows belong to later phases.
 - Use typed Python and strict TypeScript settings for new code.
 - Never commit `.env` files, secrets, production connection values, or personal data.
 - Keep public demo material synthetic, public, anonymized, or otherwise safe as described in

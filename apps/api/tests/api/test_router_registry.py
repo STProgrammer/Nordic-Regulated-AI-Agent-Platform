@@ -38,16 +38,16 @@ def test_prefixes_are_rooted_paths() -> None:
         assert not group.prefix.endswith("/")
 
 
-def test_only_phase_six_route_modules_define_operations() -> None:
+def test_only_implemented_route_modules_define_operations() -> None:
     for group in ROUTE_GROUPS:
         assert isinstance(group.router, APIRouter)
-        if group.name in {"auth", "users"}:
+        if group.name in {"auth", "users", "cases", "documents", "retrieval"}:
             assert group.router.routes
         else:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_only_phase_six_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_fourteen_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -62,6 +62,18 @@ def test_aggregate_router_mounts_only_phase_six_business_operations() -> None:
         "/api/users/{user_id}",
         "/api/users/{user_id}/roles",
         "/api/roles",
+        "/api/cases",
+        "/api/cases/assignees",
+        "/api/cases/{case_id}",
+        "/api/cases/{case_id}/archive",
+        "/api/documents",
+        "/api/documents/upload",
+        "/api/documents/{document_id}",
+        "/api/documents/{document_id}/context",
+        "/api/documents/{document_id}/reprocess",
+        "/api/documents/{document_id}/reindex",
+        "/api/documents/{document_id}/source-status",
+        "/api/retrieval/search",
     }
 
 

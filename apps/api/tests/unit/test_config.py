@@ -32,6 +32,15 @@ def test_defaults_are_safe_local_values() -> None:
     assert settings.session_cookie_name == "nordic_session"
     assert settings.session_cookie_secure_value is False
     assert settings.session_ttl_seconds == 28_800
+    assert settings.document_upload_max_bytes == 25 * 1024 * 1024
+    assert settings.document_parser_max_input_bytes == 25 * 1024 * 1024
+    assert settings.document_parser_task_max_retries == 3
+    assert settings.document_parser_worker_concurrency == 1
+    assert settings.object_storage_container == "nordic-local"
+    assert settings.retrieval_default_result_limit == 10
+    assert settings.retrieval_max_result_limit == 20
+    assert settings.retrieval_rank_fusion_constant == 60
+    assert settings.document_context_max_characters == 1_200
 
 
 def test_documentation_urls_follow_enable_docs() -> None:
@@ -146,6 +155,36 @@ def test_database_url_validation_hides_sensitive_input() -> None:
         AppSettings(database_url=SecretStr(unsafe_url))
 
     assert "fixture-password" not in str(error.value)
+
+
+def test_object_storage_configuration_is_secret_safe_and_requires_valid_container() -> None:
+    connection_string = "DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture-key;"
+    settings = AppSettings(object_storage_connection_string=SecretStr(connection_string))
+
+    assert settings.object_storage_connection_string_value() == connection_string
+    assert "fixture-key" not in repr(settings)
+    with pytest.raises(ValidationError):
+        AppSettings(object_storage_container="bad--container")
+
+
+def test_parser_bounds_are_validated_as_one_worker_contract() -> None:
+    with pytest.raises(ValidationError):
+        AppSettings(document_parser_max_input_bytes=25 * 1024 * 1024 + 1)
+    with pytest.raises(ValidationError):
+        AppSettings(document_parser_worker_concurrency=0)
+    with pytest.raises(ValidationError):
+        AppSettings(document_language_confidence_threshold=0.49)
+
+
+def test_retrieval_limits_form_one_safe_server_owned_contract() -> None:
+    with pytest.raises(ValidationError):
+        AppSettings(retrieval_default_result_limit=21, retrieval_max_result_limit=20)
+    with pytest.raises(ValidationError):
+        AppSettings(retrieval_max_result_limit=51, retrieval_semantic_candidate_limit=50)
+    with pytest.raises(ValidationError):
+        AppSettings(retrieval_max_result_limit=51, retrieval_keyword_candidate_limit=50)
+    with pytest.raises(ValidationError):
+        AppSettings(document_context_max_characters=63)
 
 
 def test_engine_construction_is_lazy() -> None:

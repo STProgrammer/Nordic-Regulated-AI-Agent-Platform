@@ -1,5 +1,5 @@
-"""Document metadata persistence service exports."""
+"""Document-domain service exports."""
 
-from app.services.documents.service import DocumentCreate, DocumentService
+from app.services.documents.service import DocumentService, DocumentUpload
 
-__all__ = ["DocumentCreate", "DocumentService"]
+__all__ = ["DocumentService", "DocumentUpload"]

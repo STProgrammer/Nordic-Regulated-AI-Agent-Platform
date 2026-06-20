@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class Case(UUIDPrimaryKeyMixin, TimestampMixin, ArchivableMixin, Base):
-    """A tenant-scoped case; business behavior is deliberately deferred."""
+    """A tenant-scoped business case governed by the Case Management service."""
 
     __tablename__ = "cases"
     __table_args__ = (

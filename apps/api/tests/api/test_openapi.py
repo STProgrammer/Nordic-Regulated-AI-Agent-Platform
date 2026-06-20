@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_only_phase_six_product_endpoints() -> None:
+def test_openapi_declares_the_phase_fourteen_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
@@ -41,6 +41,18 @@ def test_openapi_declares_only_phase_six_product_endpoints() -> None:
         "/api/users/{user_id}",
         "/api/users/{user_id}/roles",
         "/api/roles",
+        "/api/cases",
+        "/api/cases/assignees",
+        "/api/cases/{case_id}",
+        "/api/cases/{case_id}/archive",
+        "/api/documents",
+        "/api/documents/upload",
+        "/api/documents/{document_id}",
+        "/api/documents/{document_id}/context",
+        "/api/documents/{document_id}/reprocess",
+        "/api/documents/{document_id}/reindex",
+        "/api/documents/{document_id}/source-status",
+        "/api/retrieval/search",
     }
 
 
@@ -66,6 +78,14 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     assert schema["paths"]["/api/auth/login"]["post"].get("security") is None
     assert schema["paths"]["/api/auth/me"]["get"]["security"] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/users"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/cases"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/documents/upload"]["post"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/documents"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/documents/{document_id}/context"]["get"]["security"] == [
+        {"SessionCookie": []}
+    ]
+    assert schema["paths"]["/api/retrieval/search"]["post"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/cases"]["post"]["responses"]["201"]
 
 
 def test_docs_and_redoc_render_locally() -> None:

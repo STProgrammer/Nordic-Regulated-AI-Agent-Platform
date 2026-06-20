@@ -5,7 +5,11 @@ from uuid import uuid4
 import pytest
 from app.services.auth.policy import (
     ApprovalAuthorizationInput,
+    CaseAction,
+    DocumentAction,
     authorize_approval,
+    authorize_case_action,
+    authorize_document_action,
     ensure_roles,
     guard_tenant_resource,
 )
@@ -58,3 +62,65 @@ def test_reviewer_can_approve_other_same_tenant_high_risk_case() -> None:
             requires_approval=True,
         ),
     )
+
+
+def test_case_action_policy_keeps_read_only_auditors_read_only() -> None:
+    auditor = _principal(RoleName.READ_ONLY_AUDITOR)
+    authorize_case_action(auditor, CaseAction.READ)
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_case_action(auditor, CaseAction.SUBMIT)
+
+
+def test_case_approval_transition_can_be_performed_by_a_reviewer() -> None:
+    authorize_case_action(_principal(RoleName.COMPLIANCE_REVIEWER), CaseAction.APPROVE_OR_REJECT)
+
+
+@pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER])
+def test_document_upload_is_allowed_for_minimum_case_submission_roles(role: RoleName) -> None:
+    authorize_document_action(_principal(role), DocumentAction.UPLOAD)
+
+
+@pytest.mark.parametrize("role", [RoleName.COMPLIANCE_REVIEWER, RoleName.READ_ONLY_AUDITOR])
+def test_document_upload_is_denied_for_non_upload_roles(role: RoleName) -> None:
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_document_action(_principal(role), DocumentAction.UPLOAD)
+
+
+@pytest.mark.parametrize("role", list(RoleName))
+def test_document_read_matches_case_read_role_matrix(role: RoleName) -> None:
+    authorize_document_action(_principal(role), DocumentAction.READ)
+
+
+@pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER])
+def test_document_reprocess_is_limited_to_upload_roles(role: RoleName) -> None:
+    authorize_document_action(_principal(role), DocumentAction.REPROCESS)
+
+
+@pytest.mark.parametrize("role", [RoleName.COMPLIANCE_REVIEWER, RoleName.READ_ONLY_AUDITOR])
+def test_document_reprocess_denies_non_owner_roles(role: RoleName) -> None:
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_document_action(_principal(role), DocumentAction.REPROCESS)
+
+
+@pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER])
+def test_document_reindex_is_limited_to_mutating_document_roles(role: RoleName) -> None:
+    authorize_document_action(_principal(role), DocumentAction.REINDEX)
+
+
+@pytest.mark.parametrize("role", [RoleName.COMPLIANCE_REVIEWER, RoleName.READ_ONLY_AUDITOR])
+def test_document_reindex_denies_read_only_roles(role: RoleName) -> None:
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_document_action(_principal(role), DocumentAction.REINDEX)
+
+
+@pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER])
+def test_document_source_status_governance_is_limited_to_authorized_roles(role: RoleName) -> None:
+    authorize_document_action(_principal(role), DocumentAction.UPDATE_SOURCE_STATUS)
+
+
+@pytest.mark.parametrize(
+    "role", [RoleName.CASE_WORKER, RoleName.MANAGER, RoleName.READ_ONLY_AUDITOR]
+)
+def test_document_source_status_governance_denies_non_governance_roles(role: RoleName) -> None:
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_document_action(_principal(role), DocumentAction.UPDATE_SOURCE_STATUS)

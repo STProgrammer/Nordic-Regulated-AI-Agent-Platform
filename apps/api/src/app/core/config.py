@@ -18,6 +18,7 @@ Environment = Literal["local", "test", "staging", "production"]
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 LogFormat = Literal["console", "json"]
 CookieSameSite = Literal["lax", "strict", "none"]
+EmbeddingProviderName = Literal["openai", "azure_openai", "deterministic"]
 
 
 class AppSettings(BaseSettings):
@@ -82,6 +83,66 @@ class AppSettings(BaseSettings):
     # configuration credential-free while still avoiding raw identifier keys.
     rate_limit_key_secret: SecretStr | None = None
 
+    # Raw document objects stay in a private Azure Blob-compatible container.
+    # An explicit connection string is always represented as a secret. Local
+    # Compose derives the well-known Azurite development connection only when
+    # a document upload actually needs it.
+    document_upload_max_bytes: int = Field(default=25 * 1024 * 1024, ge=1, le=100 * 1024 * 1024)
+    object_storage_connection_string: SecretStr | None = None
+    object_storage_container: str = "nordic-local"
+
+    # Parsing happens only in the worker. These independent bounds prevent a
+    # valid upload from becoming an unbounded worker workload later.
+    document_parser_max_input_bytes: int = Field(
+        default=25 * 1024 * 1024, ge=1, le=100 * 1024 * 1024
+    )
+    document_parser_max_extracted_characters: int = Field(
+        default=2_000_000, ge=1_000, le=10_000_000
+    )
+    document_parser_max_sections: int = Field(default=10_000, ge=1, le=100_000)
+    document_parser_task_timeout_seconds: int = Field(default=120, ge=5, le=900)
+    document_parser_task_max_retries: int = Field(default=3, ge=0, le=10)
+    document_parser_worker_concurrency: int = Field(default=1, ge=1, le=8)
+    document_parser_reconciliation_interval_seconds: int = Field(default=60, ge=10, le=3600)
+    document_parser_processing_lease_seconds: int = Field(default=300, ge=30, le=3600)
+    document_language_confidence_threshold: float = Field(default=0.80, ge=0.5, le=1.0)
+    document_language_minimum_characters: int = Field(default=40, ge=1, le=10_000)
+
+    # Embedding calls are worker-only. ``deterministic`` exists solely for
+    # explicit local/test plumbing checks; it never claims semantic quality and
+    # is rejected by settings validation outside those environments.
+    embedding_provider: EmbeddingProviderName = "openai"
+    embedding_api_key: SecretStr | None = None
+    embedding_azure_endpoint: SecretStr | None = None
+    embedding_azure_api_version: str = "2024-02-01"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_tokenizer_encoding: str = "cl100k_base"
+    embedding_configuration_version: str = "v1"
+    document_chunk_max_tokens: int = Field(default=512, ge=8, le=8_192)
+    document_chunk_overlap_tokens: int = Field(default=64, ge=0, le=2_048)
+    document_chunk_maximum_count: int = Field(default=10_000, ge=1, le=100_000)
+    embedding_batch_size: int = Field(default=32, ge=1, le=128)
+    embedding_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
+    document_indexer_task_timeout_seconds: int = Field(default=300, ge=10, le=1_800)
+    document_indexer_task_max_retries: int = Field(default=3, ge=0, le=10)
+    document_indexer_reconciliation_interval_seconds: int = Field(default=60, ge=10, le=3_600)
+    document_indexer_processing_lease_seconds: int = Field(default=600, ge=30, le=7_200)
+
+    # Retrieval consumes only the current Phase 12 index.  These limits cap
+    # public result exposure and each independent candidate query; callers may
+    # select a smaller public result count but never a larger candidate pool.
+    retrieval_default_result_limit: int = Field(default=10, ge=1, le=50)
+    retrieval_max_result_limit: int = Field(default=20, ge=1, le=100)
+    retrieval_semantic_candidate_limit: int = Field(default=50, ge=1, le=500)
+    retrieval_keyword_candidate_limit: int = Field(default=50, ge=1, le=500)
+    retrieval_rank_fusion_constant: float = Field(default=60.0, gt=0, le=1_000)
+    retrieval_max_query_characters: int = Field(default=2_000, ge=1, le=10_000)
+    retrieval_max_document_selections: int = Field(default=20, ge=1, le=100)
+    retrieval_max_excerpt_characters: int = Field(default=1_200, ge=16, le=5_000)
+    # Context is intentionally a separate, server-owned limit: evidence cards
+    # and an explicit source-context view have different exposure purposes.
+    document_context_max_characters: int = Field(default=1_200, ge=64, le=5_000)
+
     @field_validator("api_prefix")
     @classmethod
     def _normalize_api_prefix(cls, value: str) -> str:
@@ -93,7 +154,15 @@ class AppSettings(BaseSettings):
             raise ValueError("api_prefix must not be the root path")
         return normalized
 
-    @field_validator("service_name", "api_title", "release", "request_id_header")
+    @field_validator(
+        "service_name",
+        "api_title",
+        "release",
+        "request_id_header",
+        "embedding_model",
+        "embedding_tokenizer_encoding",
+        "embedding_configuration_version",
+    )
     @classmethod
     def _require_non_empty(cls, value: str) -> str:
         trimmed = value.strip()
@@ -147,6 +216,45 @@ class AppSettings(BaseSettings):
             raise ValueError("redis_url must use a Redis URL scheme")
         return value
 
+    @field_validator("object_storage_connection_string", mode="before")
+    @classmethod
+    def _validate_object_storage_connection_string(cls, value: object) -> object:
+        if value is None:
+            return value
+        raw_value = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw_value, str) or not raw_value.strip():
+            raise ValueError("object_storage_connection_string must not be empty")
+        if "AccountName=" not in raw_value or "AccountKey=" not in raw_value:
+            raise ValueError("object_storage_connection_string is invalid")
+        return value
+
+    @field_validator("embedding_api_key", "embedding_azure_endpoint", mode="before")
+    @classmethod
+    def _normalize_optional_embedding_secret(cls, value: object) -> object:
+        if value is None:
+            return None
+        raw_value = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if not isinstance(raw_value, str):
+            raise ValueError("embedding credential configuration is invalid")
+        return raw_value if raw_value.strip() else None
+
+    @field_validator("object_storage_container")
+    @classmethod
+    def _validate_object_storage_container(cls, value: str) -> str:
+        container = value.strip().lower()
+        if (
+            len(container) < 3
+            or len(container) > 63
+            or container[0] == "-"
+            or container[-1] == "-"
+            or any(
+                character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in container
+            )
+            or "--" in container
+        ):
+            raise ValueError("object_storage_container must be a valid private blob container name")
+        return container
+
     @model_validator(mode="after")
     def _validate_auth_configuration(self) -> "AppSettings":
         if self.password_min_length > self.password_max_length:
@@ -156,6 +264,28 @@ class AppSettings(BaseSettings):
             raise ValueError("secure session cookies are required outside local and test")
         if self.session_cookie_samesite == "none" and not secure_cookie:
             raise ValueError("SameSite=None cookies require the Secure flag")
+        if self.document_parser_max_input_bytes > self.document_upload_max_bytes:
+            raise ValueError(
+                "document_parser_max_input_bytes must not exceed document_upload_max_bytes"
+            )
+        if self.document_chunk_overlap_tokens >= self.document_chunk_max_tokens:
+            raise ValueError(
+                "document_chunk_overlap_tokens must be below document_chunk_max_tokens"
+            )
+        if self.embedding_provider == "deterministic" and self.environment not in {"local", "test"}:
+            raise ValueError("deterministic embeddings are permitted only in local or test")
+        if self.retrieval_default_result_limit > self.retrieval_max_result_limit:
+            raise ValueError(
+                "retrieval_default_result_limit must not exceed retrieval_max_result_limit"
+            )
+        if self.retrieval_max_result_limit > self.retrieval_semantic_candidate_limit:
+            raise ValueError(
+                "retrieval_max_result_limit must not exceed retrieval_semantic_candidate_limit"
+            )
+        if self.retrieval_max_result_limit > self.retrieval_keyword_candidate_limit:
+            raise ValueError(
+                "retrieval_max_result_limit must not exceed retrieval_keyword_candidate_limit"
+            )
         return self
 
     @property
@@ -224,6 +354,32 @@ class AppSettings(BaseSettings):
         host = os.getenv("REDIS_HOST", "redis")
         port = os.getenv("REDIS_PORT", "6379")
         return f"redis://{host}:{port}/0"
+
+    def object_storage_connection_string_value(self) -> str:
+        """Return the private Azure Blob connection string only at adapter construction.
+
+        Local/test processes may derive Azurite's public development account from
+        Compose variables. Deployments must inject an explicit secret connection
+        string; no production endpoint or account key is embedded in code.
+        """
+
+        if self.object_storage_connection_string is not None:
+            return self.object_storage_connection_string.get_secret_value()
+        if self.environment not in {"local", "test"}:
+            raise RuntimeError("Private object storage is not configured")
+        account_name = os.getenv("AZURITE_ACCOUNT_NAME", "devstoreaccount1")
+        account_key = os.getenv(
+            "AZURITE_ACCOUNT_KEY",
+            "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/"
+            "K1SZFPTOtr/KBHBeksoGMGw==",
+        )
+        host = os.getenv("AZURITE_HOST", "azurite")
+        port = os.getenv("AZURITE_BLOB_PORT", "10000")
+        return (
+            "DefaultEndpointsProtocol=http;"
+            f"AccountName={account_name};AccountKey={account_key};"
+            f"BlobEndpoint=http://{host}:{port}/{account_name};"
+        )
 
     def rate_limit_hmac_key(self) -> bytes:
         """Return the private key used solely to derive non-sensitive Redis keys."""

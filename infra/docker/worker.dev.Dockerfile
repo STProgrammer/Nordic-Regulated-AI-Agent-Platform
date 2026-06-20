@@ -1,4 +1,4 @@
-# The worker shares the locked health-only API runtime in Phase 2. It does not consume jobs yet.
+# The worker shares the API runtime and consumes private parser/index queues.
 FROM python:3.12.10-slim-bookworm
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /uvx /bin/
@@ -14,6 +14,4 @@ WORKDIR /workspace
 COPY . .
 RUN uv sync --locked --no-dev --package nordic-regulated-ai-agent-platform-api
 
-EXPOSE 8001
-
-CMD ["uvicorn", "app.workers.readiness:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["celery", "--quiet", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "document-parser,document-indexer", "--beat", "--loglevel=WARNING"]

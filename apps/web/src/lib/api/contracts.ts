@@ -1,0 +1,364 @@
+import { z } from 'zod';
+
+const errorDetailSchema = z.object({
+  code: z.string().nullable().optional(),
+  field: z.string().nullable().optional(),
+  message: z.string(),
+});
+
+const errorEnvelopeSchema = z.object({
+  error: z.object({
+    code: z.string(),
+    details: z.array(errorDetailSchema).nullable().optional(),
+    message: z.string(),
+    request_id: z.string().nullable().optional(),
+  }),
+});
+
+const responseMetaSchema = z.object({
+  request_id: z.string().nullable().optional(),
+});
+
+export const currentUserSchema = z.object({
+  display_name: z.string(),
+  organization_id: z.string().uuid(),
+  preferred_language: z.string(),
+  roles: z.array(
+    z.enum(['Admin', 'Compliance Reviewer', 'Case Worker', 'Manager', 'Read-only Auditor']),
+  ),
+  user_id: z.string().uuid(),
+});
+
+export const logoutDataSchema = z.object({
+  logged_out: z.literal(true),
+});
+
+export const caseStatusSchema = z.enum([
+  'new',
+  'processing',
+  'waiting_for_human_review',
+  'needs_more_evidence',
+  'approved',
+  'rejected',
+  'completed',
+  'failed',
+  'archived',
+]);
+export const casePrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
+export const caseDomainSchema = z.enum([
+  'public_sector',
+  'banking_compliance',
+  'energy_operations',
+  'internal_policy',
+]);
+export const caseLanguageSchema = z.enum(['nb', 'en']);
+export const caseRiskLevelSchema = z.enum(['low', 'medium', 'high', 'critical']);
+
+export const documentSourceStatusSchema = z.enum([
+  'approved',
+  'draft',
+  'deprecated',
+  'restricted',
+  'archived',
+]);
+export const documentConfidentialityLevelSchema = z.enum([
+  'public',
+  'internal',
+  'confidential',
+  'restricted',
+]);
+export const documentParsingStatusSchema = z.enum(['pending', 'processing', 'parsed', 'failed']);
+export const documentIndexingStatusSchema = z.enum([
+  'not_ready',
+  'pending',
+  'indexing',
+  'indexed',
+  'failed',
+]);
+
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const isoTimestampSchema = z.string().datetime({ offset: true });
+
+const caseSummarySchema = z.object({
+  case_id: z.string().uuid(),
+  case_number: z.string(),
+  title: z.string(),
+  language: caseLanguageSchema,
+  domain: caseDomainSchema,
+  priority: casePrioritySchema,
+  status: caseStatusSchema,
+  risk_level: caseRiskLevelSchema.nullable(),
+  assigned_user_id: z.string().uuid().nullable(),
+  submitted_by_user_id: z.string().uuid(),
+  due_date: isoDateSchema.nullable(),
+  inserted_at: isoTimestampSchema,
+  updated_at: isoTimestampSchema,
+});
+
+export const caseDetailSchema = caseSummarySchema.extend({
+  description: z.string(),
+  case_type: z.string().nullable(),
+  external_reference: z.string().nullable(),
+  archived_at: isoTimestampSchema.nullable(),
+});
+
+export const caseListSchema = z.object({
+  items: z.array(caseSummarySchema),
+  limit: z.number().int().min(1).max(100),
+  offset: z.number().int().min(0),
+  total: z.number().int().min(0),
+  has_more: z.boolean(),
+});
+
+export const caseAssigneeListSchema = z.object({
+  items: z.array(
+    z.object({
+      user_id: z.string().uuid(),
+      display_name: z.string().min(1),
+    }),
+  ),
+});
+
+export const documentDataSchema = z.object({
+  document_id: z.string().uuid(),
+  case_id: z.string().uuid(),
+  uploaded_by_user_id: z.string().uuid(),
+  title: z.string(),
+  original_filename: z.string(),
+  file_type: z.string(),
+  mime_type: z.string(),
+  file_size_bytes: z.number().int().nonnegative(),
+  source_status: documentSourceStatusSchema,
+  confidentiality_level: documentConfidentialityLevelSchema,
+  parsing_status: documentParsingStatusSchema,
+  language: z.string().nullable(),
+  page_count: z.number().int().nonnegative().nullable(),
+  parsing_error: z.string().nullable(),
+  indexing_status: documentIndexingStatusSchema,
+  indexing_error: z.string().nullable(),
+  indexed_at: isoTimestampSchema.nullable(),
+  inserted_at: isoTimestampSchema,
+  updated_at: isoTimestampSchema,
+});
+
+export const documentListSchema = z.object({
+  items: z.array(documentDataSchema),
+  limit: z.number().int().min(1).max(100),
+  offset: z.number().int().min(0),
+  total: z.number().int().min(0),
+  has_more: z.boolean(),
+});
+
+export const documentSourceContextSchema = z.object({
+  document_id: z.string().uuid(),
+  chunk_id: z.string().uuid(),
+  document_title: z.string(),
+  document_file_type: z.string(),
+  source_status: documentSourceStatusSchema,
+  page_number: z.number().int().nonnegative().nullable(),
+  section_title: z.string().nullable(),
+  context: z.string(),
+  truncated: z.boolean(),
+});
+
+export const retrievalWarningCodeSchema = z.enum([
+  'source_draft',
+  'source_deprecated',
+  'source_restricted',
+  'source_archived',
+]);
+export const retrievalMethodSchema = z.enum(['semantic', 'keyword']);
+export const retrievalSourceSchema = z.object({
+  document_id: z.string().uuid(),
+  document_title: z.string(),
+  document_file_type: z.string(),
+  chunk_id: z.string().uuid(),
+  page_number: z.number().int().nonnegative().nullable(),
+  section_title: z.string().nullable(),
+  source_status: documentSourceStatusSchema,
+  rank: z.number().int().min(1),
+  rank_score: z.number().finite(),
+  retrieval_methods: z.array(retrievalMethodSchema),
+  excerpt: z.string(),
+  warning_codes: z.array(retrievalWarningCodeSchema),
+});
+
+export const retrievalSearchInputSchema = z
+  .object({
+    case_id: z.string().uuid(),
+    query: z.string().trim().min(1).max(2_000),
+    limit: z.number().int().min(1).max(20).optional(),
+    source_statuses: z.array(documentSourceStatusSchema).max(5).optional(),
+    document_ids: z.array(z.string().uuid()).max(20).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.source_statuses &&
+      new Set(value.source_statuses).size !== value.source_statuses.length
+    ) {
+      context.addIssue({ code: 'custom', message: 'Source statuses must be unique.' });
+    }
+    if (value.document_ids && new Set(value.document_ids).size !== value.document_ids.length) {
+      context.addIssue({ code: 'custom', message: 'Document ids must be unique.' });
+    }
+  });
+
+export const caseCreateInputSchema = z.object({
+  title: z.string().trim().min(1).max(500),
+  description: z.string().trim().min(1).max(20_000),
+  domain: caseDomainSchema,
+  priority: casePrioritySchema,
+  language: caseLanguageSchema,
+  due_date: isoDateSchema.optional(),
+  external_reference: z.string().trim().min(1).max(255).optional(),
+});
+
+export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
+  return z.object({
+    data,
+    meta: responseMetaSchema,
+  });
+}
+
+const unknownSuccessEnvelopeSchema = z.object({
+  data: z.unknown(),
+  meta: responseMetaSchema,
+});
+
+export type ApiErrorDetail = z.infer<typeof errorDetailSchema>;
+export type CurrentUser = z.infer<typeof currentUserSchema>;
+export type CaseStatus = z.infer<typeof caseStatusSchema>;
+export type CasePriority = z.infer<typeof casePrioritySchema>;
+export type CaseDomain = z.infer<typeof caseDomainSchema>;
+export type CaseLanguage = z.infer<typeof caseLanguageSchema>;
+export type CaseRiskLevel = z.infer<typeof caseRiskLevelSchema>;
+export type CaseSummary = z.infer<typeof caseSummarySchema>;
+export type CaseDetail = z.infer<typeof caseDetailSchema>;
+export type CaseList = z.infer<typeof caseListSchema>;
+export type CaseAssigneeList = z.infer<typeof caseAssigneeListSchema>;
+export type CaseCreateInput = z.infer<typeof caseCreateInputSchema>;
+export type DocumentData = z.infer<typeof documentDataSchema>;
+export type DocumentList = z.infer<typeof documentListSchema>;
+export type DocumentSourceStatus = z.infer<typeof documentSourceStatusSchema>;
+export type DocumentSourceContext = z.infer<typeof documentSourceContextSchema>;
+export type RetrievalSource = z.infer<typeof retrievalSourceSchema>;
+export type RetrievalSearchInput = z.infer<typeof retrievalSearchInputSchema>;
+export type LoginInput = {
+  email: string;
+  password: string;
+};
+
+export class ApiFailure extends Error {
+  readonly code: string;
+  readonly details: readonly ApiErrorDetail[];
+  readonly requestId: string | undefined;
+  readonly retryAfterSeconds: number | undefined;
+  readonly status: number;
+
+  constructor({
+    code,
+    details = [],
+    requestId,
+    retryAfterSeconds,
+    status,
+  }: {
+    code: string;
+    details?: readonly ApiErrorDetail[];
+    requestId?: string | undefined;
+    retryAfterSeconds?: number | undefined;
+    status: number;
+  }) {
+    super(code);
+    this.name = 'ApiFailure';
+    this.code = code;
+    this.details = details;
+    this.requestId = requestId;
+    this.retryAfterSeconds = retryAfterSeconds;
+    this.status = status;
+  }
+}
+
+function responseRequestId(response: Response, bodyRequestId?: string | null): string | undefined {
+  return response.headers.get('X-Request-ID') ?? bodyRequestId ?? undefined;
+}
+
+function retryAfterSeconds(response: Response): number | undefined {
+  const retryAfter = response.headers.get('Retry-After');
+  if (retryAfter === null || !/^\d+$/.test(retryAfter)) {
+    return undefined;
+  }
+
+  const seconds = Number(retryAfter);
+  return Number.isSafeInteger(seconds) && seconds >= 0 ? seconds : undefined;
+}
+
+async function readJson(response: Response): Promise<unknown> {
+  const body = await response.text();
+  if (!body) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function apiRequest<DataSchema extends z.ZodType>(
+  path: string,
+  dataSchema: DataSchema,
+  init: RequestInit = {},
+): Promise<z.infer<DataSchema>> {
+  let response: Response;
+
+  try {
+    response = await fetch(path, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        ...init.headers,
+      },
+    });
+  } catch {
+    throw new ApiFailure({ code: 'network_error', status: 0 });
+  }
+
+  const body = await readJson(response);
+  if (!response.ok) {
+    const parsedError = errorEnvelopeSchema.safeParse(body);
+    if (!parsedError.success) {
+      throw new ApiFailure({
+        code: 'api_error',
+        requestId: responseRequestId(response),
+        retryAfterSeconds: retryAfterSeconds(response),
+        status: response.status,
+      });
+    }
+
+    const { error } = parsedError.data;
+    throw new ApiFailure({
+      code: error.code,
+      details: error.details ?? [],
+      requestId: responseRequestId(response, error.request_id),
+      retryAfterSeconds: retryAfterSeconds(response),
+      status: response.status,
+    });
+  }
+
+  const parsedEnvelope = unknownSuccessEnvelopeSchema.safeParse(body);
+  const parsedData = parsedEnvelope.success
+    ? dataSchema.safeParse(parsedEnvelope.data.data)
+    : undefined;
+  if (parsedData === undefined || !parsedData.success) {
+    throw new ApiFailure({
+      code: 'invalid_response',
+      requestId: responseRequestId(response),
+      status: response.status,
+    });
+  }
+
+  return parsedData.data;
+}

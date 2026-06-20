@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated
 from uuid import UUID
 
@@ -24,6 +24,13 @@ from app.db.session import get_db_session
 from app.services.auth.policy import ensure_roles, guard_tenant_resource
 from app.services.auth.principal import Principal, RoleName
 from app.services.auth.service import AuthenticationService, UserAdministrationService
+from app.services.cases.service import CaseService
+from app.services.documents.dispatch import CeleryDocumentTaskDispatcher
+from app.services.documents.embeddings import build_embedding_provider
+from app.services.documents.service import DocumentService
+from app.services.documents.storage import AzureBlobObjectStorage, ObjectStorage
+from app.services.errors import StorageUnavailableError
+from app.services.retrieval.service import RetrievalService
 
 # The runtime setting defaults to this name. The dependency itself reads the
 # configured cookie name, while this object documents cookie authentication in
@@ -98,6 +105,68 @@ def get_user_administration_service(
     )
 
 
+def get_case_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> CaseService:
+    """Construct the request-scoped Case Management domain service."""
+
+    return CaseService(session)
+
+
+async def get_object_storage(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> AsyncIterator[ObjectStorage]:
+    """Provide one private Azure Blob-compatible adapter for the request lifetime."""
+
+    try:
+        storage = AzureBlobObjectStorage(
+            connection_string=settings.object_storage_connection_string_value(),
+            container=settings.object_storage_container,
+        )
+    except Exception as error:
+        raise StorageUnavailableError() from error
+    try:
+        yield storage
+    finally:
+        await storage.close()
+
+
+def get_document_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    storage: Annotated[ObjectStorage, Depends(get_object_storage)],
+) -> DocumentService:
+    """Construct the single request-scoped secure document-upload coordinator."""
+
+    return DocumentService(
+        session,
+        storage=storage,
+        maximum_upload_bytes=settings.document_upload_max_bytes,
+        dispatcher=CeleryDocumentTaskDispatcher(),
+        maximum_context_characters=settings.document_context_max_characters,
+    )
+
+
+def get_retrieval_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> RetrievalService:
+    """Construct Phase 13 retrieval without creating a provider client eagerly."""
+
+    return RetrievalService(
+        session,
+        provider_factory=lambda: build_embedding_provider(settings),
+        default_result_limit=settings.retrieval_default_result_limit,
+        maximum_result_limit=settings.retrieval_max_result_limit,
+        semantic_candidate_limit=settings.retrieval_semantic_candidate_limit,
+        keyword_candidate_limit=settings.retrieval_keyword_candidate_limit,
+        rank_fusion_constant=settings.retrieval_rank_fusion_constant,
+        maximum_query_characters=settings.retrieval_max_query_characters,
+        maximum_document_selections=settings.retrieval_max_document_selections,
+        maximum_excerpt_characters=settings.retrieval_max_excerpt_characters,
+    )
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -161,5 +230,9 @@ AuthenticationServiceDependency = Annotated[
 UserAdministrationServiceDependency = Annotated[
     UserAdministrationService, Depends(get_user_administration_service)
 ]
+CaseServiceDependency = Annotated[CaseService, Depends(get_case_service)]
+ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]
+DocumentServiceDependency = Annotated[DocumentService, Depends(get_document_service)]
+RetrievalServiceDependency = Annotated[RetrievalService, Depends(get_retrieval_service)]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

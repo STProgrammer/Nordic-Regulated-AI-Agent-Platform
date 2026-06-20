@@ -1,10 +1,10 @@
-"""Phase 3 backend API skeleton.
+"""Backend API application factory.
 
 This module builds the durable FastAPI application: structured configuration,
 safe structured logging, request correlation, a consistent error contract, local
-OpenAPI documentation, and the stable product route boundaries. It deliberately
-implements no persistence, authentication, business operations, or AI workflows;
-those arrive in later roadmap phases. Only the health endpoints are functional.
+OpenAPI documentation, and stable product route boundaries. Authentication,
+organization-scoped user administration, and Case Management operations are
+implemented; later product groups remain future-phase boundaries.
 """
 
 from collections.abc import AsyncIterator
@@ -24,7 +24,8 @@ from app.health import create_health_router
 API_DESCRIPTION = (
     "Backend API for the Nordic Regulated AI Agent Platform. Local password authentication, "
     "opaque server-side sessions, and organization-scoped administrator user/role management "
-    "are available. Other product route groups remain stable future-phase boundaries."
+    "are available, along with protected case submission, lifecycle, search, and archive "
+    "operations. Other product route groups remain stable future-phase boundaries."
 )
 
 

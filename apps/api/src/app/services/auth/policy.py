@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from uuid import UUID
 
 from app.services.auth.principal import Principal, RoleName
@@ -21,6 +22,104 @@ def guard_tenant_resource(principal: Principal, resource_organization_id: UUID) 
 
     if principal.organization_id != resource_organization_id:
         raise NotFoundError("Resource")
+
+
+class CaseAction(StrEnum):
+    """The small Case Management action vocabulary enforced by the backend."""
+
+    READ = "read"
+    SUBMIT = "submit"
+    EDIT = "edit"
+    ARCHIVE = "archive"
+    APPROVE_OR_REJECT = "approve_or_reject"
+
+
+_CASE_ACTION_ROLES: dict[CaseAction, frozenset[RoleName]] = {
+    CaseAction.READ: frozenset(
+        {
+            RoleName.ADMIN,
+            RoleName.COMPLIANCE_REVIEWER,
+            RoleName.CASE_WORKER,
+            RoleName.MANAGER,
+            RoleName.READ_ONLY_AUDITOR,
+        }
+    ),
+    CaseAction.SUBMIT: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    CaseAction.EDIT: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    CaseAction.ARCHIVE: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    CaseAction.APPROVE_OR_REJECT: frozenset({RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER}),
+}
+
+
+def authorize_case_action(principal: Principal, action: CaseAction) -> None:
+    """Apply the Case Management action matrix to one trusted principal."""
+
+    ensure_roles(principal, *_CASE_ACTION_ROLES[action])
+
+
+class DocumentAction(StrEnum):
+    """Document actions introduced incrementally with their owning endpoints."""
+
+    UPLOAD = "upload"
+    READ = "read"
+    REPROCESS = "reprocess"
+    REINDEX = "reindex"
+    UPDATE_SOURCE_STATUS = "update_source_status"
+
+
+_DOCUMENT_ACTION_ROLES: dict[DocumentAction, frozenset[RoleName]] = {
+    DocumentAction.UPLOAD: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    DocumentAction.READ: frozenset(
+        {
+            RoleName.ADMIN,
+            RoleName.COMPLIANCE_REVIEWER,
+            RoleName.CASE_WORKER,
+            RoleName.MANAGER,
+            RoleName.READ_ONLY_AUDITOR,
+        }
+    ),
+    DocumentAction.REPROCESS: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    DocumentAction.REINDEX: frozenset({RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER}),
+    DocumentAction.UPDATE_SOURCE_STATUS: frozenset({RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER}),
+}
+
+
+def authorize_document_action(principal: Principal, action: DocumentAction) -> None:
+    """Apply the narrow Phase 10 document upload permission matrix."""
+
+    ensure_roles(principal, *_DOCUMENT_ACTION_ROLES[action])
+
+
+class RetrievalAction(StrEnum):
+    """Retrieval actions deliberately exclude read-only audit inspection."""
+
+    SEARCH = "search"
+
+
+_RETRIEVAL_ACTION_ROLES: dict[RetrievalAction, frozenset[RoleName]] = {
+    RetrievalAction.SEARCH: frozenset(
+        {
+            RoleName.ADMIN,
+            RoleName.COMPLIANCE_REVIEWER,
+            RoleName.CASE_WORKER,
+            RoleName.MANAGER,
+        }
+    )
+}
+
+_RESTRICTED_SOURCE_ROLES = frozenset({RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER})
+
+
+def authorize_retrieval_action(principal: Principal, action: RetrievalAction) -> None:
+    """Apply the narrow source-search role matrix before any content query."""
+
+    ensure_roles(principal, *_RETRIEVAL_ACTION_ROLES[action])
+
+
+def has_restricted_source_entitlement(principal: Principal) -> bool:
+    """Return whether a principal may explicitly request restricted sources."""
+
+    return not principal.roles.isdisjoint(_RESTRICTED_SOURCE_ROLES)
 
 
 @dataclass(frozen=True)

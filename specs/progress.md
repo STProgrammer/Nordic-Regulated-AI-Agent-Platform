@@ -11,7 +11,14 @@ implementation, tests, and validation checks pass within its defined scope.
 | 4     | Database Foundation and Migrations | DONE   |
 | 5     | Backend Repository and Service Layer | DONE   |
 | 6     | Authentication, Sessions, and RBAC | DONE   |
-| 7+    | See `specs/roadmap.md`             | TODO   |
+| 7     | Frontend Application Shell          | DONE   |
+| 8     | Case Management Backend             | DONE   |
+| 9     | Case Management UI                  | DONE   |
+| 10    | Secure Document Upload and Storage  | DONE   |
+| 11    | Document Parsing Pipeline            | DONE   |
+| 12    | Chunking, Embeddings, and Indexing  | DONE   |
+| 13    | Retrieval Service Foundation        | DONE   |
+| 14+   | See `specs/roadmap.md`              | TODO   |
 
 ## Phase 3 — Backend API Skeleton (DONE)
 
@@ -149,3 +156,244 @@ Validation: focused security/auth/API coverage plus the full backend suite pass
 lint, and strict mypy all pass. A rebuilt Compose stack passed migrations,
 local-stack verification, health/readiness/OpenAPI checks, and manual login,
 cookie, logout, rate-limit, and log-leakage checks before normal shutdown.
+
+## Phase 7 — Frontend Application Shell (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the localized, session-aware Next.js foundation:
+
+- A strict TypeScript App Router web application with Tailwind CSS, next-intl,
+  TanStack Query, React Hook Form, Zod, Vitest, Testing Library, and focused
+  shared UI primitives.
+- Route-based Norwegian Bokmål (`/nb`) as the default UI language, with English
+  (`/en`) and a route-preserving, keyboard-operable language switcher. Shared
+  date, number, and currency format helpers are ready for future data features.
+- A typed same-origin `/api/...` client for the existing Phase 6 login, current
+  user, and logout envelopes. It keeps cookies HTTP-only, maps safe failures and
+  `Retry-After` values, preserves request ids as support context, and rejects
+  malformed responses without displaying raw API payloads.
+- Localized login, session lookup, authenticated redirects, retryable
+  availability errors, logout, semantic layout landmarks, a skip link, active
+  navigation semantics, and account role display. The Cases, Approvals,
+  Evaluations, Administration, and Audit routes are deliberate no-data
+  placeholders, not fabricated feature behavior.
+- A Compose-native Next.js development service and server-only API rewrite,
+  replacing the static readiness page. The local verifier now checks a stable
+  web-shell marker, while documentation covers Compose versus host API origins
+  and safe synthetic-local login provisioning.
+
+Validation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test:web`
+(10 tests), `pnpm test:api` (108 tests), `pnpm check:workspace`, and a production
+web build all pass. A rebuilt Compose stack passed migrations and
+`pnpm verify:local-stack`; a generated synthetic local password then verified
+same-origin proxy login, reloadable current-user lookup, English login copy,
+logout, and post-logout denial without printing credentials or session values.
+
+## Phase 8 — Case Management Backend (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the protected, organization-scoped Case Management API:
+
+- Typed, closed Case submission, patch, response, and list contracts at
+  `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
+  `POST /api/cases/{case_id}/archive`, with the standard success/error envelope
+  and documented opaque-cookie authentication.
+- Server-owned organization, submitter, initial `new` status, and non-guessable
+  unique case numbers; bounded input validation for title, description, domain,
+  priority, language, due date, external reference, filters, pagination, and
+  allowlisted sorting.
+- A pure lifecycle policy, backend RBAC for reads, submissions, ordinary edits,
+  approval-status transitions, and archives, plus safe tenant-local assignee
+  validation and explicit nullable field clearing.
+- Tenant-safe repository filtering and parameterized case-number/title/
+  description search, deterministic pagination, and atomic archive operations
+  that set both `archived_at` and persisted `archived` status.
+- Exactly one minimal append-only audit row for each successful case mutation in
+  the request transaction, without case body content, external references,
+  cookies, credentials, or secrets.
+
+Validation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`,
+`pnpm check:workspace`, `pnpm test:api` (133 passed), `pnpm test:web` (10 passed),
+and the production web build pass. Ruff format/lint and strict mypy pass. A
+rebuilt Compose stack passed explicit migration/status checks and
+`pnpm verify:local-stack`. Manual synthetic Case Worker verification covered
+login, submission, filtered search, assignment, allowed status transition,
+archive, and the expected post-archive `404`, without printing a password or
+session value.
+
+## Phase 9 — Case Management UI (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the first usable Case workflow:
+
+- A protected, localized Case Inbox with server-backed text search; status,
+  risk, assignee, domain, and priority filters; URL-preserved pagination; safe
+  loading/empty/error states; and accessible real metadata displays.
+- A validated Case submission route and a Case Detail route that uses typed
+  same-origin API contracts, preserves opaque-cookie handling, formats
+  calendar dates and timestamps safely, and labels every future capability as
+  unavailable rather than fabricating data.
+- Complete Norwegian Bokmål and English Case copy, active nested Cases
+  navigation, reusable textual status/risk indicators, and direct-link handling
+  for malformed or unavailable Case ids.
+- A narrow `GET /api/cases/assignees` Case-read model so all Case readers can
+  select a human-readable assignee without exposing the Admin-only Users API or
+  a general user directory. It returns only active users assigned to visible,
+  non-archived current-tenant cases.
+- Focused API/client, inbox, form, contract, and repository coverage plus a
+  Playwright smoke scenario for synthetic login, submission, search, and Case
+  Detail navigation. Browser traces, videos, and screenshots are disabled in
+  normal runs and generated output is ignored.
+
+Validation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`,
+`pnpm check:workspace`, `pnpm test:web` (14 tests), `pnpm test:api` (134
+passed), and a production web build all pass. A rebuilt Compose stack passed
+migration checks and `pnpm verify:local-stack`. The Playwright scenario passed
+against that stack with a transient synthetic password, without printing or
+persisting credentials.
+
+## Phase 10 — Secure Document Upload and Storage (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the secure raw-document ingestion boundary:
+
+- An authenticated `POST /api/documents/upload` multipart endpoint for one
+  supported file or pasted email text attached to an active current-tenant case.
+  Its safe typed response exposes only metadata; no blob key, blob URL,
+  checksum, credential, or raw content is returned.
+- Bounded one-pass validation for PDF, DOCX, TXT, Markdown, CSV, XLSX, EML,
+  and pasted email content. It enforces the 25 MiB configured cap while reading,
+  normalizes filenames, checks content/signatures and OOXML ZIP structure, and
+  calculates the SHA-256 from the exact accepted bytes.
+- An injected Azure Blob-compatible private-storage adapter for Azurite locally
+  and Azure Blob configuration in cloud environments. It verifies the target
+  container is private, writes immutable server-keyed objects, and compensates a
+  newly written object when metadata/audit persistence fails.
+- Tenant-safe document metadata persistence with `draft`/`internal` defaults,
+  closed source-status and confidentiality values, server-owned uploader/case/
+  object identity, and `pending` parsing status. No parsing, document download,
+  browser UI, retrieval, or source-governance behavior was introduced.
+- A least-privilege upload policy for Admin, Case Worker, and Manager roles,
+  plus one success-only `document.uploaded` audit event containing only
+  operational type/size/status values.
+
+Validation: `pnpm install --frozen-lockfile`, `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm check:workspace`, `pnpm test:web` (14 tests), and
+`pnpm test:api` (158 passed, 1 opt-in emulator test skipped) pass. The opt-in
+live Azurite adapter test passed, Compose migration/status checks passed, and
+`pnpm verify:local-stack` passed. A local synthetic Case Worker login created a
+case and successfully uploaded pasted email text; metadata, one audit event,
+and one private object were confirmed, while an unsupported-file upload returned
+safe `415` and left no additional document/audit/object record.
+
+## Phase 11 — Document Parsing Pipeline (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the governed asynchronous parsing boundary:
+
+- A Redis-backed Celery `document-parser` queue and real local worker with
+  JSON UUID-only messages, bounded retries, task time limits, periodic pending
+  reconciliation, expired-claim recovery, and a broker/consumer health check.
+- Bounded private storage reads that verify the stored byte length and SHA-256
+  before parser selection. Raw storage, object keys, checksums, task ids,
+  broker details, parser exceptions, and extracted content remain absent from
+  public APIs, audit event data, and queue payloads.
+- Deterministic parsers for PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and
+  pasted-email EML. Successful extraction stores one canonical `document_texts`
+  record plus compact zero-based, half-open page/section location metadata and
+  a language value (`nb`, `en`, or `unknown`).
+- Guarded `pending` → `processing` → `parsed`/`failed` transitions with
+  duplicate-task safety. A failed parse preserves raw metadata, Case state,
+  audit history, and a prior good text record; terminal outcomes write only
+  stable neutral summaries and safe audit codes.
+- Protected metadata-only `GET /api/documents/{document_id}` and
+  `POST /api/documents/{document_id}/reprocess` operations. Read access covers
+  all Case-read roles; reprocessing is restricted to Admin, Case Worker, and
+  Manager, is tenant/archival safe, returns `409` during active processing, and
+  writes a minimal reprocess audit event.
+
+Validation: `uv lock --check`, Compose configuration validation, full Ruff and
+strict mypy checks, `pnpm check:workspace`, `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm test:web` (14 tests), and `pnpm test:api` (186 passed,
+1 opt-in Azurite test skipped) pass. A rebuilt local Compose stack passed
+migration/status checks and `pnpm verify:local-stack`; an ephemeral synthetic
+TXT document was privately stored, dispatched through the real worker, and
+reached `parsed`. The stack was then stopped normally.
+
+## Phase 12 — Chunking, Embeddings, and Indexing (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the governed retrieval-index boundary:
+
+- A durable, independent document indexing lifecycle with `not_ready`,
+  `pending`, `indexing`, `indexed`, and `failed` states; safe errors and
+  timestamps; a forward migration that backfills parsed documents; and
+  conditional tenant-safe claims/recovery.
+- Tokenizer-aware chunking of canonical Phase 11 text only. Every stored chunk
+  retains contiguous index/order, tenant and document identity, bounded exact
+  token count, trusted page/section/location offsets, compact parser/language/
+  configuration provenance, and no public content exposure.
+- Validated OpenAI and Azure OpenAI embedding adapters plus an explicit
+  local/test-only deterministic plumbing provider. Batch results must preserve
+  input order and pass finite 1536-dimension checks before persistence.
+- Atomic complete-set replacement of `document_chunks`, retaining a prior good
+  set through re-index failure. The existing pgvector HNSW cosine and GIN
+  `simple` full-text indexes remain the only retrieval storage/indexes; no
+  query, ranking, citation, or RAG surface was added.
+- A separate `document-indexer` Celery route with UUID-only task messages,
+  finite retries/timeouts, stale-claim and pending-work reconciliation, and
+  parser-success dispatch after its committed state change. Worker database
+  pools are disposed per task to remain safe across Celery event loops.
+- Safe additive document metadata and an authorized `POST
+  /api/documents/{document_id}/reindex` endpoint. Admin, Case Worker, and
+  Manager can request re-indexing; read-only roles cannot. The route returns
+  only lifecycle metadata and safe `409`/`422`/`503` behavior.
+
+Validation: `uv lock --check`, full backend tests (`205 passed, 1 skipped`),
+Ruff, strict mypy, `pnpm check:workspace`, `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm test:web` (14 passed), and the production web build
+pass. Compose configuration validation, the Phase 12 migration upgrade to
+`2f7d0bc4a8e1`, and `pnpm verify:local-stack` pass. A local synthetic,
+metadata-only re-index request returned `202` and reached `indexed` through the
+real worker; audit events recorded the safe re-index request and terminal index
+event.
+
+## Phase 13 — Retrieval Service Foundation (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the secure hybrid source-search foundation:
+
+- A protected `POST /api/retrieval/search` route with closed request input and
+  bounded, typed source results. It is case-contextual, tenant-scoped, and
+  returns no answer, citation, raw document, full chunk, embedding, storage
+  metadata, or provider detail.
+- A reusable retrieval service with deterministic Unicode query normalization,
+  one validated query embedding, separate pgvector cosine and PostgreSQL
+  `simple` full-text candidate queries, fixed reciprocal-rank fusion, stable
+  tie-breaking, bounded excerpts, and source-status warnings.
+- SQL-level organization, active-document, parsed/indexed lifecycle,
+  selection, source-status, and restricted-confidentiality predicates on both
+  retrieval methods. Approved is the safe default; draft/deprecated are
+  explicit operational selections, while restricted and archived selections
+  require the documented entitlement and archived sources require exact
+  document selection.
+- Backend-only retrieval RBAC that excludes Read-only Auditor, plus a safe,
+  content-free `retrieval.search_completed` audit event for every successful
+  search. No workflow is fabricated and no future retrieved-source, model,
+  answer, or citation rows are created.
+
+Validation: `uv lock --check`, Compose configuration validation, focused
+retrieval tests (14 unit, 1 PostgreSQL/pgvector/GIN integration, 3 API), full
+backend suite, workspace structure/format/lint/type checks, web tests, and
+production web build pass. A deterministic-provider Compose stack was rebuilt,
+migrated, verified with `pnpm verify:local-stack`, and checked live through an
+authorized synthetic Case Worker flow: TXT upload, parse/index completion,
+approved-source retrieval, response redaction, and completion audit event.
+The disposable credential was neither printed nor persisted in project files.

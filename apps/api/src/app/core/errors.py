@@ -23,7 +23,12 @@ from app.services.errors import (
     ConflictError,
     InvalidCommandError,
     NotFoundError,
+    PayloadTooLargeError,
+    QueueUnavailableError,
+    RetrievalUnavailableError,
     ServiceError,
+    StorageUnavailableError,
+    UnsupportedMediaTypeError,
 )
 
 _logger = get_logger("api.error")
@@ -188,6 +193,14 @@ async def _handle_service_error(request: Request, exc: Exception) -> Response:
         status_code = http.HTTPStatus.CONFLICT
     elif isinstance(exc, AuthorizationDeniedError):
         status_code = http.HTTPStatus.FORBIDDEN
+    elif isinstance(exc, PayloadTooLargeError):
+        status_code = http.HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+    elif isinstance(exc, UnsupportedMediaTypeError):
+        status_code = http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    elif isinstance(
+        exc, (StorageUnavailableError, QueueUnavailableError, RetrievalUnavailableError)
+    ):
+        status_code = http.HTTPStatus.SERVICE_UNAVAILABLE
     elif isinstance(exc, InvalidCommandError):
         status_code = http.HTTPStatus.UNPROCESSABLE_ENTITY
     else:

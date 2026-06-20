@@ -2,8 +2,8 @@
 
 ``ROUTE_GROUPS`` is the authoritative list of product API boundaries. Tests assert
 its completeness and prefix/tag uniqueness so feature phases extend the existing
-routers instead of introducing competing top-level paths. The route modules expose
-no operations in Phase 3; this file only mounts their stable boundaries.
+routers instead of introducing competing top-level paths. Individual phases add
+operations to their designated boundaries without changing these mount points.
 """
 
 from dataclasses import dataclass

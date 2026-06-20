@@ -32,7 +32,7 @@ required_paths=(
   "infra/docker"
   "infra/docker/api.dev.Dockerfile"
   "infra/docker/worker.dev.Dockerfile"
-  "infra/docker/web-readiness.html"
+  "infra/docker/web.dev.Dockerfile"
   "infra/github-actions"
   "packages/shared_schemas/pyproject.toml"
   "packages/shared_schemas/src/shared_schemas"

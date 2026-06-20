@@ -2,9 +2,42 @@
   "name": "@nordic-regulated-ai-agent-platform/web",
   "version": "0.0.0",
   "private": true,
-  "description": "Reserved workspace for the Phase 7 Next.js application.",
+  "description": "Localized Next.js application shell for the Nordic Regulated AI Agent Platform.",
   "engines": {
     "node": ">=24.0.0 <25",
     "pnpm": ">=11.8.0 <12"
+  },
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --hostname 0.0.0.0",
+    "test:e2e": "playwright test",
+    "lint": "eslint src next.config.ts vitest.config.ts --max-warnings=0",
+    "start": "next start --hostname 0.0.0.0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "5.2.1",
+    "@tailwindcss/postcss": "4.1.13",
+    "@tanstack/react-query": "5.66.8",
+    "next": "15.5.9",
+    "next-intl": "4.3.5",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "react-hook-form": "7.63.0",
+    "tailwindcss": "4.1.13",
+    "zod": "4.1.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.51.1",
+    "@testing-library/jest-dom": "6.8.0",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.10.1",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "@vitejs/plugin-react": "5.0.2",
+    "jsdom": "26.1.0",
+    "vitest": "3.2.4"
   }
 }

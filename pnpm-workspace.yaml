@@ -1,2 +1,6 @@
 packages:
   - apps/web
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
+  sharp: false
