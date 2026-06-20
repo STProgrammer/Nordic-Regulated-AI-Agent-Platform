@@ -62,14 +62,15 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
     .toBe('indexed');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Dokumenter' })).toBeVisible();
-  await expect(page.getByText('E2E syntetisk dokument')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'E2E syntetisk dokument' })).toBeVisible();
   await page.getByRole('button', { name: 'Se metadata' }).click();
   await expect(page.getByRole('button', { name: 'Be om reindeksering' })).toBeVisible();
 
   await page.getByLabel('Hva vil du finne i kildene?').fill('Syntetisk dokumenttekst');
+  await page.getByLabel('Avgrens til dokument (valgfritt)').selectOption(documentId);
   await page.getByRole('button', { name: 'Søk i kilder' }).click();
   await expect(page.getByRole('heading', { name: 'Kilder' })).toBeVisible();
-  await page.getByRole('button', { name: 'Åpne kildekontekst' }).click();
+  await page.getByRole('button', { name: 'Åpne kildekontekst' }).first().click();
   const contextDialog = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
   await expect(contextDialog).toBeVisible();
   await expect(

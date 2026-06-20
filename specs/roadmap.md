@@ -97,7 +97,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add retrieval logs linked to cases and workflow runs where applicable.
 - Validation: Retrieval tests verify semantic search, keyword search, source filtering, restricted source blocking, and deprecated source warnings.
 
-## Phase 14 — Evidence Panel and Document UI
+## Phase 14 — Evidence Panel and Document UI (DONE)
 
 - Implement document list, document detail, parsing status display, source status controls, confidentiality display, and re-indexing controls.
 - Implement Evidence Panel UI for source title, document type, page/section, score, excerpt, source status warning, and citation label.

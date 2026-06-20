@@ -18,7 +18,8 @@ implementation, tests, and validation checks pass within its defined scope.
 | 11    | Document Parsing Pipeline            | DONE   |
 | 12    | Chunking, Embeddings, and Indexing  | DONE   |
 | 13    | Retrieval Service Foundation        | DONE   |
-| 14+   | See `specs/roadmap.md`              | TODO   |
+| 14    | Evidence Panel and Document UI      | DONE   |
+| 15+   | See `specs/roadmap.md`              | TODO   |
 
 ## Phase 3 — Backend API Skeleton (DONE)
 
@@ -397,3 +398,32 @@ migrated, verified with `pnpm verify:local-stack`, and checked live through an
 authorized synthetic Case Worker flow: TXT upload, parse/index completion,
 approved-source retrieval, response redaction, and completion audit event.
 The disposable credential was neither printed nor persisted in project files.
+
+## Phase 14 — Evidence Panel and Document UI (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the localized Case Detail document and evidence experience:
+
+- Case-scoped document metadata list/detail, lifecycle and confidentiality display, and a narrow
+  source-status mutation restricted by backend RBAC to Admin and Compliance Reviewer roles. The
+  `archived` source label remains distinct from physical document archival and every successful
+  status change writes one content-free audit event.
+- A purpose-specific, retrieval-governed, server-bounded source-context endpoint. It reuses the
+  Phase 13 tenant, role, source-status, restricted-confidentiality, parsing, and indexing checks;
+  it never returns raw documents, storage data, generic chunks, offsets, vectors, or provider data.
+- Localized Bokmål/English Documents and Source Evidence sections, typed same-origin clients,
+  controlled governance/re-index affordances, truthful ranking/warning displays, and lazy
+  keyboard-closeable context opening. No upload UI, download, preview, raw-text browser, model
+  answer, or verified answer reference was introduced.
+- API, integration, policy, client, component, and Playwright coverage for safe display, source
+  governance, context access, evidence rendering, role restrictions, and an indexed synthetic
+  document flow.
+
+Validation: `pnpm install --frozen-lockfile`, `uv sync --all-packages --locked`, `uv lock --check`,
+Compose configuration, `pnpm check:workspace`, `pnpm format:check`, `pnpm lint`, `pnpm typecheck`,
+the production web build, `pnpm test:web` (18 passed), and `pnpm test:api` (231 passed, 1 skipped)
+pass. A deterministic-provider local stack migrated to head and passed `pnpm verify:local-stack`.
+The authenticated live validation covered document upload, parse/index completion, metadata list,
+Case Worker source-status denial, governed retrieval, bounded context redaction, and re-index
+acceptance. The browser flow passed against that stack (1 passed) using synthetic data only.
