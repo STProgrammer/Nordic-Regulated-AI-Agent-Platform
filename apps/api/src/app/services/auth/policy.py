@@ -94,6 +94,7 @@ class RetrievalAction(StrEnum):
     """Retrieval actions deliberately exclude read-only audit inspection."""
 
     SEARCH = "search"
+    ANSWER = "answer"
 
 
 _RETRIEVAL_ACTION_ROLES: dict[RetrievalAction, frozenset[RoleName]] = {
@@ -104,7 +105,15 @@ _RETRIEVAL_ACTION_ROLES: dict[RetrievalAction, frozenset[RoleName]] = {
             RoleName.CASE_WORKER,
             RoleName.MANAGER,
         }
-    )
+    ),
+    RetrievalAction.ANSWER: frozenset(
+        {
+            RoleName.ADMIN,
+            RoleName.COMPLIANCE_REVIEWER,
+            RoleName.CASE_WORKER,
+            RoleName.MANAGER,
+        }
+    ),
 }
 
 _RESTRICTED_SOURCE_ROLES = frozenset({RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER})

@@ -7,14 +7,15 @@ interface language.
 
 ## Current status
 
-This repository is at **Phase 14: Evidence Panel and Document UI**. The Next.js web application
+This repository is at **Phase 15: RAG Answering with Citations**. The Next.js web application
 provides Norwegian Bokmål by default, optional English, localized login/logout, opaque HTTP-only
 session integration, and accessible authenticated navigation. Authorized users can submit a
 synthetic case, find it in the server-backed Case Inbox, and open its Case Detail view. Case Detail
 now shows safe document metadata, parsing/indexing/source-governance state, permitted re-indexing
-intent, governed source search, and explicitly opened bounded source context. It does not upload,
-download, preview, browse raw documents, or generate AI answers. Workflow output, extracted fields,
-risk, approvals, and audit data remain unavailable until their owning phases.
+intent, governed source search, and explicitly opened bounded source context. Direct RAG answering
+is available as a protected API operation only; there is deliberately no answer/chat page yet. The
+web application still does not upload, download, preview, or browse raw documents. Workflow output,
+extracted fields, risk, approvals, and audit data remain unavailable until their owning phases.
 
 The protected Case API supports organization-scoped submission, listing, detail, lifecycle updates,
 assignment, filtering, search, archiving, and minimal append-only audit events. Its Case-read-only
@@ -97,11 +98,12 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
 `POST /api/documents/upload`, case-scoped `GET /api/documents`, `GET /api/documents/{document_id}`,
 `PATCH /api/documents/{document_id}/source-status`, bounded
 `GET /api/documents/{document_id}/context`, `POST /api/documents/{document_id}/reprocess`,
-`POST /api/documents/{document_id}/reindex`, and `POST /api/retrieval/search`. Case dates use ISO
-calendar dates (`YYYY-MM-DD`); the frontend localizes them for display. User and role operations
-require the persisted **Admin** role in the current organization; Case actions use their documented
-server-enforced RBAC policy. The remaining future `/api` route groups, other than the implemented
-retrieval search boundary, are still operation-free.
+`POST /api/documents/{document_id}/reindex`, `POST /api/retrieval/search`, and
+`POST /api/retrieval/answer`. Case dates use ISO calendar dates (`YYYY-MM-DD`); the frontend
+localizes them for display. User and role operations require the persisted **Admin** role in the
+current organization; Case actions use their documented server-enforced RBAC policy. The remaining
+future `/api` route groups, other than the implemented retrieval search/answer boundary, are still
+operation-free.
 
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`
@@ -109,8 +111,14 @@ does not physically archive or delete a document. The bounded context operation 
 role, tenant, lifecycle, source-status, and restricted-confidentiality checks before returning one
 server-limited window. `POST /api/retrieval/search` is case-contextual and returns only bounded,
 tenant-governed source excerpts using deterministic hybrid rank fusion. Approved sources are the
-default; non-approved selection is backend-authorized and may return a source warning. Neither the
-API nor Evidence Panel generates answers or verified answer references.
+default; non-approved selection is backend-authorized and may return a source warning.
+`POST /api/retrieval/answer` accepts only `case_id`, `question`, and optional `answer_language`
+(`nb` or `en`), and always retrieves approved evidence only. It returns either a cited answer with
+run-local `[S#]` labels or a normal `needs_more_evidence` refusal; it never returns raw chunks,
+provider configuration, prompt content, scores as confidence, or non-approved evidence. A completed
+answer stores a tenant-scoped RAG run, selected excerpts, assistant output, and model accounting;
+terminal audit data remains content-free. A real OpenAI/Azure OpenAI completion credential is needed
+for manual answering. Deterministic embedding mode is plumbing only, not answer-quality validation.
 
 For local plumbing verification only, explicitly set `NORDIC_API_EMBEDDING_PROVIDER=deterministic`
 in an untracked local environment file. Those stable vectors are non-semantic and must not be used

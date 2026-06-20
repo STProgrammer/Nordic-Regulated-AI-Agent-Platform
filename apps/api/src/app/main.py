@@ -24,8 +24,9 @@ from app.health import create_health_router
 API_DESCRIPTION = (
     "Backend API for the Nordic Regulated AI Agent Platform. Local password authentication, "
     "opaque server-side sessions, and organization-scoped administrator user/role management "
-    "are available, along with protected case submission, lifecycle, search, and archive "
-    "operations. Other product route groups remain stable future-phase boundaries."
+    "are available, along with protected case submission, lifecycle, archive, governed search, "
+    "and direct source-grounded answer operations. Other product route groups remain stable "
+    "future-phase boundaries."
 )
 
 

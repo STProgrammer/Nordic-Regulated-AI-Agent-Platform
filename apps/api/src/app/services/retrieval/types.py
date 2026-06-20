@@ -23,6 +23,29 @@ class RetrievalWarningCode(StrEnum):
     SOURCE_ARCHIVED = "source_archived"
 
 
+class AnswerLanguage(StrEnum):
+    """The two server-selected output languages supported by direct RAG answers."""
+
+    NB = "nb"
+    EN = "en"
+
+
+class RagAnswerOutcome(StrEnum):
+    """Public direct-answer outcomes; weak evidence is a normal result."""
+
+    ANSWERED = "answered"
+    NEEDS_MORE_EVIDENCE = "needs_more_evidence"
+
+
+class RagEvidenceReason(StrEnum):
+    """Content-free explanations for a normal RAG refusal."""
+
+    NO_ELIGIBLE_SOURCES = "no_eligible_sources"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    MODEL_REFUSED = "model_refused"
+    CITATION_VALIDATION_FAILED = "citation_validation_failed"
+
+
 @dataclass(frozen=True)
 class RetrievalRequest:
     """Trusted public-search values after transport validation only."""
@@ -101,3 +124,49 @@ class RetrievedSource:
     retrieval_methods: tuple[RetrievalMethod, ...]
     excerpt: str
     warning_codes: tuple[RetrievalWarningCode, ...]
+
+
+@dataclass(frozen=True)
+class RagAnswerCommand:
+    """Trusted public-answer values after HTTP validation only."""
+
+    case_id: UUID
+    question: str
+    answer_language: AnswerLanguage | None
+
+
+@dataclass(frozen=True)
+class AnswerEvidenceSource:
+    """A run-local, approved evidence excerpt with a canonical citation label."""
+
+    source: RetrievedSource
+    citation_label: str
+    excerpt: str
+
+
+@dataclass(frozen=True)
+class RagCitation:
+    """The safe source view returned only for validated inline labels."""
+
+    label: str
+    document_id: UUID
+    document_title: str
+    document_file_type: str
+    chunk_id: UUID
+    page_number: int | None
+    section_title: str | None
+    excerpt: str
+    rank: int
+    retrieval_methods: tuple[RetrievalMethod, ...]
+
+
+@dataclass(frozen=True)
+class RagAnswerResult:
+    """Service result mapped to the closed public answer response."""
+
+    run_id: UUID
+    outcome: RagAnswerOutcome
+    language: AnswerLanguage
+    answer: str
+    citations: tuple[RagCitation, ...]
+    evidence_reason: RagEvidenceReason | None

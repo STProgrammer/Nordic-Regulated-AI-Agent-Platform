@@ -2,11 +2,11 @@
 
 ## Scope of the current workspace
 
-This is the Phase 14 Evidence Panel and Document UI, built on the secure Phase 10–13 document,
-parsing, indexing, and governed retrieval boundaries, plus the Case Management UI/backend, frontend
-shell, authentication/session/RBAC API, service layer, database schema, API shell, and local
-runtime. Docker Compose starts the Next.js web application, API process, Redis-backed Celery worker,
-PostgreSQL, Redis, Azurite, and an Azurite container initializer.
+This is the Phase 15 RAG Answering with Citations backend slice, built on the secure Phase 10–14
+document, parsing, indexing, and governed retrieval boundaries, plus the Case Management UI/backend,
+frontend shell, authentication/session/RBAC API, service layer, database schema, API shell, and
+local runtime. Docker Compose starts the Next.js web application, API process, Redis-backed Celery
+worker, PostgreSQL, Redis, Azurite, and an Azurite container initializer.
 
 The web application provides localized session UX, an accessible server-backed Case Inbox, Case
 submission, and Case Detail. It proxies same-origin `/api/...` requests to the API service, while
@@ -15,8 +15,9 @@ and Case Management. The API accepts one safe, supported document attached to an
 stores raw bytes privately in Azurite. The worker validates the stored byte length and checksum,
 then extracts canonical text and page/section context asynchronously. Case Detail now lists safe
 metadata, displays lifecycle/governance state, and delegates source search to Phase 13; only a
-user-requested, server-bounded source context can display text. There is still no browser upload,
-download, preview, raw-text browser, or model-answer feature.
+user-requested, server-bounded source context can display text. The protected answer API is now
+available, but there is still no browser upload, download, preview, raw-text browser, chat control,
+or model-answer page.
 
 ## Required tools
 
@@ -158,8 +159,10 @@ connection strings, exception details, or stack traces.
   `POST /api/documents/{document_id}/reindex` requests an authorized index replacement. User
   operations are Admin-only; Case and document operations derive organization solely from the
   authenticated principal and enforce backend RBAC. `POST /api/retrieval/search` is a protected,
-  case-contextual hybrid source search that returns bounded governed excerpts only. All other
-  product groups remain operation-free until their own phases.
+  case-contextual hybrid source search that returns bounded governed excerpts only.
+  `POST /api/retrieval/answer` is a protected direct RAG operation that uses approved sources only,
+  emits validated inline citation labels, or returns a normal safe refusal. All other product groups
+  remain operation-free until their own phases.
 
 ### Secure document upload and private storage
 
@@ -214,8 +217,12 @@ readable case id and query. Omitted `source_statuses` searches approved sources 
 draft/deprecated sources receive status warnings, while restricted/archived selection is
 backend-authorized. The context route applies the same policy and returns one fixed server-bounded
 window only after explicit user action. Physical archives and noncurrent index states are always
-excluded. No endpoint or UI returns a raw document, vector, generic chunk list, download link,
-answer, or verified answer reference.
+excluded. `POST /api/retrieval/answer` uses that same governed service with no caller-owned source,
+provider, prompt, score, or context control. It selects bounded approved excerpts, records a
+tenant-scoped `rag_answer` run and terminal content-free audit event, then returns a cited answer or
+localized `needs_more_evidence` refusal. It is API-only and does not create a workflow-node record,
+case-status transition, or frontend answer UI. No endpoint or UI returns a raw document, vector,
+generic chunk list, download link, provider payload, or prompt.
 
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
 write/delete evidence without a cloud account (it creates and removes one synthetic object):
@@ -369,9 +376,10 @@ after the test.
 
 ## Working agreements
 
-- Keep application behavior within the roadmap phase that owns it. Phase 14 owns safe document
-  metadata/governance UI, evidence-result rendering, and bounded context; document upload UI,
-  downloads, answer generation, approvals, audit reads, and AI workflows belong to later phases.
+- Keep application behavior within the roadmap phase that owns it. Phase 15 owns the direct,
+  approved-source-only RAG answer API, structural citation validation, safe refusal, and durable
+  run/source/message/usage records. LangGraph, answer UI, semantic faithfulness scoring, approvals,
+  audit reads, and AI workflows remain later-phase work.
 - Use typed Python and strict TypeScript settings for new code.
 - Never commit `.env` files, secrets, production connection values, or personal data.
 - Keep public demo material synthetic, public, anonymized, or otherwise safe as described in

@@ -47,7 +47,7 @@ def test_only_implemented_route_modules_define_operations() -> None:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_fourteen_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_fifteen_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -74,6 +74,7 @@ def test_aggregate_router_mounts_the_phase_fourteen_business_operations() -> Non
         "/api/documents/{document_id}/reindex",
         "/api/documents/{document_id}/source-status",
         "/api/retrieval/search",
+        "/api/retrieval/answer",
     }
 
 

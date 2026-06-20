@@ -101,3 +101,13 @@ class RetrievalUnavailableError(ServiceError):
             code="retrieval_unavailable",
             message="Retrieval is temporarily unavailable.",
         )
+
+
+class RagAnswerUnavailableError(ServiceError):
+    """A completion or durable RAG-record operation could not complete safely."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="rag_answer_unavailable",
+            message="Answer generation is temporarily unavailable.",
+        )

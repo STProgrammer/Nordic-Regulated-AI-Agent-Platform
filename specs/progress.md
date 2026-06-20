@@ -19,7 +19,35 @@ implementation, tests, and validation checks pass within its defined scope.
 | 12    | Chunking, Embeddings, and Indexing  | DONE   |
 | 13    | Retrieval Service Foundation        | DONE   |
 | 14    | Evidence Panel and Document UI      | DONE   |
-| 15+   | See `specs/roadmap.md`              | TODO   |
+| 15    | RAG Answering with Citations        | DONE   |
+| 16+   | See `specs/roadmap.md`              | TODO   |
+
+## Phase 15 — RAG Answering with Citations (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the protected direct RAG answer boundary:
+
+- `POST /api/retrieval/answer` accepts only a readable case, question, and optional `nb`/`en`
+  output selection. It always retrieves current approved sources through the existing governed hybrid
+  retrieval service, with no client-owned model, source, prompt, score, or context controls.
+- Deterministic preliminary evidence checks and server-owned context budgets return a localized
+  `needs_more_evidence` result without calling a model when source count/content is insufficient.
+  Generated answers require exact, run-local inline `[S#]` labels; unknown, duplicate, malformed, or
+  missing citations are suppressed as safe refusals.
+- A narrow OpenAI/Azure OpenAI completion adapter builds a fixed source-grounding prompt, treats
+  excerpts as untrusted reference material, normalizes safe usage metadata, and returns only a
+  neutral `503` for provider or malformed-response failures. Completion credentials and configured
+  prices stay secret-safe and are required for staging/production settings.
+- Each accepted request creates a `rag_answer` workflow run and persists selected source provenance,
+  assistant output where a model ran, model usage/accounting, terminal state, and one content-free
+  RAG audit event. No workflow-node rows, case-status changes, graph runtime, or answer UI were added.
+
+Validation: `pnpm test:api` passed (252 passed, 1 skipped), `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm test:web` (18 passed), and `pnpm check:workspace` all passed. A rebuilt
+Compose stack passed migration/status validation and `pnpm verify:local-stack`; OpenAPI confirmed the
+cookie-secured answer route and `/docs` remained reachable. A real completion response was not run
+because no real provider credential was configured locally.
 
 ## Phase 3 — Backend API Skeleton (DONE)
 

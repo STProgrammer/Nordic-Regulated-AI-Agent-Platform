@@ -1,9 +1,11 @@
 import os
 from asyncio import run
 from collections.abc import Iterator
+from decimal import Decimal
+from typing import cast
 
 import pytest
-from app.core.config import AppSettings, get_settings, reset_settings_cache
+from app.core.config import AppSettings, Environment, get_settings, reset_settings_cache
 from app.db.session import dispose_database_engines, get_async_engine
 from pydantic import SecretStr, ValidationError
 
@@ -57,7 +59,16 @@ def test_documentation_urls_follow_enable_docs() -> None:
 
 @pytest.mark.parametrize("environment", ["local", "test", "staging", "production"])
 def test_allowed_environments(environment: str) -> None:
-    assert AppSettings(environment=environment).environment == environment  # type: ignore[arg-type]
+    if environment in {"staging", "production"}:
+        settings = AppSettings(
+            environment=cast(Environment, environment),
+            rag_completion_api_key=SecretStr("synthetic-rag-key"),
+            rag_input_price_per_million=Decimal("1"),
+            rag_output_price_per_million=Decimal("2"),
+        )
+    else:
+        settings = AppSettings(environment=cast(Environment, environment))
+    assert settings.environment == environment
 
 
 def test_invalid_environment_is_rejected() -> None:
@@ -95,6 +106,9 @@ def test_empty_required_strings_are_rejected() -> None:
 def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NORDIC_API_ENVIRONMENT", "staging")
     monkeypatch.setenv("NORDIC_API_LOG_FORMAT", "json")
+    monkeypatch.setenv("NORDIC_API_RAG_COMPLETION_API_KEY", "synthetic-rag-key")
+    monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
+    monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
 
     settings = AppSettings()
 
@@ -109,6 +123,9 @@ def test_get_settings_is_cached_and_resettable(
     assert get_settings() is first
 
     monkeypatch.setenv("NORDIC_API_ENVIRONMENT", "production")
+    monkeypatch.setenv("NORDIC_API_RAG_COMPLETION_API_KEY", "synthetic-rag-key")
+    monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
+    monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
     assert get_settings() is first  # still cached
 
     reset_settings_cache()
@@ -124,9 +141,21 @@ def test_settings_are_immutable() -> None:
 
 
 def test_production_requires_secure_cookie_but_derives_it_by_default() -> None:
-    assert AppSettings(environment="production").session_cookie_secure_value is True
+    production_settings = AppSettings(
+        environment="production",
+        rag_completion_api_key=SecretStr("synthetic-rag-key"),
+        rag_input_price_per_million=Decimal("1"),
+        rag_output_price_per_million=Decimal("2"),
+    )
+    assert production_settings.session_cookie_secure_value is True
     with pytest.raises(ValidationError):
-        AppSettings(environment="production", session_cookie_secure=False)
+        AppSettings(
+            environment="production",
+            session_cookie_secure=False,
+            rag_completion_api_key=SecretStr("synthetic-rag-key"),
+            rag_input_price_per_million=Decimal("1"),
+            rag_output_price_per_million=Decimal("2"),
+        )
 
 
 def test_password_bounds_and_redis_urls_are_validated_without_leaking_values() -> None:
@@ -185,6 +214,17 @@ def test_retrieval_limits_form_one_safe_server_owned_contract() -> None:
         AppSettings(retrieval_max_result_limit=51, retrieval_keyword_candidate_limit=50)
     with pytest.raises(ValidationError):
         AppSettings(document_context_max_characters=63)
+
+
+def test_rag_limits_pricing_and_production_credentials_are_validated() -> None:
+    with pytest.raises(ValidationError):
+        AppSettings(rag_min_evidence_sources=6, rag_max_evidence_sources=5)
+    with pytest.raises(ValidationError):
+        AppSettings(rag_min_evidence_characters=501, rag_max_evidence_characters=500)
+    with pytest.raises(ValidationError):
+        AppSettings(rag_input_price_per_million=Decimal("1"))
+    with pytest.raises(ValidationError):
+        AppSettings(environment="production")
 
 
 def test_engine_construction_is_lazy() -> None:

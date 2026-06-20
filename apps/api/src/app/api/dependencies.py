@@ -30,6 +30,8 @@ from app.services.documents.embeddings import build_embedding_provider
 from app.services.documents.service import DocumentService
 from app.services.documents.storage import AzureBlobObjectStorage, ObjectStorage
 from app.services.errors import StorageUnavailableError
+from app.services.retrieval.answering import RagAnswerService
+from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
 
 # The runtime setting defaults to this name. The dependency itself reads the
@@ -167,6 +169,27 @@ def get_retrieval_service(
     )
 
 
+def get_rag_answer_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    retrieval: Annotated[RetrievalService, Depends(get_retrieval_service)],
+) -> RagAnswerService:
+    """Construct direct RAG answering without eagerly creating a provider client."""
+
+    return RagAnswerService(
+        session,
+        retrieval=retrieval,
+        generator_factory=lambda: build_rag_answer_generator(settings),
+        maximum_answer_characters=settings.rag_max_answer_characters,
+        maximum_evidence_sources=settings.rag_max_evidence_sources,
+        maximum_evidence_characters=settings.rag_max_evidence_characters,
+        minimum_evidence_sources=settings.rag_min_evidence_sources,
+        minimum_evidence_characters=settings.rag_min_evidence_characters,
+        input_price_per_million=settings.rag_input_price_per_million,
+        output_price_per_million=settings.rag_output_price_per_million,
+    )
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -234,5 +257,6 @@ CaseServiceDependency = Annotated[CaseService, Depends(get_case_service)]
 ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]
 DocumentServiceDependency = Annotated[DocumentService, Depends(get_document_service)]
 RetrievalServiceDependency = Annotated[RetrievalService, Depends(get_retrieval_service)]
+RagAnswerServiceDependency = Annotated[RagAnswerService, Depends(get_rag_answer_service)]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

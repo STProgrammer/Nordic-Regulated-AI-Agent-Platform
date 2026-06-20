@@ -4,6 +4,7 @@ from app.api.dependencies import SettingsDependency
 from app.core.config import AppSettings
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 _HEX_32 = re.compile(r"\A[0-9a-f]{32}\Z")
 
@@ -13,6 +14,10 @@ def _make_app(**overrides: object) -> FastAPI:
 
     params: dict[str, object] = {"environment": "test"}
     params.update(overrides)
+    if params["environment"] in {"staging", "production"}:
+        params.setdefault("rag_completion_api_key", SecretStr("synthetic-rag-key"))
+        params.setdefault("rag_input_price_per_million", "1")
+        params.setdefault("rag_output_price_per_million", "2")
     settings = AppSettings(**params)  # type: ignore[arg-type]
     return create_api_app(settings)
 

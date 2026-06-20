@@ -7,6 +7,7 @@ convenience fallback for explicit migrations, seeds, and later session use.
 """
 
 import os
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import quote
@@ -19,6 +20,7 @@ LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 LogFormat = Literal["console", "json"]
 CookieSameSite = Literal["lax", "strict", "none"]
 EmbeddingProviderName = Literal["openai", "azure_openai", "deterministic"]
+RagCompletionProviderName = Literal["openai", "azure_openai"]
 
 
 class AppSettings(BaseSettings):
@@ -143,6 +145,24 @@ class AppSettings(BaseSettings):
     # and an explicit source-context view have different exposure purposes.
     document_context_max_characters: int = Field(default=1_200, ge=64, le=5_000)
 
+    # Direct RAG answering is deliberately a separate bounded completion
+    # configuration. Provider secrets remain absent from repr/error output and
+    # clients are constructed only on a real answer attempt.
+    rag_completion_provider: RagCompletionProviderName = "openai"
+    rag_completion_api_key: SecretStr | None = None
+    rag_completion_azure_endpoint: SecretStr | None = None
+    rag_completion_azure_api_version: str = "2024-02-01"
+    rag_completion_model: str = "gpt-4.1-mini"
+    rag_completion_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
+    rag_completion_max_output_tokens: int = Field(default=800, ge=1, le=8_192)
+    rag_max_answer_characters: int = Field(default=8_000, ge=64, le=20_000)
+    rag_max_evidence_sources: int = Field(default=5, ge=1, le=20)
+    rag_max_evidence_characters: int = Field(default=5_000, ge=64, le=20_000)
+    rag_min_evidence_sources: int = Field(default=1, ge=1, le=20)
+    rag_min_evidence_characters: int = Field(default=200, ge=1, le=20_000)
+    rag_input_price_per_million: Decimal | None = Field(default=None, ge=0)
+    rag_output_price_per_million: Decimal | None = Field(default=None, ge=0)
+
     @field_validator("api_prefix")
     @classmethod
     def _normalize_api_prefix(cls, value: str) -> str:
@@ -162,6 +182,7 @@ class AppSettings(BaseSettings):
         "embedding_model",
         "embedding_tokenizer_encoding",
         "embedding_configuration_version",
+        "rag_completion_model",
     )
     @classmethod
     def _require_non_empty(cls, value: str) -> str:
@@ -228,7 +249,13 @@ class AppSettings(BaseSettings):
             raise ValueError("object_storage_connection_string is invalid")
         return value
 
-    @field_validator("embedding_api_key", "embedding_azure_endpoint", mode="before")
+    @field_validator(
+        "embedding_api_key",
+        "embedding_azure_endpoint",
+        "rag_completion_api_key",
+        "rag_completion_azure_endpoint",
+        mode="before",
+    )
     @classmethod
     def _normalize_optional_embedding_secret(cls, value: object) -> object:
         if value is None:
@@ -286,6 +313,26 @@ class AppSettings(BaseSettings):
             raise ValueError(
                 "retrieval_max_result_limit must not exceed retrieval_keyword_candidate_limit"
             )
+        if self.rag_min_evidence_sources > self.rag_max_evidence_sources:
+            raise ValueError("rag_min_evidence_sources must not exceed rag_max_evidence_sources")
+        if self.rag_min_evidence_characters > self.rag_max_evidence_characters:
+            raise ValueError(
+                "rag_min_evidence_characters must not exceed rag_max_evidence_characters"
+            )
+        if (self.rag_input_price_per_million is None) != (
+            self.rag_output_price_per_million is None
+        ):
+            raise ValueError("RAG input and output price rates must be configured together")
+        if self.environment in {"staging", "production"}:
+            if self.rag_completion_api_key is None:
+                raise ValueError("RAG completion credentials are required outside local and test")
+            if (
+                self.rag_completion_provider == "azure_openai"
+                and self.rag_completion_azure_endpoint is None
+            ):
+                raise ValueError("Azure RAG completion endpoint is required for azure_openai")
+            if self.rag_input_price_per_million is None:
+                raise ValueError("RAG price rates are required outside local and test")
         return self
 
     @property

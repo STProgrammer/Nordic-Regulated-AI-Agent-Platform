@@ -104,7 +104,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add UI support for opening source context safely.
 - Validation: Frontend and API tests cover document display, source governance actions, evidence rendering, and access restrictions.
 
-## Phase 15 — RAG Answering with Citations
+## Phase 15 — RAG Answering with Citations (DONE)
 
 - Implement source-grounded question answering over approved sources with citations.
 - Add evidence sufficiency checks, weak-evidence refusal behavior, citation formatting, and Norwegian/English answer language handling.

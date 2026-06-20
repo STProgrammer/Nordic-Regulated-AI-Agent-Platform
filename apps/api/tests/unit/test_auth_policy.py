@@ -7,9 +7,11 @@ from app.services.auth.policy import (
     ApprovalAuthorizationInput,
     CaseAction,
     DocumentAction,
+    RetrievalAction,
     authorize_approval,
     authorize_case_action,
     authorize_document_action,
+    authorize_retrieval_action,
     ensure_roles,
     guard_tenant_resource,
 )
@@ -73,6 +75,19 @@ def test_case_action_policy_keeps_read_only_auditors_read_only() -> None:
 
 def test_case_approval_transition_can_be_performed_by_a_reviewer() -> None:
     authorize_case_action(_principal(RoleName.COMPLIANCE_REVIEWER), CaseAction.APPROVE_OR_REJECT)
+
+
+@pytest.mark.parametrize(
+    "role",
+    [RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER, RoleName.CASE_WORKER, RoleName.MANAGER],
+)
+def test_rag_answer_matches_the_permitted_retrieval_role_matrix(role: RoleName) -> None:
+    authorize_retrieval_action(_principal(role), RetrievalAction.ANSWER)
+
+
+def test_read_only_auditor_cannot_generate_rag_answers() -> None:
+    with pytest.raises(AuthorizationDeniedError):
+        authorize_retrieval_action(_principal(RoleName.READ_ONLY_AUDITOR), RetrievalAction.ANSWER)
 
 
 @pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.CASE_WORKER, RoleName.MANAGER])

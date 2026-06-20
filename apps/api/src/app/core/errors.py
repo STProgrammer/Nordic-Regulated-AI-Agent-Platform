@@ -25,6 +25,7 @@ from app.services.errors import (
     NotFoundError,
     PayloadTooLargeError,
     QueueUnavailableError,
+    RagAnswerUnavailableError,
     RetrievalUnavailableError,
     ServiceError,
     StorageUnavailableError,
@@ -198,7 +199,13 @@ async def _handle_service_error(request: Request, exc: Exception) -> Response:
     elif isinstance(exc, UnsupportedMediaTypeError):
         status_code = http.HTTPStatus.UNSUPPORTED_MEDIA_TYPE
     elif isinstance(
-        exc, (StorageUnavailableError, QueueUnavailableError, RetrievalUnavailableError)
+        exc,
+        (
+            StorageUnavailableError,
+            QueueUnavailableError,
+            RetrievalUnavailableError,
+            RagAnswerUnavailableError,
+        ),
     ):
         status_code = http.HTTPStatus.SERVICE_UNAVAILABLE
     elif isinstance(exc, InvalidCommandError):

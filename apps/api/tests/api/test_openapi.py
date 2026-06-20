@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_the_phase_fourteen_product_endpoints() -> None:
+def test_openapi_declares_the_phase_fifteen_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
@@ -53,6 +53,7 @@ def test_openapi_declares_the_phase_fourteen_product_endpoints() -> None:
         "/api/documents/{document_id}/reindex",
         "/api/documents/{document_id}/source-status",
         "/api/retrieval/search",
+        "/api/retrieval/answer",
     }
 
 
@@ -85,6 +86,7 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
         {"SessionCookie": []}
     ]
     assert schema["paths"]["/api/retrieval/search"]["post"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/retrieval/answer"]["post"]["security"] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/cases"]["post"]["responses"]["201"]
 
 

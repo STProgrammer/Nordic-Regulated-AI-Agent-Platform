@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class RetrievalSourceStatus(StrEnum):
@@ -32,6 +32,29 @@ class RetrievalMethod(StrEnum):
 
     SEMANTIC = "semantic"
     KEYWORD = "keyword"
+
+
+class RetrievalAnswerLanguage(StrEnum):
+    """Closed output-language selection for one direct RAG answer."""
+
+    NB = "nb"
+    EN = "en"
+
+
+class RetrievalAnswerOutcome(StrEnum):
+    """A successful answer call may safely refuse for insufficient evidence."""
+
+    ANSWERED = "answered"
+    NEEDS_MORE_EVIDENCE = "needs_more_evidence"
+
+
+class RetrievalEvidenceReason(StrEnum):
+    """Stable safe normal-refusal reason codes."""
+
+    NO_ELIGIBLE_SOURCES = "no_eligible_sources"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    MODEL_REFUSED = "model_refused"
+    CITATION_VALIDATION_FAILED = "citation_validation_failed"
 
 
 class RetrievalSearchRequest(BaseModel):
@@ -75,3 +98,50 @@ class RetrievalSourceData(BaseModel):
     retrieval_methods: tuple[RetrievalMethod, ...]
     excerpt: str
     warning_codes: tuple[RetrievalWarningCode, ...]
+
+
+class RetrievalAnswerRequest(BaseModel):
+    """Closed RAG request; source selection and provider controls stay server-owned."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    case_id: UUID
+    question: str = Field(min_length=1, max_length=10_000)
+    answer_language: RetrievalAnswerLanguage | None = None
+
+    @field_validator("question")
+    @classmethod
+    def _question_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("question must not be blank")
+        return value
+
+
+class RetrievalCitationData(BaseModel):
+    """A safe source excerpt for one label that appears inline in a published answer."""
+
+    model_config = ConfigDict(frozen=True)
+
+    label: str = Field(pattern=r"^S[1-9][0-9]*$")
+    document_id: UUID
+    document_title: str
+    document_file_type: str
+    chunk_id: UUID
+    page_number: int | None
+    section_title: str | None
+    excerpt: str
+    rank: int = Field(ge=1)
+    retrieval_methods: tuple[RetrievalMethod, ...]
+
+
+class RetrievalAnswerData(BaseModel):
+    """Direct source-grounded answer or a localized normal refusal."""
+
+    model_config = ConfigDict(frozen=True)
+
+    run_id: UUID
+    outcome: RetrievalAnswerOutcome
+    language: RetrievalAnswerLanguage
+    answer: str
+    citations: tuple[RetrievalCitationData, ...]
+    evidence_reason: RetrievalEvidenceReason | None
