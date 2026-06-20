@@ -93,6 +93,16 @@ class QueueUnavailableError(ServiceError):
         )
 
 
+class WorkflowUnavailableError(ServiceError):
+    """The closed Intake run could not be dispatched to the private worker."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="workflow_unavailable",
+            message="Workflow processing is temporarily unavailable.",
+        )
+
+
 class RetrievalUnavailableError(ServiceError):
     """A retrieval provider or database cannot safely complete a search."""
 

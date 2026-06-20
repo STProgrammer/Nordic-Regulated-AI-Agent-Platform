@@ -272,6 +272,63 @@
     "contextUnavailable": "Source context is unavailable.",
     "truncated": "This context has been truncated by the service."
   },
+  "intake": {
+    "title": "Intake assessment",
+    "description": "Runs a preliminary classification and routing assessment. It is not final risk or an approval decision.",
+    "start": "Start intake",
+    "starting": "Starting intake …",
+    "notStarted": "Intake has not been started for this view.",
+    "unavailableForRole": "Your role cannot start Intake, but you may still view case information you are allowed to access.",
+    "unavailable": "The Intake workflow is temporarily unavailable.",
+    "status": {
+      "queued": "Intake is queued.",
+      "running": "Intake is running.",
+      "completed": "Intake completed.",
+      "failed": "Intake could not be completed safely."
+    },
+    "language": "Detected language",
+    "caseType": "Case type",
+    "domain": "Recommended domain",
+    "preliminaryRisk": "Preliminary risk",
+    "signals": "Safety signals",
+    "nextWorkflow": "Suggested next workflow",
+    "classificationSource": "Classification source",
+    "completedAt": "Completed: {value}",
+    "unknown": "Unknown",
+    "lowConfidence": "The classification has low confidence. Confirm or correct the closed classification below.",
+    "signalsNone": "No signal detected",
+    "signalsPii": "Potential personal-data signal",
+    "signalsInjection": "Potential prompt-injection signal",
+    "signalsBoth": "Potential personal-data and prompt-injection signals",
+    "model": "Model classification",
+    "humanCorrected": "Human corrected",
+    "correctionTitle": "Correct low-confidence classification",
+    "reason": "Correction reason (optional)",
+    "reasonNone": "No reason selected",
+    "saveCorrection": "Save correction",
+    "saving": "Saving correction …",
+    "correctionUnavailable": "The correction could not be saved safely.",
+    "correctionSaved": "The classification correction was recorded.",
+    "reasons": {
+      "classification_review": "Classification review",
+      "domain_review": "Domain review",
+      "user_context": "User context"
+    },
+    "caseTypes": {
+      "case_support": "Case support",
+      "compliance_review": "Compliance review",
+      "operational_incident": "Operational incident",
+      "policy_question": "Policy question",
+      "document_intelligence": "Document intelligence",
+      "unknown": "Unknown"
+    },
+    "suggested": {
+      "evidence": "Evidence",
+      "extraction": "Extraction",
+      "evidence_then_draft": "Evidence then draft",
+      "manual_review": "Manual review"
+    }
+  },
   "placeholder": {
     "cases": {
       "title": "Case inbox",

@@ -272,6 +272,63 @@
     "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
     "truncated": "Denne konteksten er avkortet av tjenesten."
   },
+  "intake": {
+    "title": "Inntaksvurdering",
+    "description": "Kjører en foreløpig klassifisering og rutevurdering. Dette er ikke endelig risiko eller en godkjenningsbeslutning.",
+    "start": "Start inntak",
+    "starting": "Starter inntak …",
+    "notStarted": "Inntak er ikke startet i denne visningen.",
+    "unavailableForRole": "Rollen din kan ikke starte inntak, men du kan fortsatt se saksinformasjon du har tilgang til.",
+    "unavailable": "Inntaksflyten er midlertidig utilgjengelig.",
+    "status": {
+      "queued": "Inntak står i kø.",
+      "running": "Inntak kjører.",
+      "completed": "Inntak er fullført.",
+      "failed": "Inntak kunne ikke fullføres på en trygg måte."
+    },
+    "language": "Oppdaget språk",
+    "caseType": "Sakstype",
+    "domain": "Anbefalt fagområde",
+    "preliminaryRisk": "Foreløpig risiko",
+    "signals": "Sikkerhetssignaler",
+    "nextWorkflow": "Foreslått neste arbeidsflyt",
+    "classificationSource": "Klassifiseringskilde",
+    "completedAt": "Fullført: {value}",
+    "unknown": "Ukjent",
+    "lowConfidence": "Klassifiseringen har lav sikkerhet. Bekreft eller korriger den lukkede klassifiseringen nedenfor.",
+    "signalsNone": "Ingen signaler oppdaget",
+    "signalsPii": "Mulig persondatasignal",
+    "signalsInjection": "Mulig prompt-injection-signal",
+    "signalsBoth": "Mulige persondata- og prompt-injection-signaler",
+    "model": "Modellklassifisering",
+    "humanCorrected": "Korrigert av menneske",
+    "correctionTitle": "Korriger lavsikker klassifisering",
+    "reason": "Årsak til korrigering (valgfritt)",
+    "reasonNone": "Ingen årsak valgt",
+    "saveCorrection": "Lagre korrigering",
+    "saving": "Lagrer korrigering …",
+    "correctionUnavailable": "Korrigeringen kunne ikke lagres på en trygg måte.",
+    "correctionSaved": "Klassifiseringskorrigeringen er registrert.",
+    "reasons": {
+      "classification_review": "Klassifiseringsgjennomgang",
+      "domain_review": "Fagområdegjennomgang",
+      "user_context": "Brukerkontekst"
+    },
+    "caseTypes": {
+      "case_support": "Saksstøtte",
+      "compliance_review": "Etterlevelsesvurdering",
+      "operational_incident": "Operasjonell hendelse",
+      "policy_question": "Policyspørsmål",
+      "document_intelligence": "Dokumentanalyse",
+      "unknown": "Ukjent"
+    },
+    "suggested": {
+      "evidence": "Kildegrunnlag",
+      "extraction": "Ekstraksjon",
+      "evidence_then_draft": "Kildegrunnlag og utkast",
+      "manual_review": "Manuell vurdering"
+    }
+  },
   "placeholder": {
     "cases": {
       "title": "Saksinnboks",

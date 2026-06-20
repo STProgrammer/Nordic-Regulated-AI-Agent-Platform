@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import cast
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.db.models.workflow import WorkflowRun
+from app.db.models.workflow import WorkflowNodeRun, WorkflowRun
 from app.db.repositories.base import TenantScopedRepository
 from app.services.common.pagination import Page, Pagination
 from app.services.common.querying import SortSpec, resolve_sort
@@ -36,6 +38,22 @@ class WorkflowRunRepository(TenantScopedRepository[WorkflowRun]):
         self.session.add(workflow_run)
         return workflow_run
 
+    async def get_for_update(
+        self, organization_id: UUID, workflow_run_id: UUID
+    ) -> WorkflowRun | None:
+        """Lock one tenant-owned run for an idempotent worker lifecycle transition."""
+
+        statement = (
+            select(WorkflowRun)
+            .where(
+                *self.scoped_predicates(
+                    organization_id, additional=(WorkflowRun.id == workflow_run_id,)
+                )
+            )
+            .with_for_update()
+        )
+        return cast(WorkflowRun | None, await self.session.scalar(statement))
+
     async def list(
         self,
         organization_id: UUID,
@@ -50,3 +68,46 @@ class WorkflowRunRepository(TenantScopedRepository[WorkflowRun]):
             tie_breaker=cast(ColumnElement[object], WorkflowRun.id),
         )
         return await self.list_page(organization_id, pagination=pagination, order_by=order)
+
+
+class WorkflowNodeRunRepository:
+    """Narrow node-trace persistence tied to an already scoped parent workflow run."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, node_run: WorkflowNodeRun) -> WorkflowNodeRun:
+        self.session.add(node_run)
+        return node_run
+
+    async def get_for_update(
+        self, workflow_run_id: UUID, node_run_id: UUID
+    ) -> WorkflowNodeRun | None:
+        statement = (
+            select(WorkflowNodeRun)
+            .where(
+                WorkflowNodeRun.workflow_run_id == workflow_run_id,
+                WorkflowNodeRun.id == node_run_id,
+            )
+            .with_for_update()
+        )
+        return cast(WorkflowNodeRun | None, await self.session.scalar(statement))
+
+    async def finish(
+        self,
+        node_run: WorkflowNodeRun,
+        *,
+        status: str,
+        finished_at: datetime,
+        duration_ms: int,
+        output_summary: dict[str, object],
+        retry_count: int,
+        error_summary: str | None,
+    ) -> WorkflowNodeRun:
+        node_run.status = status
+        node_run.finished_at = finished_at
+        node_run.duration_ms = duration_ms
+        node_run.output_summary = output_summary
+        node_run.retry_count = retry_count
+        node_run.error_summary = error_summary
+        return node_run

@@ -20,7 +20,38 @@ implementation, tests, and validation checks pass within its defined scope.
 | 13    | Retrieval Service Foundation        | DONE   |
 | 14    | Evidence Panel and Document UI      | DONE   |
 | 15    | RAG Answering with Citations        | DONE   |
-| 16+   | See `specs/roadmap.md`              | TODO   |
+| 16    | Agent Orchestrator Foundation        | DONE   |
+| 17    | Intake Graph                         | DONE   |
+| 18+   | See `specs/roadmap.md`               | TODO   |
+
+## Phases 16–17 — Agent Orchestrator Foundation and Intake Graph (DONE)
+
+Completed on 2026-06-20.
+
+Delivered the first executable, tenant-safe LangGraph workflow slice:
+
+- A strictly typed `agent_orchestrator` workspace package with a bounded LangGraph runtime,
+  default-deny state/node summaries, finite retry semantics, provider-neutral structured-output
+  ports, deterministic local/test fixtures, tenant-aware prompt loading, and a server-owned tool
+  registry. Raw case text, prompt content, provider bodies, credentials, vectors, and exceptions
+  are excluded from durable snapshots and normal logs.
+- The closed eight-node Intake graph: input validation, language detection, structured case-type and
+  domain classification, PII and prompt-injection signals, preliminary risk, suggested next
+  workflow, and durable result persistence. It neither launches a later workflow nor changes case
+  lifecycle state, creates approvals, or claims final risk.
+- Cookie-secured start/status/correction endpoints, a UUID-only Celery task on the dedicated
+  `agent-orchestrator` queue, tenant-scoped run/node/model/audit persistence, and an atomic
+  low-confidence human correction that accepts only closed case type/domain/reason values.
+- A localized Bokmål-first/English Case Detail Intake panel with start, safe polling/result display,
+  and accessible low-confidence correction controls. Browser token storage and raw workflow traces
+  are not introduced.
+
+Validation: `pnpm check:workspace` (94 paths), `pnpm format:check`, `pnpm lint`, `pnpm typecheck`,
+`pnpm test:web` (18 passed), `pnpm test:api` (253 collected, passing), and the focused LangGraph
+suite (3 passed) all passed. A rebuilt Compose stack passed migrations, seed, `pnpm verify:local-stack`,
+and a real cookie-authenticated synthetic Intake run through API dispatch, Celery, all eight nodes,
+PostgreSQL persistence, and the safe status response. No real model credential was used; the local
+run used clearly labelled deterministic fixture plumbing.
 
 ## Phase 15 — RAG Answering with Citations (DONE)
 

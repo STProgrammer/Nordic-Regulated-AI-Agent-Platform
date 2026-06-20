@@ -1,8 +1,8 @@
 # Web application
 
-This is the Phase 9 Case Management interface for the Nordic Regulated AI Agent Platform. It uses
-strict TypeScript, Tailwind CSS, next-intl, TanStack Query, React Hook Form, Zod, Vitest, and
-Testing Library.
+This is the Phase 17 Case Management and Intake interface for the Nordic Regulated AI Agent
+Platform. It uses strict TypeScript, Tailwind CSS, next-intl, TanStack Query, React Hook Form, Zod,
+Vitest, and Testing Library.
 
 The default user-facing locale is Norwegian Bokmål (`/nb`); English is available at `/en`. Protected
 routes use only the Phase 6 auth API through relative `/api/...` requests. The backend issues and
@@ -24,10 +24,11 @@ For the full local stack, use `pnpm dev:up`; Docker Compose supplies the interna
 Case Inbox (`/{locale}/cases`), Case submission (`/{locale}/cases/new`), and Case Detail
 (`/{locale}/cases/{caseId}`) use typed, same-origin API calls. Case Detail lists safe document
 metadata and lifecycle state, supports backend-governed source-status/re-index actions where
-permitted, and provides source search with explicit bounded-context opening. It does not offer
-upload, download, preview, raw-text browsing, or AI answers. Workflow, extraction, risk, approval,
-and audit sections remain honest placeholders; Approval, Evaluation, Administration, and Audit
-routes remain placeholders.
+permitted, and provides source search with explicit bounded-context opening. It also starts the
+closed Intake workflow and displays only its allowlisted preliminary outcome while the Case Detail
+view remains open; low-confidence classification can be corrected with closed values. It does not
+offer upload, download, preview, raw-text browsing, an AI answer, final risk, approval, or a trace.
+Approval, Evaluation, Administration, and Audit routes remain placeholders.
 
 ## Browser smoke test
 

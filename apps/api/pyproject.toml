@@ -26,6 +26,7 @@ dependencies = [
   "structlog>=24.4,<26",
   "tiktoken>=0.8,<1",
   "uvicorn>=0.34,<1",
+  "nordic-regulated-ai-agent-platform-agent-orchestrator",
 ]
 
 [build-system]
@@ -34,3 +35,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/app"]
+
+[tool.uv.sources]
+nordic-regulated-ai-agent-platform-agent-orchestrator = { workspace = true }

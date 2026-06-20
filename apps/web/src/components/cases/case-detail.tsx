@@ -10,6 +10,7 @@ import { PriorityBadge, RiskBadge, StatusBadge } from '@/components/cases/case-b
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { DocumentsSection } from '@/components/documents/documents-section';
 import { EvidencePanel } from '@/components/evidence/evidence-panel';
+import { IntakePanel } from '@/components/cases/intake-panel';
 import { Alert } from '@/components/ui/alert';
 import type { AppLocale } from '@/i18n/routing';
 import { type CaseDetail as CaseDetailData } from '@/lib/api/contracts';
@@ -112,7 +113,7 @@ function DetailContent({
       <time dateTime={caseData.updated_at}>{formatTimestamp(caseData.updated_at, locale)}</time>,
     ],
   ];
-  const futureKeys = ['fields', 'workflow', 'risk', 'approval', 'audit'] as const;
+  const futureKeys = ['fields', 'risk', 'approval', 'audit'] as const;
   return (
     <section aria-labelledby="case-detail-title" className="space-y-6">
       <div>
@@ -138,6 +139,7 @@ function DetailContent({
       </section>
       <DocumentsSection caseId={caseData.case_id} />
       <EvidencePanel caseId={caseData.case_id} />
+      <IntakePanel caseId={caseData.case_id} />
       <div className="grid gap-4 md:grid-cols-2">
         {futureKeys.map((key) => (
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" key={key}>

@@ -10,6 +10,7 @@ from app.core.config import AppSettings, get_settings
 from app.core.security import PasswordSecurity
 from app.db.models.identity import Role, User, UserRole
 from app.db.models.organization import Organization
+from app.db.models.prompt import PromptVersion
 from app.db.session import get_sessionmaker
 
 
@@ -120,6 +121,33 @@ async def seed_local(
                         user_id=user.id,
                         role_id=roles[seed_user.role_name].id,
                         organization_id=organization.id,
+                    )
+                )
+
+        # A synthetic local-only prompt lets the deterministic Intake plumbing be
+        # exercised after an explicit seed. Production prompt provisioning is not
+        # performed by this helper and remains an operational responsibility.
+        if resolved_settings.environment in {"local", "test"}:
+            intake_prompt = await session.scalar(
+                select(PromptVersion).where(
+                    PromptVersion.organization_id == organization.id,
+                    PromptVersion.name == "intake_classification",
+                    PromptVersion.version == "local-v1",
+                )
+            )
+            if intake_prompt is None:
+                session.add(
+                    PromptVersion(
+                        organization_id=organization.id,
+                        name="intake_classification",
+                        version="local-v1",
+                        content=(
+                            "Return only the server-declared structured Intake "
+                            "classification JSON. "
+                            "This synthetic local prompt is not production policy."
+                        ),
+                        description="Synthetic local Intake fixture prompt.",
+                        is_active=True,
                     )
                 )
 

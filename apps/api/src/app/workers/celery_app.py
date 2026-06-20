@@ -16,11 +16,12 @@ celery_app = Celery(
 )
 celery_app.conf.update(
     task_default_queue="document-parser",
-    task_queues=(Queue("document-parser"), Queue("document-indexer")),
+    task_queues=(Queue("document-parser"), Queue("document-indexer"), Queue("agent-orchestrator")),
     task_routes={
         "app.workers.tasks.parse_document_task": {"queue": "document-parser"},
         "app.workers.tasks.reconcile_document_tasks": {"queue": "document-parser"},
         "app.workers.tasks.index_document_task": {"queue": "document-indexer"},
+        "app.workers.tasks.run_intake_workflow_task": {"queue": "agent-orchestrator"},
     },
     task_serializer="json",
     accept_content=["json"],

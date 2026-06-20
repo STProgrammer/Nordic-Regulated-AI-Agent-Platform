@@ -53,6 +53,27 @@ export const caseDomainSchema = z.enum([
 ]);
 export const caseLanguageSchema = z.enum(['nb', 'en']);
 export const caseRiskLevelSchema = z.enum(['low', 'medium', 'high', 'critical']);
+export const intakeCaseTypeSchema = z.enum([
+  'case_support',
+  'compliance_review',
+  'operational_incident',
+  'policy_question',
+  'document_intelligence',
+  'unknown',
+]);
+export const workflowRunStatusSchema = z.enum(['queued', 'running', 'completed', 'failed']);
+export const detectedLanguageSchema = z.enum(['nb', 'en', 'unknown']);
+export const suggestedWorkflowSchema = z.enum([
+  'evidence',
+  'extraction',
+  'evidence_then_draft',
+  'manual_review',
+]);
+export const intakeCorrectionReasonSchema = z.enum([
+  'classification_review',
+  'domain_review',
+  'user_context',
+]);
 
 export const documentSourceStatusSchema = z.enum([
   'approved',
@@ -214,6 +235,41 @@ export const caseCreateInputSchema = z.object({
   external_reference: z.string().trim().min(1).max(255).optional(),
 });
 
+export const intakeStartInputSchema = z.object({ workflow: z.literal('intake') }).strict();
+export const intakeCorrectionInputSchema = z
+  .object({
+    case_type: intakeCaseTypeSchema,
+    domain: caseDomainSchema,
+    reason_code: intakeCorrectionReasonSchema.optional(),
+  })
+  .strict();
+
+export const intakeResultSchema = z.object({
+  declared_language: detectedLanguageSchema.nullable(),
+  detected_language: detectedLanguageSchema.nullable(),
+  language_mismatch: z.boolean().nullable(),
+  case_type: intakeCaseTypeSchema.nullable(),
+  recommended_domain: caseDomainSchema.nullable(),
+  low_confidence: z.boolean().nullable(),
+  pii_detected: z.boolean().nullable(),
+  prompt_injection_detected: z.boolean().nullable(),
+  preliminary_risk_level: caseRiskLevelSchema.nullable(),
+  preliminary_risk_reasons: z.array(z.string()),
+  preliminary_approval_required: z.boolean().nullable(),
+  suggested_workflow: suggestedWorkflowSchema.nullable(),
+  suggested_workflow_reasons: z.array(z.string()),
+  classification_source: z.enum(['model', 'human_corrected']).nullable(),
+});
+
+export const workflowRunSchema = z.object({
+  workflow_run_id: z.string().uuid(),
+  workflow: z.literal('intake'),
+  status: workflowRunStatusSchema,
+  started_at: isoTimestampSchema,
+  finished_at: isoTimestampSchema.nullable(),
+  intake: intakeResultSchema.nullable(),
+});
+
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
   return z.object({
     data,
@@ -238,6 +294,12 @@ export type CaseDetail = z.infer<typeof caseDetailSchema>;
 export type CaseList = z.infer<typeof caseListSchema>;
 export type CaseAssigneeList = z.infer<typeof caseAssigneeListSchema>;
 export type CaseCreateInput = z.infer<typeof caseCreateInputSchema>;
+export type IntakeCaseType = z.infer<typeof intakeCaseTypeSchema>;
+export type WorkflowRunStatus = z.infer<typeof workflowRunStatusSchema>;
+export type IntakeResult = z.infer<typeof intakeResultSchema>;
+export type WorkflowRun = z.infer<typeof workflowRunSchema>;
+export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
+export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
 export type DocumentData = z.infer<typeof documentDataSchema>;
 export type DocumentList = z.infer<typeof documentListSchema>;
 export type DocumentSourceStatus = z.infer<typeof documentSourceStatusSchema>;

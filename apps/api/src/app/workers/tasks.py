@@ -3,15 +3,35 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from agent_orchestrator.config import AgentSettings
+from agent_orchestrator.graphs.intake_graph import (
+    IntakeCaseInput,
+    IntakeGraph,
+    IntakeGraphDependencies,
+)
+from agent_orchestrator.graphs.intake_types import (
+    IntakeDomain,
+    IntakeLanguage,
+    IntakePriority,
+    IntakeWorkflowState,
+    LanguageDetectionResult,
+)
+from agent_orchestrator.model_providers.factory import build_model_provider
+from agent_orchestrator.types import RetryPolicy, WorkflowContext
 from celery import Task  # type: ignore[import-untyped]
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import AppSettings, get_settings
 from app.core.logging import get_logger
+from app.db.models.workflow import WorkflowRun
+from app.db.repositories.case import CaseRepository
 from app.db.repositories.document import DocumentRepository
+from app.db.repositories.identity import UserRepository
 from app.db.session import dispose_database_engines, get_sessionmaker
 from app.services.documents.chunking import CanonicalTextChunker, ChunkingConfig, TiktokenTokenizer
 from app.services.documents.dispatch import CeleryDocumentTaskDispatcher
@@ -21,13 +41,138 @@ from app.services.documents.embeddings import (
     build_embedding_provider,
 )
 from app.services.documents.indexing import DocumentIndexCoordinator, IndexProcessOutcome
+from app.services.documents.parsers.language import detect_language
 from app.services.documents.parsers.registry import DocumentParserRegistry
 from app.services.documents.parsing import DocumentParseCoordinator, ParseProcessOutcome
 from app.services.documents.storage import AzureBlobObjectStorage
+from app.services.workflows.intake import INTAKE_WORKFLOW_NAME
+from app.services.workflows.orchestrator import (
+    SqlAlchemyPromptLoader,
+    SqlAlchemyWorkflowPersistence,
+    persist_intake_case_result,
+)
 from app.workers.celery_app import celery_app
 
 _logger = get_logger("workers.document_tasks")
 _RECONCILIATION_LIMIT = 100
+
+
+def _intake_language_detector(
+    settings: AppSettings,
+) -> Callable[[str], LanguageDetectionResult]:
+    """Adapt the parser helper without importing app concerns into graph core."""
+
+    def detect(text: str) -> LanguageDetectionResult:
+        result = detect_language(
+            text,
+            minimum_characters=settings.document_language_minimum_characters,
+            confidence_threshold=settings.document_language_confidence_threshold,
+        )
+        confidence = result.confidence if result.confidence is not None else 0.0
+        return LanguageDetectionResult(
+            language=IntakeLanguage(result.language), confidence=confidence
+        )
+
+    return detect
+
+
+async def _process_intake_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Reload a UUID-only queued Intake run and execute it in one short-lived session."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            # The private worker first resolves tenant identity, then all subsequent
+            # lookups are organization scoped. No public repository exposes this path.
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if run is None or run.workflow_name != INTAKE_WORKFLOW_NAME or run.status != "queued":
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            case = await CaseRepository(session).get(context.organization_id, context.case_id)
+            user = await UserRepository(session).get(
+                context.organization_id, context.initiated_by_user_id
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            if case is None or user is None or not user.is_active:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="case_not_available",
+                    )
+                    await session.commit()
+                return "failed"
+            outcome = "failed"
+            try:
+                agent_settings = AgentSettings()
+                fixtures = {
+                    "intake_classification": {
+                        "case_type": "case_support",
+                        "recommended_domain": case.domain,
+                        "confidence": 0.9,
+                        "reason_codes": ["deterministic_fixture"],
+                    }
+                }
+                graph = IntakeGraph(
+                    IntakeGraphDependencies(
+                        case_input=IntakeCaseInput(title=case.title, description=case.description),
+                        prompt_loader=SqlAlchemyPromptLoader(session),
+                        model_provider=build_model_provider(
+                            agent_settings,
+                            deterministic_fixtures=(
+                                fixtures if agent_settings.provider == "deterministic" else None
+                            ),
+                        ),
+                        persistence=persistence,
+                        language_detector=_intake_language_detector(settings),
+                        persist_result=lambda graph_context, state: persist_intake_case_result(
+                            session, graph_context, state
+                        ),
+                        confidence_threshold=agent_settings.intake_confidence_threshold,
+                        retry_policy=RetryPolicy(
+                            maximum_retries=agent_settings.node_maximum_retries
+                        ),
+                    )
+                )
+                state = IntakeWorkflowState(
+                    context=context,
+                    declared_language=IntakeLanguage(case.language),
+                    submitted_domain=IntakeDomain(case.domain),
+                    priority=IntakePriority(case.priority),
+                )
+                result = await graph.run(context, state)
+                outcome = result.outcome.status.value
+            except Exception:
+                # Settings/corrupt persisted enum failures happen before the graph
+                # can take ownership. Convert them to one durable neutral outcome.
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="workflow_configuration_unavailable",
+                    )
+            await session.commit()
+            return outcome
+    finally:
+        await dispose_database_engines()
 
 
 def _retry_delay(retries: int) -> int:
@@ -207,6 +352,31 @@ def index_document_task(task: Task, document_id: str) -> str:
             )
         return IndexProcessOutcome.PERMANENT_FAILURE.value
     raise task.retry(countdown=_retry_delay(task.request.retries))
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_intake_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_intake_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only Intake task with bounded infrastructure retries."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("workflow.intake_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_intake_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning("workflow.intake_task_runtime_unavailable", error_type=type(error).__name__)
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
 
 
 async def _reconcile(settings: AppSettings) -> tuple[tuple[UUID, ...], tuple[UUID, ...]]:

@@ -30,6 +30,7 @@ from app.services.errors import (
     ServiceError,
     StorageUnavailableError,
     UnsupportedMediaTypeError,
+    WorkflowUnavailableError,
 )
 
 _logger = get_logger("api.error")
@@ -205,6 +206,7 @@ async def _handle_service_error(request: Request, exc: Exception) -> Response:
             QueueUnavailableError,
             RetrievalUnavailableError,
             RagAnswerUnavailableError,
+            WorkflowUnavailableError,
         ),
     ):
         status_code = http.HTTPStatus.SERVICE_UNAVAILABLE

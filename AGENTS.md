@@ -198,6 +198,16 @@ For `I` without a number:
 
 ---
 
+## Multi-Phase Implementation
+
+If the user gives an implementation range such as `I 16-18`, implement the phases one by one in order.
+
+For each phase, finish the normal `I` workflow completely before starting the next phase: read the phase file, implement it, run validation, fix current-phase validation failures if needed, mark it `(DONE)` only after validation passes, update progress, and commit.
+
+Do not move to the next phase until the current phase is validated and committed.
+
+---
+
 ## General Discipline
 
 - The PRD defines product requirements.

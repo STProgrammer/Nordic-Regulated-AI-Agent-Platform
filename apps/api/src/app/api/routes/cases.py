@@ -5,9 +5,13 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
-from app.api.dependencies import CaseServiceDependency, CurrentPrincipalDependency
+from app.api.dependencies import (
+    CaseServiceDependency,
+    CurrentPrincipalDependency,
+    get_intake_workflow_service,
+)
 from app.api.schemas.cases import (
     CaseAssigneeListData,
     CaseAssigneeOptionData,
@@ -28,11 +32,13 @@ from app.api.schemas.common import (
     ResponseMeta,
     SuccessResponse,
 )
+from app.api.schemas.workflows import IntakeStartRequest, WorkflowRunData
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, Unset
 from app.services.cases.service import CaseCreate, CasePatch
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
+from app.services.workflows.intake import IntakeWorkflowService
 
 PREFIX = "/cases"
 TAG = "Cases"
@@ -238,6 +244,29 @@ async def archive_case(
     return SuccessResponse(data=_case_data(case), meta=_meta(request))
 
 
+@router.post(
+    "/{case_id}/workflows/run",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=SuccessResponse[WorkflowRunData],
+    responses={
+        **_CASE_ERROR_RESPONSES,
+        503: {"model": ErrorResponse, "description": "Workflow processing is unavailable."},
+    },
+    summary="Queue the supported Intake workflow for one current-tenant case",
+)
+async def start_case_workflow(
+    case_id: UUID,
+    payload: IntakeStartRequest,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    workflows: Annotated[IntakeWorkflowService, Depends(get_intake_workflow_service)],
+) -> SuccessResponse[WorkflowRunData]:
+    """Accept only the fixed Intake selector; model, prompt, state, and queue stay server-owned."""
+
+    run = await workflows.start(principal, case_id)
+    return SuccessResponse(data=_workflow_run_data(run), meta=_meta(request))
+
+
 def _case_data(case: Case) -> CaseData:
     return CaseData(
         case_id=case.id,
@@ -281,3 +310,11 @@ def _case_summary(case: Case) -> CaseSummaryData:
 def _meta(request: Request) -> ResponseMeta:
     request_id = getattr(request.state, "request_id", None)
     return ResponseMeta(request_id=request_id if isinstance(request_id, str) else None)
+
+
+def _workflow_run_data(run: object) -> WorkflowRunData:
+    """Keep a queued start response intentionally sparse and safe."""
+
+    from app.api.routes.workflows import workflow_run_data
+
+    return workflow_run_data(run)

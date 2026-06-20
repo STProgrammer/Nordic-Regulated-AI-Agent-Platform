@@ -2,11 +2,12 @@
 
 ## Scope of the current workspace
 
-This is the Phase 15 RAG Answering with Citations backend slice, built on the secure Phase 10–14
-document, parsing, indexing, and governed retrieval boundaries, plus the Case Management UI/backend,
-frontend shell, authentication/session/RBAC API, service layer, database schema, API shell, and
-local runtime. Docker Compose starts the Next.js web application, API process, Redis-backed Celery
-worker, PostgreSQL, Redis, Azurite, and an Azurite container initializer.
+This is the Phase 17 Intake Graph slice, built on the Phase 16 typed LangGraph orchestration
+foundation and the secure Phase 10–15 document, parsing, indexing, and governed retrieval
+boundaries, plus the Case Management UI/backend, frontend shell, authentication/session/RBAC API,
+service layer, database schema, API shell, and local runtime. Docker Compose starts the Next.js web
+application, API process, Redis-backed Celery worker, PostgreSQL, Redis, Azurite, and an Azurite
+container initializer.
 
 The web application provides localized session UX, an accessible server-backed Case Inbox, Case
 submission, and Case Detail. It proxies same-origin `/api/...` requests to the API service, while
@@ -17,7 +18,10 @@ then extracts canonical text and page/section context asynchronously. Case Detai
 metadata, displays lifecycle/governance state, and delegates source search to Phase 13; only a
 user-requested, server-bounded source context can display text. The protected answer API is now
 available, but there is still no browser upload, download, preview, raw-text browser, chat control,
-or model-answer page.
+or model-answer page. Intake is a closed background workflow: it dispatches only a workflow UUID,
+reloads the case tenant-safely in the worker, persists default-deny state/node projections, and
+returns only allowlisted preliminary classification/risk/routing signals. Prompt content, case text,
+provider bodies, confidence numbers, trace data, and final approval decisions remain unavailable.
 
 ## Required tools
 
@@ -376,10 +380,11 @@ after the test.
 
 ## Working agreements
 
-- Keep application behavior within the roadmap phase that owns it. Phase 15 owns the direct,
-  approved-source-only RAG answer API, structural citation validation, safe refusal, and durable
-  run/source/message/usage records. LangGraph, answer UI, semantic faithfulness scoring, approvals,
-  audit reads, and AI workflows remain later-phase work.
+- Keep application behavior within the roadmap phase that owns it. Phase 15 owns direct,
+  approved-source-only RAG answering. Phase 16 owns the generic LangGraph runtime, provider/prompt
+  ports, safe snapshots, and node persistence. Phase 17 owns only Intake's preliminary
+  classification/routing and low-confidence correction; evidence, final risk, approval, traces, and
+  evaluation remain later-phase work.
 - Use typed Python and strict TypeScript settings for new code.
 - Never commit `.env` files, secrets, production connection values, or personal data.
 - Keep public demo material synthetic, public, anonymized, or otherwise safe as described in

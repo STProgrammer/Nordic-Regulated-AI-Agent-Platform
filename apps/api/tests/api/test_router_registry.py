@@ -41,13 +41,13 @@ def test_prefixes_are_rooted_paths() -> None:
 def test_only_implemented_route_modules_define_operations() -> None:
     for group in ROUTE_GROUPS:
         assert isinstance(group.router, APIRouter)
-        if group.name in {"auth", "users", "cases", "documents", "retrieval"}:
+        if group.name in {"auth", "users", "cases", "documents", "retrieval", "workflows"}:
             assert group.router.routes
         else:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_fifteen_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_seventeen_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -66,6 +66,7 @@ def test_aggregate_router_mounts_the_phase_fifteen_business_operations() -> None
         "/api/cases/assignees",
         "/api/cases/{case_id}",
         "/api/cases/{case_id}/archive",
+        "/api/cases/{case_id}/workflows/run",
         "/api/documents",
         "/api/documents/upload",
         "/api/documents/{document_id}",
@@ -75,6 +76,8 @@ def test_aggregate_router_mounts_the_phase_fifteen_business_operations() -> None
         "/api/documents/{document_id}/source-status",
         "/api/retrieval/search",
         "/api/retrieval/answer",
+        "/api/workflows/{workflow_run_id}",
+        "/api/workflows/{workflow_run_id}/intake/correction",
     }
 
 

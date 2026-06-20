@@ -111,14 +111,14 @@ Every phase must include at least one validation method. A phase is not complete
 - Store retrieved sources, AI messages, model usage records, latency, token usage, and estimated cost.
 - Validation: RAG tests verify expected source retrieval, citations, refusal on weak evidence, Norwegian answers, and model usage logging.
 
-## Phase 16 — Agent Orchestrator Foundation
+## Phase 16 — Agent Orchestrator Foundation (DONE)
 
 - Set up the agent orchestration service with LangGraph, typed Pydantic graph state, model provider abstraction, prompt version loading, tool registry, and workflow persistence.
 - Add shared graph utilities for logging, retry limits, error summaries, node timing, and safe state snapshots.
 - Add deterministic test model support for automated tests.
 - Validation: LangGraph node-level tests pass; workflow state persists; deterministic test model produces stable test outputs.
 
-## Phase 17 — Intake Graph
+## Phase 17 — Intake Graph (DONE)
 
 - Implement the intake workflow for input validation, language detection, case type classification, domain selection, PII detection, prompt-injection signal detection, risk estimate, workflow selection, and persisted intake result.
 - Allow low-confidence classification to be corrected by the user.

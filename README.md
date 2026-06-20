@@ -7,15 +7,18 @@ interface language.
 
 ## Current status
 
-This repository is at **Phase 15: RAG Answering with Citations**. The Next.js web application
-provides Norwegian Bokmål by default, optional English, localized login/logout, opaque HTTP-only
-session integration, and accessible authenticated navigation. Authorized users can submit a
-synthetic case, find it in the server-backed Case Inbox, and open its Case Detail view. Case Detail
-now shows safe document metadata, parsing/indexing/source-governance state, permitted re-indexing
-intent, governed source search, and explicitly opened bounded source context. Direct RAG answering
-is available as a protected API operation only; there is deliberately no answer/chat page yet. The
-web application still does not upload, download, preview, or browse raw documents. Workflow output,
-extracted fields, risk, approvals, and audit data remain unavailable until their owning phases.
+This repository is at **Phases 16–17: Agent Orchestrator Foundation and Intake Graph**. The Next.js
+web application provides Norwegian Bokmål by default, optional English, localized login/logout,
+opaque HTTP-only session integration, and accessible authenticated navigation. Authorized users can
+submit a synthetic case, find it in the server-backed Case Inbox, and open its Case Detail view.
+Case Detail now shows safe document metadata, parsing/indexing/source-governance state, permitted
+re-indexing intent, governed source search, and explicitly opened bounded source context. Direct RAG
+answering is available as a protected API operation only; there is deliberately no answer/chat page
+yet. Case Detail also provides a closed Intake action and a safe preliminary result while it remains
+in the current view. Intake uses typed LangGraph nodes, persisted safe state/node records,
+server-owned prompts/providers, and a low-confidence human correction. It is not final risk,
+approval, a trace viewer, or a trigger for a later workflow. The web application still does not
+upload, download, preview, or browse raw documents.
 
 The protected Case API supports organization-scoped submission, listing, detail, lifecycle updates,
 assignment, filtering, search, archiving, and minimal append-only audit events. Its Case-read-only
@@ -27,7 +30,7 @@ turning the Admin-only Users API into a directory.
 
 ```text
 apps/          API and Next.js web applications
-services/      Future agent orchestration, retrieval, document, and evaluation services
+services/      Agent orchestration, retrieval, document, and evaluation services
 packages/      Future shared schemas
 docs/          Developer guidance and architecture decision records
 infra/         Local Docker assets plus future Azure and CI/CD boundaries
@@ -99,11 +102,14 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
 `PATCH /api/documents/{document_id}/source-status`, bounded
 `GET /api/documents/{document_id}/context`, `POST /api/documents/{document_id}/reprocess`,
 `POST /api/documents/{document_id}/reindex`, `POST /api/retrieval/search`, and
-`POST /api/retrieval/answer`. Case dates use ISO calendar dates (`YYYY-MM-DD`); the frontend
-localizes them for display. User and role operations require the persisted **Admin** role in the
-current organization; Case actions use their documented server-enforced RBAC policy. The remaining
-future `/api` route groups, other than the implemented retrieval search/answer boundary, are still
-operation-free.
+`POST /api/retrieval/answer`, `POST /api/cases/{case_id}/workflows/run`,
+`GET /api/workflows/{workflow_run_id}`, and
+`POST /api/workflows/{workflow_run_id}/intake/correction`. Case dates use ISO calendar dates
+(`YYYY-MM-DD`); the frontend localizes them for display. User and role operations require the
+persisted **Admin** role in the current organization; Case actions use their documented
+server-enforced RBAC policy. The only workflow selector is `{"workflow":"intake"}`; it accepts no
+browser-owned model, prompt, state, tool, queue, or retry controls. The remaining future `/api`
+route groups are still operation-free.
 
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`

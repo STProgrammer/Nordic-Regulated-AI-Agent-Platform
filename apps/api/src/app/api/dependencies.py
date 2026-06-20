@@ -33,6 +33,8 @@ from app.services.errors import StorageUnavailableError
 from app.services.retrieval.answering import RagAnswerService
 from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
+from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
+from app.services.workflows.intake import IntakeWorkflowService
 
 # The runtime setting defaults to this name. The dependency itself reads the
 # configured cookie name, while this object documents cookie authentication in
@@ -190,6 +192,14 @@ def get_rag_answer_service(
     )
 
 
+def get_intake_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> IntakeWorkflowService:
+    """Construct the closed Intake operation service with UUID-only dispatch."""
+
+    return IntakeWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -258,5 +268,8 @@ ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]
 DocumentServiceDependency = Annotated[DocumentService, Depends(get_document_service)]
 RetrievalServiceDependency = Annotated[RetrievalService, Depends(get_retrieval_service)]
 RagAnswerServiceDependency = Annotated[RagAnswerService, Depends(get_rag_answer_service)]
+IntakeWorkflowServiceDependency = Annotated[
+    IntakeWorkflowService, Depends(get_intake_workflow_service)
+]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

@@ -99,7 +99,7 @@ services:
         'app.workers.celery_app:celery_app',
         'worker',
         '-Q',
-        'document-parser,document-indexer',
+        'document-parser,document-indexer,agent-orchestrator',
         '--beat',
         '--loglevel=WARNING',
       ]
