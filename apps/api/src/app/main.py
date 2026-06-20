@@ -17,13 +17,14 @@ from app.api.router import create_api_router, openapi_tags
 from app.core.config import AppSettings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.core.session_store import dispose_redis_clients
+from app.db.session import dispose_database_engines
 from app.health import create_health_router
 
 API_DESCRIPTION = (
-    "Backend API skeleton for the Nordic Regulated AI Agent Platform (Phase 3). "
-    "Only the health endpoints are functional. The product route groups are stable "
-    "API boundaries whose operations are delivered by later roadmap phases. No "
-    "authentication, persistence, or AI capabilities are implemented yet."
+    "Backend API for the Nordic Regulated AI Agent Platform. Local password authentication, "
+    "opaque server-side sessions, and organization-scoped administrator user/role management "
+    "are available. Other product route groups remain stable future-phase boundaries."
 )
 
 
@@ -45,6 +46,8 @@ def create_api_app(settings: AppSettings | None = None) -> FastAPI:
         try:
             yield
         finally:
+            await dispose_redis_clients()
+            await dispose_database_engines()
             logger.info("api.shutdown", environment=resolved_settings.environment)
 
     app = FastAPI(

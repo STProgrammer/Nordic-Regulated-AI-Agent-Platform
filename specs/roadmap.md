@@ -15,10 +15,10 @@ Every phase must include at least one validation method. A phase is not complete
 
 ## Phase 2 — Local Docker Development Environment (DONE)
 
-- Add Docker Compose services for frontend, API, worker, PostgreSQL, Redis, MinIO, and optional local support services.
+- Add Docker Compose services for frontend, API, worker, PostgreSQL, Redis, Azurite, and optional local support services.
 - Add local environment configuration using `.env.example` without secrets.
 - Add local health endpoints for API and worker readiness.
-- Validation: A developer can run the local stack with one command; API, frontend, PostgreSQL, Redis, and MinIO are reachable; health checks pass.
+- Validation: A developer can run the local stack with one command; API, frontend, PostgreSQL, Redis, and Azurite are reachable; health checks pass.
 
 ## Phase 3 — Backend API Skeleton (DONE)
 
@@ -27,21 +27,21 @@ Every phase must include at least one validation method. A phase is not complete
 - Add a consistent response and error model.
 - Validation: Backend unit tests pass; OpenAPI schema is generated; API health and documentation endpoints work locally.
 
-## Phase 4 — Database Foundation and Migrations
+## Phase 4 — Database Foundation and Migrations (DONE)
 
 - Add SQLAlchemy models and Alembic migrations for organizations, users, roles, user roles, cases, documents, document texts, chunks, workflow runs, node runs, agent messages, retrieved sources, extracted fields, risk assessments, approvals, audit events, prompt versions, model usage records, evaluation tables, and memory entries.
 - Enable PostgreSQL extensions needed for UUIDs, full-text search, and pgvector.
 - Add seed data for local organizations, roles, safe users, and synthetic Norwegian demo setup.
 - Validation: Migrations apply cleanly from an empty database; rollback path works for current migrations; database integration tests pass.
 
-## Phase 5 — Backend Repository and Service Layer
+## Phase 5 — Backend Repository and Service Layer (DONE)
 
 - Add repository and service-layer patterns for core entities so route handlers stay thin.
 - Implement organization scoping across data access paths.
 - Add common pagination, filtering, sorting, and audit-event helpers.
 - Validation: Repository tests verify organization isolation, basic CRUD behavior, and safe error handling.
 
-## Phase 6 — Authentication, Sessions, and RBAC
+## Phase 6 — Authentication, Sessions, and RBAC (DONE)
 
 - Implement secure login, logout, current-user lookup, password hashing, session/token handling, and failed-login rate limiting.
 - Implement backend-enforced RBAC for Admin, Compliance Reviewer, Case Worker, Manager, and Read-only Auditor.
@@ -72,7 +72,7 @@ Every phase must include at least one validation method. A phase is not complete
 ## Phase 10 — Secure Document Upload and Storage
 
 - Implement secure document upload for PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted email text.
-- Store raw files in MinIO locally and object-storage-compatible storage abstractions for cloud.
+- Store raw files in Azurite locally and add object-storage-compatible storage abstractions for cloud.
 - Add file type validation, file size limits, checksums, metadata, source status, confidentiality level, and audit logging.
 - Validation: Upload API tests cover allowed files, rejected files, size limits, metadata persistence, and audit events.
 

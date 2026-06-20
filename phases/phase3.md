@@ -21,7 +21,7 @@ Phase 2 created the local Compose runtime and a narrow FastAPI health contract. 
 - API configuration, logging, errors, and dependency construction belong in reusable `app.core` / `app.api` modules, not inside route handlers. Routes must stay thin.
 - Logs and error payloads must never expose passwords, connection strings, authorization values, raw request bodies, stack traces, or unexpected exception text. Structured log records must carry enough safe context for later observability work.
 - All current product routes are still unauthenticated only because Phase 6 owns authentication/RBAC. Do not add dummy security mechanisms or imply that the endpoint boundaries are protected yet.
-- PostgreSQL, Redis, and MinIO are available to the health probes only. Do not add database sessions, ORM models, Alembic, repositories, cache clients, queues, object-storage clients, or business persistence in this phase.
+- PostgreSQL, Redis, and Azurite are available to the health probes only. Do not add database sessions, ORM models, Alembic, repositories, cache clients, queues, object-storage clients, or business persistence in this phase.
 - Follow the architecture's REST/OpenAPI and Pydantic boundary conventions. Keep the Phase 2 worker readiness app health-only; do not turn it into a task worker in this phase.
 
 ## In-scope deliverables
@@ -117,7 +117,7 @@ Do not create database, service, worker-job, frontend, or cloud files merely to 
    - request-ID header name and bounded validation rules if configurable.
 2. Read real environment variables first. If supporting a local `.env` file, make it opt-in or use the already ignored local file only; never load `.env.example` as runtime secret configuration and never put credentials in the settings model.
 3. Provide a cached `get_settings()` dependency plus a test reset/override seam. Validation errors at process startup must be clear to operators but must not expose values.
-4. Keep database, Redis, MinIO, object-storage, model-provider, auth, CORS, and security-policy settings out of the new general settings class unless they are already required by the existing health probes. Those concerns have assigned later phases.
+4. Keep database, Redis, Azurite, object-storage, model-provider, auth, CORS, and security-policy settings out of the new general settings class unless they are already required by the existing health probes. Those concerns have assigned later phases.
 
 ### 3. Structured logs and request context
 

@@ -17,7 +17,7 @@ def test_openapi_schema_is_valid_and_honest() -> None:
     assert schema["openapi"].startswith("3.")
     assert schema["info"]["title"] == "Nordic Regulated AI Agent Platform API"
     assert schema["info"]["version"] == "0.0.0"
-    assert "skeleton" in schema["info"]["description"].lower()
+    assert "authentication" in schema["info"]["description"].lower()
 
 
 def test_openapi_documents_health_paths() -> None:
@@ -28,12 +28,20 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_no_fake_product_endpoints() -> None:
+def test_openapi_declares_only_phase_six_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
-    product_paths = [path for path in schema["paths"] if path.startswith("/api/")]
-    assert product_paths == []
+    product_paths = {path for path in schema["paths"] if path.startswith("/api/")}
+    assert product_paths == {
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/me",
+        "/api/users",
+        "/api/users/{user_id}",
+        "/api/users/{user_id}/roles",
+        "/api/roles",
+    }
 
 
 def test_openapi_lists_every_route_group_tag() -> None:
@@ -44,12 +52,20 @@ def test_openapi_lists_every_route_group_tag() -> None:
     assert tag_names == {group.tag for group in ROUTE_GROUPS}
 
 
-def test_openapi_does_not_declare_security_schemes() -> None:
+def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
     components = schema.get("components", {})
-    assert "securitySchemes" not in components
+    assert components["securitySchemes"]["SessionCookie"] == {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nordic_session",
+        "description": "Opaque HTTP-only server-side session cookie.",
+    }
+    assert schema["paths"]["/api/auth/login"]["post"].get("security") is None
+    assert schema["paths"]["/api/auth/me"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/users"]["get"]["security"] == [{"SessionCookie": []}]
 
 
 def test_docs_and_redoc_render_locally() -> None:

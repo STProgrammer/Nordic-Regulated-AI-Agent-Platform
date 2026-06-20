@@ -28,7 +28,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-postgres-password-not-for-production}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
-      MINIO_HEALTH_URL: http://${MINIO_HOST:-minio}:${MINIO_PORT:-9000}/minio/health/live
+      AZURITE_BLOB_HEALTH_URL: http://${AZURITE_HOST:-azurite}:${AZURITE_BLOB_PORT:-10000}/${AZURITE_ACCOUNT_NAME:-devstoreaccount1}
     ports:
       - '127.0.0.1:${API_HOST_PORT:-8000}:8000'
     depends_on:
@@ -36,7 +36,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
+      azurite:
         condition: service_healthy
     healthcheck:
       test:
@@ -67,7 +67,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
+      azurite:
         condition: service_healthy
     healthcheck:
       test:
@@ -117,48 +117,59 @@ services:
       start_period: 5s
     restart: unless-stopped
 
-  minio:
-    build:
-      context: .
-      dockerfile: infra/docker/minio.dev.Dockerfile
-    image: nordic-regulated-ai-minio-local:phase2
-    command: ['server', '/data', '--console-address', ':9001']
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-local-minio-admin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-local-minio-password-not-for-production}
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    command:
+      [
+        'azurite-blob',
+        '--blobHost',
+        '0.0.0.0',
+        '--blobPort',
+        '10000',
+        '-l',
+        '/data',
+        '--skipApiVersionCheck',
+      ]
     ports:
-      - '127.0.0.1:${MINIO_API_HOST_PORT:-9000}:9000'
-      - '127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001'
+      - '127.0.0.1:${AZURITE_BLOB_HOST_PORT:-10000}:10000'
     volumes:
-      - minio_data:/data
+      - azurite_data:/data
     healthcheck:
-      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:9000/minio/health/live']
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const
+          s=require('net').connect(10000,'127.0.0.1');s.on('connect',()=>process.exit(0));s.on('error',()=>process.exit(1));",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
       start_period: 10s
     restart: unless-stopped
 
-  minio-init:
-    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+  azurite-init:
+    image: mcr.microsoft.com/azure-cli:2.87.0
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-local-minio-admin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-local-minio-password-not-for-production}
-      MINIO_BUCKET: ${MINIO_BUCKET:-nordic-local}
+      AZURITE_ACCOUNT_NAME: ${AZURITE_ACCOUNT_NAME:-devstoreaccount1}
+      AZURITE_ACCOUNT_KEY: '${AZURITE_ACCOUNT_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}'
+      AZURITE_BLOB_ENDPOINT: http://${AZURITE_HOST:-azurite}:${AZURITE_BLOB_PORT:-10000}/${AZURITE_ACCOUNT_NAME:-devstoreaccount1}
+      AZURITE_CONTAINER: ${AZURITE_CONTAINER:-nordic-local}
     depends_on:
-      minio:
+      azurite:
         condition: service_healthy
     entrypoint: ['/bin/sh', '-ec']
     command:
       - >-
-        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; mc mb
-        --ignore-existing "local/$${MINIO_BUCKET}"
+        az storage container create --name "$${AZURITE_CONTAINER}" --connection-string
+        "DefaultEndpointsProtocol=http;AccountName=$${AZURITE_ACCOUNT_NAME};AccountKey=$${AZURITE_ACCOUNT_KEY};BlobEndpoint=$${AZURITE_BLOB_ENDPOINT};"
     restart: 'no'
 
 volumes:
   postgres_data:
   redis_data:
-  minio_data:
+  azurite_data:
 
 networks:
   default:

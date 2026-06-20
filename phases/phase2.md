@@ -2,26 +2,26 @@
 
 ## Phase objective
 
-Create a repeatable, safe local Docker Compose environment for the Nordic Regulated AI Agent Platform. A developer must be able to start the web entry point, API health service, worker readiness service, PostgreSQL with pgvector, Redis, and MinIO with one documented command, then verify that every required dependency is reachable and healthy.
+Create a repeatable, safe local Docker Compose environment for the Nordic Regulated AI Agent Platform. A developer must be able to start the web entry point, API health service, worker readiness service, PostgreSQL with pgvector, Redis, and Azurite with one documented command, then verify that every required dependency is reachable and healthy.
 
 This phase establishes the durable local-runtime contract that later API, frontend, database, document, workflow, and deployment phases will build upon. It does **not** implement product features, data models, authentication, a real frontend, background jobs, or cloud deployment.
 
 ## How this phase fits the product
 
-The product must be a deployable, traceable enterprise AI workflow platform rather than a collection of disconnected services. The PRD requires local Docker Compose support, health checks for API and worker services, asynchronous/background processing, PostgreSQL, Redis, object storage, secure configuration, and no committed secrets. The architecture selects PostgreSQL 16 with pgvector, Redis, MinIO for local object storage, FastAPI, and Docker Compose as the local development baseline.
+The product must be a deployable, traceable enterprise AI workflow platform rather than a collection of disconnected services. The PRD requires local Docker Compose support, health checks for API and worker services, asynchronous/background processing, PostgreSQL, Redis, object storage, secure configuration, and no committed secrets. The architecture selects PostgreSQL 16 with pgvector, Redis, Azurite for local object storage, FastAPI, and Docker Compose as the local development baseline.
 
 Phase 1 deliberately created only repository boundaries and static tooling. Phase 2 makes those boundaries runnable without prematurely implementing the Phase 3 API skeleton, Phase 4 database schema, Phase 7 Next.js UI, or later AI/document workflows. The health endpoints added here are a narrow infrastructure contract explicitly required by this phase; later phases extend those processes rather than replacing the local-service interface.
 
 ## Relevant specification context and constraints
 
-- Local development uses Docker Compose and must include `frontend`, `api`, `worker`, `postgres`, `redis`, and `minio`. Qdrant, OpenSearch, and mock notification services are optional architecture components and are not needed in this phase.
+- Local development uses Docker Compose and must include `frontend`, `api`, `worker`, `postgres`, `redis`, and `azurite`. Qdrant, OpenSearch, and mock notification services are optional architecture components and are not needed in this phase.
 - PostgreSQL is the system of record and pgvector is the default vector-search direction. Use a PostgreSQL 16 image with pgvector available, but defer extension creation, schema definition, migrations, seeds, and application data to Phase 4.
 - Redis is the future queue, cache, lock, and worker-coordination dependency. Do not introduce Celery tasks, queues, retries, or application jobs yet.
-- MinIO is the local S3-compatible object-storage implementation. It must be reachable and provisioned with a known local development bucket, but no upload endpoint, document persistence, or sample document ingestion belongs here.
+- Azurite is the local Azure Blob Storage emulator. It must be reachable and provisioned with a known local development blob container, but no upload endpoint, document persistence, or sample document ingestion belongs here.
 - The API technology is FastAPI/Python 3.12. Public health endpoints are permitted by the PRD; all product routes, OpenAPI boundaries, structured configuration, logging, and error handling belong to Phase 3.
 - The real frontend is a Next.js/TypeScript application in Phase 7. Until then, the `web` container may only serve a clearly labelled static local-readiness page. It must not claim that a user interface, login, or product workflow exists.
 - Health output must not expose credentials, connection strings, stack traces, object-storage keys, or other sensitive implementation details. A failed readiness check may name an unavailable dependency but must return only a safe summary.
-- Use only local, deliberately non-secret development defaults in `.env.example`. Values needed by local PostgreSQL or MinIO must be visibly non-production and documented as public local defaults, never as reusable credentials.
+- Use only local, deliberately non-secret development defaults in `.env.example`. Values needed by local PostgreSQL or Azurite must be visibly non-production and documented as public local defaults, never as reusable credentials.
 - Bind host ports to `127.0.0.1` by default so the local data services are not exposed on the developer's network. Containers communicate over the Compose network using service DNS names, never host `localhost`.
 
 ## In-scope deliverables
@@ -30,7 +30,7 @@ Phase 1 deliberately created only repository boundaries and static tooling. Phas
 2. Local-only development container definitions for the API and worker readiness processes, with reproducible, lockfile-backed Python dependencies and no production-image claim.
 3. A static, explicitly temporary web readiness page served by the `web` Compose service until the Phase 7 Next.js application replaces it.
 4. Minimal FastAPI health-only applications for the API and worker services, providing liveness and dependency-aware readiness endpoints.
-5. PostgreSQL 16 with pgvector available, Redis, MinIO, and a one-shot MinIO bucket-provisioning helper using known local-only values.
+5. PostgreSQL 16 with pgvector available, Redis, Azurite, and a one-shot Azurite container-provisioning helper using known local-only values.
 6. An expanded `.env.example` containing documented local ports, service names, database/object-store defaults, and no real secrets.
 7. Local-development documentation, lifecycle commands, endpoint table, cleanup guidance, and troubleshooting notes that accurately describe the current Phase 2 capabilities.
 8. Automated health-contract tests plus a script that verifies a running Compose stack without creating business data or relying on external services.
@@ -52,12 +52,12 @@ Phase 1 deliberately created only repository boundaries and static tooling. Phas
 | Service | Local purpose in this phase | Host endpoint/default port | Health/readiness contract |
 | --- | --- | --- | --- |
 | `web` | Clearly labelled static readiness page; not the Phase 7 UI | `http://127.0.0.1:3000/` | Docker health check confirms HTTP 200 from the static server |
-| `api` | Health-only FastAPI process; no product routes | `http://127.0.0.1:8000/health/live` and `/health/ready` | `live` confirms process health; `ready` verifies PostgreSQL, Redis, and MinIO are available |
+| `api` | Health-only FastAPI process; no product routes | `http://127.0.0.1:8000/health/live` and `/health/ready` | `live` confirms process health; `ready` verifies PostgreSQL, Redis, and Azurite are available |
 | `worker` | Health-only worker-process contract; no jobs consumed | `http://127.0.0.1:8001/health/live` and `/health/ready` | `live` confirms process health; `ready` verifies its required coordination dependencies without revealing credentials |
 | `postgres` | Future relational system of record; pgvector-capable | `127.0.0.1:5432` | Compose health check uses `pg_isready`; no schema or migration is applied |
 | `redis` | Future queue/cache/lock broker | `127.0.0.1:6379` | Compose health check requires `redis-cli ping` to return `PONG` |
-| `minio` | Local S3-compatible object storage | API: `http://127.0.0.1:9000`; console: `http://127.0.0.1:9001` | Compose health check calls MinIO's documented local health endpoint |
-| `minio-init` | One-shot local bucket provisioning helper | No host port | Waits for MinIO health, idempotently creates the configured local bucket, then exits successfully |
+| `azurite` | Local Azure Blob Storage emulator | Blob: `http://127.0.0.1:10000` | Compose health check confirms the blob port accepts TCP connections |
+| `azurite-init` | One-shot local blob-container provisioning helper | No host port | Waits for Azurite health, idempotently creates the configured local blob container, then exits successfully |
 
 All services use explicitly versioned image tags or digests; never use `latest`. Persistent state uses named Compose volumes, so it is not accidentally created inside the repository. The documented destructive reset command must be separate from the normal shutdown command and warn that it removes local database and object-storage data.
 
@@ -103,10 +103,10 @@ All services use explicitly versioned image tags or digests; never use `latest`.
 
 ### 2. Define the Compose topology and lifecycle
 
-1. Add root `docker-compose.yml` using a stable project name and a single private default network. Define `web`, `api`, `worker`, `postgres`, `redis`, `minio`, and `minio-init` exactly once.
+1. Add root `docker-compose.yml` using a stable project name and a single private default network. Define `web`, `api`, `worker`, `postgres`, `redis`, `azurite`, and `azurite-init` exactly once.
 2. Use `postgres` based on a PostgreSQL 16 image with pgvector installed/available. Configure a named database volume, a non-production database/user/password supplied through local environment variables, and a `pg_isready` health check. Do **not** run `CREATE EXTENSION`, migrations, or seed SQL in this phase.
 3. Configure Redis with a named volume where persistence is enabled and a `redis-cli ping` health check. Do not configure task queues or application cache behavior.
-4. Configure MinIO with named storage, explicit API and console ports, known non-secret local-only root values, and an HTTP health check. Add `minio-init` using the official MinIO client to create the configured bucket idempotently after MinIO becomes healthy. Do not place object data or credentials in the repository.
+4. Configure Azurite with named storage, an explicit blob port, known non-secret local-only account values, and a TCP connection health check. Add `azurite-init` using the Azure CLI to create the configured blob container idempotently after Azurite becomes healthy. Do not place object data or credentials in the repository.
 5. Expose the documented ports only on `127.0.0.1`. Set `restart` behavior appropriate for developer services, keep images version-pinned, and use `depends_on` conditions so API/worker start only after the infrastructure services are healthy.
 6. Add health checks for `web`, `api`, and `worker` with bounded start periods, retries, and timeouts. Health checks must not depend on a host-installed `curl`; use tooling available in each container image or a small, reviewed application-level probe.
 7. Provide a single documented startup command that works from a clean checkout after tool installation:
@@ -122,7 +122,7 @@ All services use explicitly versioned image tags or digests; never use `latest`.
 1. Add a minimal FastAPI application factory/entry point for the `api` service. Its only HTTP behavior in this phase is:
 
    - `GET /health/live` returns HTTP 200 when the process is alive.
-   - `GET /health/ready` returns HTTP 200 only when PostgreSQL, Redis, and MinIO can be safely contacted; otherwise return HTTP 503 with a stable, non-sensitive dependency-status summary.
+   - `GET /health/ready` returns HTTP 200 only when PostgreSQL, Redis, and Azurite can be safely contacted; otherwise return HTTP 503 with a stable, non-sensitive dependency-status summary.
 
 2. Add a separate worker readiness entry point under `app.workers` and run it in the `worker` container. It exposes the same liveness/readiness shape on its own local port, but it must not define tasks, consume jobs, or present itself as a functional workflow worker.
 3. Share health response schemas/probing code where it avoids duplicated behavior, while keeping the code intentionally small and typed. Dependency probes must use Compose DNS names inside containers, strict short timeouts, and no credentials in responses or logs.
@@ -139,7 +139,7 @@ All services use explicitly versioned image tags or digests; never use `latest`.
 
 ### 5. Add safe local configuration and developer commands
 
-1. Expand `.env.example` with comments and variables for the Compose project name, all bound ports, PostgreSQL database/user/local-only password, Redis host/port, MinIO endpoint/console port/local-only root values, and the bucket name. Use values that are obviously development-only and safe to disclose; include no token, cloud URL, production DSN, or real password.
+1. Expand `.env.example` with comments and variables for the Compose project name, all bound ports, PostgreSQL database/user/local-only password, Redis host/port, Azurite endpoint/local-only account values, and the container name. Use values that are obviously development-only and safe to disclose; include no token, cloud URL, production DSN, or real password.
 2. Do not add future application configuration such as model-provider credentials, JWT secrets, Azure settings, production CORS origins, or real object-storage keys. Later phases must extend this file deliberately.
 3. Add root pnpm scripts with stable names, for example:
 
@@ -148,7 +148,7 @@ All services use explicitly versioned image tags or digests; never use `latest`.
    - `dev:logs` — follows Compose logs; and
    - `verify:local-stack` — runs the non-destructive local verification script against an already-running stack.
 
-4. Add `scripts/verify_local_stack.sh` with `set -euo pipefail`, bounded retries/timeouts, clear failures, and no external network dependency. It must verify Compose reports the required long-running services healthy, confirm the web/API/worker endpoints, run `pg_isready`, run Redis `PING`, call MinIO health, and verify the configured bucket exists. It must not seed data, alter schemas, delete volumes, print secrets, or tear down the stack.
+4. Add `scripts/verify_local_stack.sh` with `set -euo pipefail`, bounded retries/timeouts, clear failures, and no external network dependency. It must verify Compose reports the required long-running services healthy, confirm the web/API/worker endpoints, run `pg_isready`, run Redis `PING`, check the Azurite blob endpoint, and verify the configured container exists. It must not seed data, alter schemas, delete volumes, print secrets, or tear down the stack.
 5. Add a focused `test:health` command (or equally clear direct uv command) for the health-contract test suite. Introduce only the test dependencies necessary for this scope, lock them with uv, and avoid adding frontend test tooling before Phase 7.
 
 ### 6. Document operation and troubleshooting honestly
@@ -163,7 +163,7 @@ All services use explicitly versioned image tags or digests; never use `latest`.
    - named-volume persistence behavior; and
    - the rule that local defaults are public convenience values, not deployable credentials.
 
-3. State plainly that PostgreSQL is empty except for its system database, pgvector is not yet enabled by migration, MinIO contains only the empty local bucket, and the worker does not process jobs. This guards against Phase 2 being mistaken for a functional product demo.
+3. State plainly that PostgreSQL is empty except for its system database, pgvector is not yet enabled by migration, Azurite contains only the empty local blob container, and the worker does not process jobs. This guards against Phase 2 being mistaken for a functional product demo.
 4. Ensure the project ignores any new local data paths and continues to ignore `.env` while retaining `.env.example` in version control.
 
 ### 7. Test and review the infrastructure contract
@@ -176,7 +176,7 @@ All services use explicitly versioned image tags or digests; never use `latest`.
    docker compose --env-file .env.example config --quiet
    ```
 
-4. From a clean local Docker state, start the stack using the documented one-command path, wait for health checks, run `scripts/verify_local_stack.sh`, and inspect `docker compose ps` for the expected healthy services plus successful `minio-init` completion.
+4. From a clean local Docker state, start the stack using the documented one-command path, wait for health checks, run `scripts/verify_local_stack.sh`, and inspect `docker compose ps` for the expected healthy services plus successful `azurite-init` completion.
 5. Run the existing workspace/static checks after all edits and review the final diff for accidental credentials, generated container data, and product claims ahead of their roadmap phase.
 
 ## Required tests and validation
@@ -218,11 +218,11 @@ Run from the repository root after installing the Phase 2 dependencies and Docke
 
    Verify all of the following:
 
-   - `web`, `api`, `worker`, `postgres`, `redis`, and `minio` are running and healthy;
-   - `minio-init` completed successfully and the configured bucket exists;
+   - `web`, `api`, `worker`, `postgres`, `redis`, and `azurite` are running and healthy;
+   - `azurite-init` completed successfully and the configured container exists;
    - the web readiness page returns HTTP 200 and clearly identifies its temporary Phase 2 role;
    - API and worker liveness/readiness endpoints return HTTP 200 only after their dependencies are ready;
-   - PostgreSQL accepts `pg_isready`, Redis answers `PONG`, and MinIO answers its health endpoint;
+   - PostgreSQL accepts `pg_isready`, Redis answers `PONG`, and Azurite's blob endpoint responds;
    - bound host ports are loopback-only; and
    - logs and endpoint bodies contain no local password, connection string, token, stack trace, or host-specific path.
 
@@ -239,10 +239,10 @@ Run from the repository root after installing the Phase 2 dependencies and Docke
 Phase 2 is complete only when all of the following are true:
 
 1. `docker compose --env-file .env.example up --build --wait --detach` starts the required local stack from a clean checkout without manual container setup.
-2. The Compose file defines and health-checks web, API, worker, PostgreSQL 16 with pgvector available, Redis, and MinIO; MinIO bucket provisioning is idempotent and succeeds.
+2. The Compose file defines and health-checks web, API, worker, PostgreSQL 16 with pgvector available, Redis, and Azurite; Azurite container provisioning is idempotent and succeeds.
 3. API and worker each expose safe, tested liveness and readiness endpoints; readiness accurately reports unavailable dependencies with HTTP 503 and no sensitive details.
 4. The web endpoint is reachable but is explicitly a Phase 2 readiness page, not a substitute for the Phase 7 frontend.
-5. PostgreSQL, Redis, and MinIO are reachable through their documented loopback ports; only named volumes retain local state.
+5. PostgreSQL, Redis, and Azurite are reachable through their documented loopback ports; only named volumes retain local state.
 6. `.env.example`, Docker build context, documentation, and logs contain no real secret, personal data, production connection value, or misleading product claim.
 7. Health-contract tests, Compose configuration validation, local-stack smoke verification, and existing format/lint/type/workspace checks all pass.
 8. The README and developer guide let a new developer start, verify, inspect, stop, and—when intentionally required—reset the environment without guessing.
@@ -253,11 +253,11 @@ Phase 2 is complete only when all of the following are true:
 | Risk or dependency | Why it matters | Required mitigation |
 | --- | --- | --- |
 | Docker Engine/Desktop and Compose v2 availability | The local stack cannot start without a compatible Docker runtime. | Document the prerequisite and provide `docker compose config --quiet` as the fastest setup diagnostic. |
-| Host-port conflicts | PostgreSQL, Redis, MinIO, and common web ports may already be in use. | Keep ports configurable in `.env.example`, bind to loopback, and document how to override them in untracked `.env`. |
+| Host-port conflicts | PostgreSQL, Redis, Azurite, and common web ports may already be in use. | Keep ports configurable in `.env.example`, bind to loopback, and document how to override them in untracked `.env`. |
 | Image-tag availability or platform compatibility | Pinned images must work on supported developer architectures. | Select maintained multi-architecture versioned images, avoid `latest`, and record the exact tags/digests in Compose. |
 | Scope creep into Phase 3 or 7 | Health bootstraps can easily become an API framework or a fake product UI. | Limit code to health contracts and a static readiness page; defer all product routes, configuration architecture, UI, and business logic. |
 | Readiness checks that leak configuration | Connection failures often include DSNs, usernames, or stack traces. | Catch and normalize probe failures; test explicitly for safe error bodies and logs. |
-| Confusing local defaults with secrets | PostgreSQL and MinIO need development credentials to start. | Use conspicuously public local-only defaults, never reuse them outside local Compose, and document that `.env` remains untracked. |
+| Confusing local defaults with secrets | PostgreSQL and Azurite need development credentials to start. | Use conspicuously public local-only defaults, never reuse them outside local Compose, and document that `.env` remains untracked. |
 | Data persistence surprises | Named volumes survive normal shutdown and can mask startup issues. | Document normal versus destructive lifecycle commands and verify both paths. |
 | Later worker implementation changes | The eventual Celery/other worker should not be constrained by a temporary endpoint. | Treat the worker readiness app/contract as infrastructure that later worker processes retain or expose through an equivalent adapter; do not add task behavior now. |
 

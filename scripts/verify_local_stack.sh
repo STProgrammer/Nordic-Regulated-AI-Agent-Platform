@@ -18,7 +18,7 @@ if [[ ! -f "$compose_env_file" ]]; then
 fi
 
 compose=(docker compose --env-file "$compose_env_file")
-required_services=(web api worker postgres redis minio)
+required_services=(web api worker postgres redis azurite)
 
 service_health() {
   local service="$1"
@@ -82,6 +82,25 @@ if expected_text not in body:
 PY
 }
 
+check_azurite_blob() {
+  local url="$1"
+
+  python3 - "$url" <<'PY'
+import sys
+import urllib.error
+import urllib.request
+
+url = sys.argv[1]
+try:
+    urllib.request.urlopen(url, timeout=5)
+except urllib.error.HTTPError as error:
+    if error.code >= 500:
+        raise SystemExit(f"Azurite returned HTTP {error.code} from {url}.")
+except Exception as error:
+    raise SystemExit(f"Azurite blob endpoint not reachable at {url}: {error}")
+PY
+}
+
 assert_loopback_binding() {
   local service="$1"
   local address="$2"
@@ -96,29 +115,29 @@ for service in "${required_services[@]}"; do
   wait_for_healthy_service "$service"
 done
 
-minio_init_id="$("${compose[@]}" ps -aq minio-init)"
-if [[ -z "$minio_init_id" ]]; then
-  printf 'minio-init container was not created.\n' >&2
+azurite_init_id="$("${compose[@]}" ps -aq azurite-init)"
+if [[ -z "$azurite_init_id" ]]; then
+  printf 'azurite-init container was not created.\n' >&2
   exit 1
 fi
 
-minio_init_status="$(docker inspect --format '{{.State.Status}}:{{.State.ExitCode}}' "$minio_init_id")"
-if [[ "$minio_init_status" != "exited:0" ]]; then
-  printf 'minio-init did not finish successfully (status %s).\n' "$minio_init_status" >&2
+azurite_init_status="$(docker inspect --format '{{.State.Status}}:{{.State.ExitCode}}' "$azurite_init_id")"
+if [[ "$azurite_init_status" != "exited:0" ]]; then
+  printf 'azurite-init did not finish successfully (status %s).\n' "$azurite_init_status" >&2
   exit 1
 fi
 
 web_address="$(compose_port web 80)"
 api_address="$(compose_port api 8000)"
 worker_address="$(compose_port worker 8001)"
-minio_address="$(compose_port minio 9000)"
+azurite_address="$(compose_port azurite 10000)"
 postgres_address="$(compose_port postgres 5432)"
 redis_address="$(compose_port redis 6379)"
 
 assert_loopback_binding web "$web_address"
 assert_loopback_binding api "$api_address"
 assert_loopback_binding worker "$worker_address"
-assert_loopback_binding minio "$minio_address"
+assert_loopback_binding azurite "$azurite_address"
 assert_loopback_binding postgres "$postgres_address"
 assert_loopback_binding redis "$redis_address"
 
@@ -129,13 +148,13 @@ check_http "http://${api_address}/openapi.json" '"openapi"'
 check_http "http://${api_address}/docs" "Swagger UI"
 check_http "http://${worker_address}/health/live" '"status":"alive"'
 check_http "http://${worker_address}/health/ready" '"status":"ready"'
-check_http "http://${minio_address}/minio/health/live" ""
+check_azurite_blob "http://${azurite_address}/devstoreaccount1"
 
 "${compose[@]}" exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null'
 "${compose[@]}" exec -T postgres sh -ec \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT 1 FROM pg_available_extensions WHERE name = '\''vector'\''" | grep -qx 1'
 "${compose[@]}" exec -T redis redis-cli ping | grep -qx PONG
-"${compose[@]}" run --rm --no-deps minio-init sh -ec \
-  'mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null; mc ls "local/$MINIO_BUCKET" >/dev/null'
+"${compose[@]}" run --rm --no-deps --entrypoint /bin/sh azurite-init -ec \
+  'az storage container show --name "$AZURITE_CONTAINER" --connection-string "DefaultEndpointsProtocol=http;AccountName=$AZURITE_ACCOUNT_NAME;AccountKey=$AZURITE_ACCOUNT_KEY;BlobEndpoint=$AZURITE_BLOB_ENDPOINT;" >/dev/null'
 
 printf 'Local stack verification passed.\n'

@@ -40,9 +40,9 @@ Thumbs.db
 data/
 storage/
 object-storage/
-minio-data/
+azurite-data/
 docker-data/
-.minio/
+.azurite/
 postgres-data/
 redis-data/
 

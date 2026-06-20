@@ -1,9 +1,11 @@
 import os
+from asyncio import run
 from collections.abc import Iterator
 
 import pytest
 from app.core.config import AppSettings, get_settings, reset_settings_cache
-from pydantic import ValidationError
+from app.db.session import dispose_database_engines, get_async_engine
+from pydantic import SecretStr, ValidationError
 
 
 @pytest.fixture(autouse=True)
@@ -27,6 +29,9 @@ def test_defaults_are_safe_local_values() -> None:
     assert settings.log_format == "console"
     assert settings.request_id_header == "X-Request-ID"
     assert settings.request_id_max_length == 128
+    assert settings.session_cookie_name == "nordic_session"
+    assert settings.session_cookie_secure_value is False
+    assert settings.session_ttl_seconds == 28_800
 
 
 def test_documentation_urls_follow_enable_docs() -> None:
@@ -107,3 +112,50 @@ def test_settings_are_immutable() -> None:
     settings = AppSettings()
     with pytest.raises(ValidationError):
         settings.environment = "production"
+
+
+def test_production_requires_secure_cookie_but_derives_it_by_default() -> None:
+    assert AppSettings(environment="production").session_cookie_secure_value is True
+    with pytest.raises(ValidationError):
+        AppSettings(environment="production", session_cookie_secure=False)
+
+
+def test_password_bounds_and_redis_urls_are_validated_without_leaking_values() -> None:
+    with pytest.raises(ValidationError):
+        AppSettings(password_min_length=129, password_max_length=64)
+    with pytest.raises(ValidationError) as error:
+        AppSettings(redis_url=SecretStr("not-a-redis-url-with-a-secret"))
+    assert "not-a-redis-url-with-a-secret" not in str(error.value)
+
+
+def test_database_urls_are_secret_safe_and_convert_for_alembic() -> None:
+    async_url = "postgresql+asyncpg://fixture-user:fixture-password@localhost:5432/fixture"
+    settings = AppSettings(database_url=SecretStr(async_url))
+
+    assert settings.database_async_url() == async_url
+    assert settings.database_sync_url() == (
+        "postgresql+psycopg://fixture-user:fixture-password@localhost:5432/fixture"
+    )
+    assert "fixture-password" not in repr(settings)
+
+
+def test_database_url_validation_hides_sensitive_input() -> None:
+    unsafe_url = "postgresql://fixture-user:fixture-password@localhost:5432/fixture"
+
+    with pytest.raises(ValidationError) as error:
+        AppSettings(database_url=SecretStr(unsafe_url))
+
+    assert "fixture-password" not in str(error.value)
+
+
+def test_engine_construction_is_lazy() -> None:
+    settings = AppSettings(
+        database_url=SecretStr(
+            "postgresql+asyncpg://fixture-user:fixture-password@localhost:5432/fixture"
+        )
+    )
+
+    engine = get_async_engine(settings)
+
+    assert str(engine.url).startswith("postgresql+asyncpg://")
+    run(dispose_database_engines())

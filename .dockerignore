@@ -27,9 +27,9 @@ htmlcov/
 data/
 storage/
 object-storage/
-minio-data/
+azurite-data/
 docker-data/
-.minio/
+.azurite/
 postgres-data/
 redis-data/
 

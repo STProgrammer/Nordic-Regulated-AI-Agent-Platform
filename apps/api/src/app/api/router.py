@@ -85,6 +85,9 @@ def create_api_router(prefix: str) -> APIRouter:
     api_router = APIRouter(prefix=prefix)
     for group in ROUTE_GROUPS:
         api_router.include_router(group.router, prefix=group.prefix, tags=[group.tag])
+    # The role catalogue belongs to the Users ownership boundary but has the
+    # architecture-specified top-level path ``/api/roles``.
+    api_router.include_router(users.roles_router, tags=[users.TAG])
     return api_router
 
 

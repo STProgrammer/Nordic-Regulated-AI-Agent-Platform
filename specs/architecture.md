@@ -94,7 +94,7 @@ The architecture must demonstrate:
 - **Playwright**
 - **Vitest**
 - **Testing Library**
-- **i18next or next-intl**
+- **next-intl**
 
 ### Reasoning
 
@@ -120,7 +120,7 @@ Next.js and TypeScript show strong modern frontend competence. shadcn/ui and Tai
 - **SQLAlchemy 2**
 - **Alembic**
 - **asyncpg**
-- **Uvicorn / Gunicorn**
+- **Uvicorn / Gunicorn (uvicorn-worker)**
 - **httpx2**
 - **structlog**
 - **OpenAPI/Swagger**
@@ -154,7 +154,7 @@ LangGraph is used for inspectable, stateful, multi-step workflows with human app
 - **PostgreSQL + pgvector**
 - **Qdrant as optional dedicated vector store**
 - **OpenSearch as optional keyword/hybrid search component**
-- **rank-bm25 or OpenSearch BM25**
+- **bm25s or OpenSearch BM25**
 - **Reranking model or hosted reranker**
 - **unstructured**
 - **pypdf**
@@ -176,7 +176,7 @@ pgvector keeps architecture simpler and employer-friendly because PostgreSQL rem
 - **pgvector**
 - **Redis**
 - **Azure Blob Storage or S3-compatible object storage**
-- **MinIO for local development**
+- **Azurite for local development** (Azure Blob Storage emulator)
 
 ### Reasoning
 
@@ -187,7 +187,7 @@ PostgreSQL is the main source of truth. pgvector supports semantic search. Redis
 ### Main Stack
 
 - **Celery + Redis**
-- Alternative: **Dramatiq** or **Arq** if async-first simplicity is preferred
+- Alternative: **Dramatiq** if async-first simplicity is preferred
 
 ### Job Types
 
@@ -297,7 +297,7 @@ Services:
 - worker
 - postgres
 - redis
-- minio
+- azurite
 - optional qdrant
 - optional opensearch
 - mail/mock notification service
@@ -1552,7 +1552,7 @@ nordic-regulated-ai-agent-platform/
 ## 13.1 Authentication
 
 - Secure login.
-- Password hashing with Argon2 or bcrypt.
+- Password hashing with Argon2id (argon2-cffi).
 - Optional enterprise identity provider readiness.
 - Secure cookies or secure token handling.
 - Session expiration.

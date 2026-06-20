@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from starlette import status
 
-DependencyName = Literal["postgres", "redis", "minio"]
+DependencyName = Literal["postgres", "redis", "azurite"]
 DependencyState = Literal["ready", "unavailable"]
 ReadinessState = Literal["ready", "unavailable"]
 Probe = Callable[[], Awaitable[bool]]
@@ -49,7 +49,7 @@ class HealthProbes(Protocol):
 
     async def redis(self) -> bool: ...
 
-    async def minio(self) -> bool: ...
+    async def azurite(self) -> bool: ...
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,7 @@ class RuntimeHealthProbes:
     postgres_password: str
     redis_host: str
     redis_port: int
-    minio_health_url: str
+    azurite_blob_url: str
 
     @classmethod
     def from_environment(cls) -> "RuntimeHealthProbes":
@@ -77,7 +77,9 @@ class RuntimeHealthProbes:
             ),
             redis_host=os.getenv("REDIS_HOST", "redis"),
             redis_port=_environment_port("REDIS_PORT", 6379),
-            minio_health_url=os.getenv("MINIO_HEALTH_URL", "http://minio:9000/minio/health/live"),
+            azurite_blob_url=os.getenv(
+                "AZURITE_BLOB_HEALTH_URL", "http://azurite:10000/devstoreaccount1"
+            ),
         )
 
     async def postgres(self) -> bool:
@@ -107,10 +109,12 @@ class RuntimeHealthProbes:
         finally:
             await client.aclose()
 
-    async def minio(self) -> bool:
+    async def azurite(self) -> bool:
         async with httpx2.AsyncClient(timeout=PROBE_TIMEOUT_SECONDS) as client:
-            response = await client.get(self.minio_health_url)
-        return response.status_code == status.HTTP_200_OK
+            response = await client.get(self.azurite_blob_url)
+        # Azurite exposes no unauthenticated health endpoint; any HTTP response below 500
+        # (typically 400/403 for an unauthenticated blob request) confirms it is serving.
+        return response.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def get_health_probes() -> HealthProbes:
@@ -154,7 +158,7 @@ async def collect_readiness(probes: HealthProbes) -> ReadinessResponse:
         await asyncio.gather(
             _probe_dependency("postgres", probes.postgres),
             _probe_dependency("redis", probes.redis),
-            _probe_dependency("minio", probes.minio),
+            _probe_dependency("azurite", probes.azurite),
         )
     )
     readiness_status: ReadinessState = (

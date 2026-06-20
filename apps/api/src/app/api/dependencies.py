@@ -1,16 +1,39 @@
-"""Typed FastAPI dependency providers shared across the API boundary.
+"""Shared FastAPI dependencies for database, authentication, and RBAC boundaries."""
 
-These providers expose the application settings and the per-request correlation
-context to route handlers in a way that tests can override cleanly. They perform
-no database I/O, create no clients, and enforce no authentication; those concerns
-are introduced by their owning roadmap phases.
-"""
+from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Security
+from fastapi.security import APIKeyCookie
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import AppSettings, get_settings
+from app.core.errors import ApiError
+from app.core.rate_limit import LoginRateLimiter, RedisLoginRateLimiter
+from app.core.security import PasswordSecurity
+from app.core.session_store import (
+    AuthStateUnavailableError,
+    RedisSessionStore,
+    SessionStore,
+    get_redis_client,
+)
+from app.db.session import get_db_session
+from app.services.auth.policy import ensure_roles, guard_tenant_resource
+from app.services.auth.principal import Principal, RoleName
+from app.services.auth.service import AuthenticationService, UserAdministrationService
+
+# The runtime setting defaults to this name. The dependency itself reads the
+# configured cookie name, while this object documents cookie authentication in
+# OpenAPI and tells generated clients it is HTTP cookie based rather than bearer.
+session_cookie_security_scheme = APIKeyCookie(
+    name="nordic_session",
+    scheme_name="SessionCookie",
+    description="Opaque HTTP-only server-side session cookie.",
+    auto_error=False,
+)
 
 
 def get_request_id(request: Request) -> str | None:
@@ -20,5 +43,123 @@ def get_request_id(request: Request) -> str | None:
     return request_id if isinstance(request_id, str) else None
 
 
+def get_session_store(settings: Annotated[AppSettings, Depends(get_settings)]) -> SessionStore:
+    """Build the production session-store adapter without touching Redis yet."""
+
+    return RedisSessionStore(get_redis_client(settings))
+
+
+def get_login_rate_limiter(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> LoginRateLimiter:
+    """Build the login limiter; only its ``check`` call connects to Redis."""
+
+    return RedisLoginRateLimiter(
+        get_redis_client(settings),
+        digest_key=settings.rate_limit_hmac_key(),
+        email_attempts=settings.login_rate_limit_email_attempts,
+        origin_attempts=settings.login_rate_limit_origin_attempts,
+        window_seconds=settings.login_rate_limit_window_seconds,
+    )
+
+
+def get_authentication_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    session_store: Annotated[SessionStore, Depends(get_session_store)],
+) -> AuthenticationService:
+    """Construct the request-scoped authentication service."""
+
+    return AuthenticationService(
+        session,
+        password_security=PasswordSecurity(
+            minimum_length=settings.password_min_length,
+            maximum_length=settings.password_max_length,
+        ),
+        session_store=session_store,
+        session_ttl_seconds=settings.session_ttl_seconds,
+    )
+
+
+def get_user_administration_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    session_store: Annotated[SessionStore, Depends(get_session_store)],
+) -> UserAdministrationService:
+    """Construct the request-scoped Admin user-management service."""
+
+    return UserAdministrationService(
+        session,
+        password_security=PasswordSecurity(
+            minimum_length=settings.password_min_length,
+            maximum_length=settings.password_max_length,
+        ),
+        session_store=session_store,
+    )
+
+
+async def get_current_principal(
+    request: Request,
+    settings: Annotated[AppSettings, Depends(get_settings)],
+    authentication: Annotated[AuthenticationService, Depends(get_authentication_service)],
+    _documented_session: Annotated[str | None, Security(session_cookie_security_scheme)] = None,
+) -> Principal:
+    """Resolve and validate a principal from an opaque session cookie."""
+
+    session_id = request.cookies.get(settings.session_cookie_name)
+    if session_id is None or len(session_id) > 128:
+        raise _unauthenticated_error()
+    try:
+        principal = await authentication.resolve_principal(session_id)
+    except AuthStateUnavailableError as error:
+        raise _auth_state_unavailable_error() from error
+    if principal is None:
+        raise _unauthenticated_error()
+    return principal
+
+
+def require_roles(*roles: RoleName) -> Callable[[Principal], Awaitable[Principal]]:
+    """Return a composable backend role-check dependency for protected routes."""
+
+    async def _require(principal: CurrentPrincipalDependency) -> Principal:
+        ensure_roles(principal, *roles)
+        return principal
+
+    return _require
+
+
+def guard_current_tenant(principal: Principal, resource_organization_id: UUID) -> None:
+    """Expose the pure tenant guard for future service/route composition."""
+
+    guard_tenant_resource(principal, resource_organization_id)
+
+
+def _unauthenticated_error() -> ApiError:
+    return ApiError(
+        status_code=401,
+        code="authentication_required",
+        message="Authentication is required.",
+    )
+
+
+def _auth_state_unavailable_error() -> ApiError:
+    return ApiError(
+        status_code=503,
+        code="authentication_unavailable",
+        message="Authentication is temporarily unavailable.",
+    )
+
+
 SettingsDependency = Annotated[AppSettings, Depends(get_settings)]
 RequestIdDependency = Annotated[str | None, Depends(get_request_id)]
+DatabaseSessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
+SessionStoreDependency = Annotated[SessionStore, Depends(get_session_store)]
+LoginRateLimiterDependency = Annotated[LoginRateLimiter, Depends(get_login_rate_limiter)]
+AuthenticationServiceDependency = Annotated[
+    AuthenticationService, Depends(get_authentication_service)
+]
+UserAdministrationServiceDependency = Annotated[
+    UserAdministrationService, Depends(get_user_administration_service)
+]
+CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
+AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

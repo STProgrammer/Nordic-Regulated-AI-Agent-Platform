@@ -31,7 +31,6 @@ required_paths=(
   "infra/azure"
   "infra/docker"
   "infra/docker/api.dev.Dockerfile"
-  "infra/docker/minio.dev.Dockerfile"
   "infra/docker/worker.dev.Dockerfile"
   "infra/docker/web-readiness.html"
   "infra/github-actions"

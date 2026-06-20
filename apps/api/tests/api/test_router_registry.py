@@ -38,20 +38,31 @@ def test_prefixes_are_rooted_paths() -> None:
         assert not group.prefix.endswith("/")
 
 
-def test_route_modules_define_no_operations_yet() -> None:
+def test_only_phase_six_route_modules_define_operations() -> None:
     for group in ROUTE_GROUPS:
         assert isinstance(group.router, APIRouter)
-        assert group.router.routes == []
+        if group.name in {"auth", "users"}:
+            assert group.router.routes
+        else:
+            assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_no_business_operations() -> None:
+def test_aggregate_router_mounts_only_phase_six_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
     app = FastAPI()
     app.include_router(api_router)
     paths = app.openapi().get("paths", {})
-    assert [path for path in paths if path.startswith("/api/")] == []
+    assert {path for path in paths if path.startswith("/api/")} == {
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/me",
+        "/api/users",
+        "/api/users/{user_id}",
+        "/api/users/{user_id}/roles",
+        "/api/roles",
+    }
 
 
 def test_openapi_tags_describe_each_boundary() -> None:
