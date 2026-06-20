@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from app.api.dependencies import (
     CaseServiceDependency,
     CurrentPrincipalDependency,
+    get_evidence_workflow_service,
     get_intake_workflow_service,
 )
 from app.api.schemas.cases import (
@@ -32,12 +33,13 @@ from app.api.schemas.common import (
     ResponseMeta,
     SuccessResponse,
 )
-from app.api.schemas.workflows import IntakeStartRequest, WorkflowRunData
+from app.api.schemas.workflows import WorkflowRunData, WorkflowStartRequest
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, Unset
 from app.services.cases.service import CaseCreate, CasePatch
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
+from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
 
 PREFIX = "/cases"
@@ -252,18 +254,23 @@ async def archive_case(
         **_CASE_ERROR_RESPONSES,
         503: {"model": ErrorResponse, "description": "Workflow processing is unavailable."},
     },
-    summary="Queue the supported Intake workflow for one current-tenant case",
+    summary="Queue a closed supported workflow for one current-tenant case",
 )
 async def start_case_workflow(
     case_id: UUID,
-    payload: IntakeStartRequest,
+    payload: WorkflowStartRequest,
     request: Request,
     principal: CurrentPrincipalDependency,
     workflows: Annotated[IntakeWorkflowService, Depends(get_intake_workflow_service)],
+    evidence_workflows: Annotated[EvidenceWorkflowService, Depends(get_evidence_workflow_service)],
 ) -> SuccessResponse[WorkflowRunData]:
-    """Accept only the fixed Intake selector; model, prompt, state, and queue stay server-owned."""
+    """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
 
-    run = await workflows.start(principal, case_id)
+    run = (
+        await workflows.start(principal, case_id)
+        if payload.workflow == "intake"
+        else await evidence_workflows.start(principal, case_id)
+    )
     return SuccessResponse(data=_workflow_run_data(run), meta=_meta(request))
 
 

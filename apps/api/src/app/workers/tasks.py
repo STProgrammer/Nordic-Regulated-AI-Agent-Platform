@@ -8,6 +8,14 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from agent_orchestrator.config import AgentSettings
+from agent_orchestrator.graphs.evidence_graph import (
+    EvidenceCandidate,
+    EvidenceCandidates,
+    EvidenceCaseInput,
+    EvidenceGraph,
+    EvidenceGraphDependencies,
+)
+from agent_orchestrator.graphs.evidence_types import EvidenceWorkflowState
 from agent_orchestrator.graphs.intake_graph import (
     IntakeCaseInput,
     IntakeGraph,
@@ -31,8 +39,9 @@ from app.core.logging import get_logger
 from app.db.models.workflow import WorkflowRun
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.document import DocumentRepository
-from app.db.repositories.identity import UserRepository
+from app.db.repositories.identity import UserRepository, UserRoleRepository
 from app.db.session import dispose_database_engines, get_sessionmaker
+from app.services.auth.principal import Principal, RoleName
 from app.services.documents.chunking import CanonicalTextChunker, ChunkingConfig, TiktokenTokenizer
 from app.services.documents.dispatch import CeleryDocumentTaskDispatcher
 from app.services.documents.embeddings import (
@@ -45,6 +54,12 @@ from app.services.documents.parsers.language import detect_language
 from app.services.documents.parsers.registry import DocumentParserRegistry
 from app.services.documents.parsing import DocumentParseCoordinator, ParseProcessOutcome
 from app.services.documents.storage import AzureBlobObjectStorage
+from app.services.retrieval.service import RetrievalService
+from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
+from app.services.workflows.evidence import (
+    EVIDENCE_WORKFLOW_NAME,
+    persist_evidence_case_result,
+)
 from app.services.workflows.intake import INTAKE_WORKFLOW_NAME
 from app.services.workflows.orchestrator import (
     SqlAlchemyPromptLoader,
@@ -171,6 +186,156 @@ async def _process_intake_workflow(workflow_run_id: UUID, settings: AppSettings)
                     )
             await session.commit()
             return outcome
+    finally:
+        await dispose_database_engines()
+
+
+def _retrieval_service(session: AsyncSession, settings: AppSettings) -> RetrievalService:
+    """Build the existing governed hybrid retrieval boundary inside a private worker."""
+
+    return RetrievalService(
+        session,
+        provider_factory=lambda: build_embedding_provider(settings),
+        default_result_limit=settings.retrieval_default_result_limit,
+        maximum_result_limit=settings.retrieval_max_result_limit,
+        semantic_candidate_limit=settings.retrieval_semantic_candidate_limit,
+        keyword_candidate_limit=settings.retrieval_keyword_candidate_limit,
+        rank_fusion_constant=settings.retrieval_rank_fusion_constant,
+        maximum_query_characters=settings.retrieval_max_query_characters,
+        maximum_document_selections=settings.retrieval_max_document_selections,
+        maximum_excerpt_characters=settings.retrieval_max_excerpt_characters,
+    )
+
+
+async def _process_evidence_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Reload a UUID-only queued Evidence run and execute its fixed ten-node graph."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if run is None or run.workflow_name != EVIDENCE_WORKFLOW_NAME or run.status != "queued":
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            case = await CaseRepository(session).get(context.organization_id, context.case_id)
+            user = await UserRepository(session).get(
+                context.organization_id, context.initiated_by_user_id
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            if case is None or user is None or not user.is_active:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="case_not_available",
+                    )
+                    await session.commit()
+                return "failed"
+            role_names = await UserRoleRepository(session).list_role_names_for_user(
+                context.organization_id, user.id
+            )
+            try:
+                principal = Principal(
+                    user_id=user.id,
+                    organization_id=user.organization_id,
+                    display_name=user.display_name,
+                    preferred_language=user.preferred_language,
+                    roles=frozenset(RoleName(name) for name in role_names),
+                )
+
+                async def retrieve(query: str) -> EvidenceCandidates:
+                    retrieved = await _retrieval_service(session, settings).search(
+                        principal,
+                        RetrievalRequest(
+                            case_id=context.case_id,
+                            query=query,
+                            result_limit=5,
+                            source_statuses=(),
+                            document_ids=(),
+                        ),
+                        workflow_context=RetrievalWorkflowContext(context.workflow_run_id),
+                    )
+                    candidates = tuple(
+                        EvidenceCandidate(
+                            document_id=source.document_id,
+                            chunk_id=source.chunk_id,
+                            source_status=source.source_status,
+                            rank=source.rank,
+                            rank_score=source.rank_score,
+                            retrieval_methods=tuple(
+                                method.value for method in source.retrieval_methods
+                            ),
+                            excerpt=source.excerpt,
+                            warning_codes=tuple(code.value for code in source.warning_codes),
+                        )
+                        for source in retrieved
+                    )
+                    return EvidenceCandidates(
+                        vector=tuple(
+                            candidate
+                            for candidate in candidates
+                            if "semantic" in candidate.retrieval_methods
+                        ),
+                        keyword=tuple(
+                            candidate
+                            for candidate in candidates
+                            if "keyword" in candidate.retrieval_methods
+                        ),
+                    )
+
+                agent_settings = AgentSettings()
+                graph = EvidenceGraph(
+                    EvidenceGraphDependencies(
+                        case_input=EvidenceCaseInput(
+                            title=case.title, description=case.description
+                        ),
+                        retrieve_candidates=retrieve,
+                        persistence=persistence,
+                        persist_result=lambda graph_context, state, package: (
+                            persist_evidence_case_result(session, graph_context, state, package)
+                        ),
+                        maximum_sources=agent_settings.evidence_maximum_sources,
+                        maximum_excerpt_characters=agent_settings.evidence_maximum_excerpt_characters,
+                        minimum_sources=agent_settings.evidence_minimum_sources,
+                        minimum_excerpt_characters=(
+                            agent_settings.evidence_minimum_excerpt_characters
+                        ),
+                        retry_policy=RetryPolicy(
+                            maximum_retries=agent_settings.node_maximum_retries
+                        ),
+                    )
+                )
+                result = await graph.run(context, EvidenceWorkflowState(context=context))
+                await session.commit()
+                return result.outcome.status.value
+            except Exception:
+                # Fail closed without retaining provider/retrieval exception content.
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="workflow_configuration_unavailable",
+                    )
+                    await session.commit()
+                return "failed"
     finally:
         await dispose_database_engines()
 
@@ -373,6 +538,33 @@ def run_intake_workflow_task(task: Task, workflow_run_id: str) -> str:
         outcome = asyncio.run(_process_intake_workflow(parsed_id, settings))
     except Exception as error:
         _logger.warning("workflow.intake_task_runtime_unavailable", error_type=type(error).__name__)
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_evidence_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_evidence_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only Evidence task with the existing finite retry boundary."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("workflow.evidence_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_evidence_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning(
+            "workflow.evidence_task_runtime_unavailable", error_type=type(error).__name__
+        )
         if task.request.retries >= settings.document_parser_task_max_retries:
             return "failed"
         raise task.retry(countdown=_retry_delay(task.request.retries)) from error

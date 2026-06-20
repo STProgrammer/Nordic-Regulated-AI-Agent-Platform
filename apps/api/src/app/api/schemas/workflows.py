@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.schemas.cases import CaseDomain, CaseRiskLevel
 
@@ -25,6 +25,7 @@ class WorkflowRunStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
+    NEEDS_MORE_EVIDENCE = "needs_more_evidence"
     FAILED = "failed"
 
 
@@ -53,6 +54,20 @@ class IntakeStartRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     workflow: Literal["intake"]
+
+
+class EvidenceStartRequest(BaseModel):
+    """Closed Evidence selector; query, source selection, and provider stay server-owned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workflow: Literal["evidence"]
+
+
+WorkflowStartRequest = Annotated[
+    IntakeStartRequest | EvidenceStartRequest,
+    Field(discriminator="workflow"),
+]
 
 
 class IntakeCorrectionRequest(BaseModel):
@@ -86,14 +101,46 @@ class IntakeResultData(BaseModel):
     classification_source: Literal["model", "human_corrected"] | None = None
 
 
+class EvidenceReasonCode(StrEnum):
+    NO_ELIGIBLE_SOURCES = "no_eligible_sources"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    CONTRADICTORY_EVIDENCE = "contradictory_evidence"
+
+
+class EvidenceSourceData(BaseModel):
+    """Safe identifier-only source reference for the existing authorized context endpoint."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    citation_label: str
+    document_id: UUID
+    chunk_id: UUID
+    source_status: Literal["approved"]
+    warning_codes: tuple[str, ...] = ()
+
+
+class EvidenceResultData(BaseModel):
+    """Allowlisted Evidence outcome; query, excerpts, scores, traces, and errors are absent."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    outcome: Literal["completed", "needs_more_evidence"] | None = None
+    sufficient: bool | None = None
+    contradiction_detected: bool | None = None
+    reason_codes: tuple[EvidenceReasonCode, ...] = ()
+    citation_labels: tuple[str, ...] = ()
+    sources: tuple[EvidenceSourceData, ...] = ()
+
+
 class WorkflowRunData(BaseModel):
-    """Safe status view for a user's current-tenant Intake run."""
+    """Safe status view for a supported current-tenant workflow run."""
 
     model_config = ConfigDict(frozen=True)
 
     workflow_run_id: UUID
-    workflow: Literal["intake"]
+    workflow: Literal["intake", "evidence"]
     status: WorkflowRunStatus
     started_at: datetime
     finished_at: datetime | None
     intake: IntakeResultData | None = None
+    evidence: EvidenceResultData | None = None

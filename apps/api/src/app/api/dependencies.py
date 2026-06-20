@@ -34,6 +34,7 @@ from app.services.retrieval.answering import RagAnswerService
 from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
 from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
+from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
 
 # The runtime setting defaults to this name. The dependency itself reads the
@@ -200,6 +201,14 @@ def get_intake_workflow_service(
     return IntakeWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
+def get_evidence_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> EvidenceWorkflowService:
+    """Construct the closed Evidence operation service with UUID-only dispatch."""
+
+    return EvidenceWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -270,6 +279,9 @@ RetrievalServiceDependency = Annotated[RetrievalService, Depends(get_retrieval_s
 RagAnswerServiceDependency = Annotated[RagAnswerService, Depends(get_rag_answer_service)]
 IntakeWorkflowServiceDependency = Annotated[
     IntakeWorkflowService, Depends(get_intake_workflow_service)
+]
+EvidenceWorkflowServiceDependency = Annotated[
+    EvidenceWorkflowService, Depends(get_evidence_workflow_service)
 ]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

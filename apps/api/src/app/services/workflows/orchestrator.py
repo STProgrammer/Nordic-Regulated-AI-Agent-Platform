@@ -87,7 +87,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
             AuditEventCreate(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
-                event_type="workflow.intake_started",
+                event_type=f"workflow.{context.workflow_name}_started",
                 resource_type="workflow_run",
                 resource_id=context.workflow_run_id,
                 case_id=context.case_id,
@@ -145,6 +145,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         self,
         context: WorkflowContext,
         *,
+        status: RuntimeStatus,
         state_snapshot: dict[str, object],
         duration_ms: int,
     ) -> None:
@@ -152,7 +153,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
             WorkflowRunFinalize(
                 organization_id=context.organization_id,
                 workflow_run_id=context.workflow_run_id,
-                status=RuntimeStatus.COMPLETED.value,
+                status=status.value,
                 finished_at=datetime.now(UTC),
                 duration_ms=duration_ms,
                 state_snapshot=state_snapshot,
@@ -164,11 +165,15 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
             AuditEventCreate(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
-                event_type="workflow.intake_completed",
+                event_type=(
+                    f"workflow.{context.workflow_name}_needs_more_evidence"
+                    if status is RuntimeStatus.NEEDS_MORE_EVIDENCE
+                    else f"workflow.{context.workflow_name}_completed"
+                ),
                 resource_type="workflow_run",
                 resource_id=context.workflow_run_id,
                 case_id=context.case_id,
-                event_data=_audit_intake_data(state_snapshot, status="completed"),
+                event_data=_audit_workflow_data(state_snapshot, status=status.value),
             )
         )
 
@@ -197,7 +202,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
             AuditEventCreate(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
-                event_type="workflow.intake_failed",
+                event_type=f"workflow.{context.workflow_name}_failed",
                 resource_type="workflow_run",
                 resource_id=context.workflow_run_id,
                 case_id=context.case_id,
@@ -270,8 +275,8 @@ async def persist_intake_case_result(
     )
 
 
-def _audit_intake_data(snapshot: dict[str, object], *, status: str) -> dict[str, JSONValue]:
-    """Select only audit-safe closed labels and booleans from a safe snapshot."""
+def _audit_workflow_data(snapshot: dict[str, object], *, status: str) -> dict[str, JSONValue]:
+    """Select only audit-safe closed labels, counts, and booleans from a safe snapshot."""
 
     allowed = {
         "workflow_name",
@@ -284,6 +289,17 @@ def _audit_intake_data(snapshot: dict[str, object], *, status: str) -> dict[str,
         "preliminary_risk_level",
         "approval_required",
         "suggested_workflow",
+        "evidence_outcome",
+        "evidence_sufficient",
+        "contradiction_detected",
+        "evidence_source_count",
+        "vector_candidate_count",
+        "keyword_candidate_count",
+        "merged_candidate_count",
+        "reranked_source_count",
+        "permitted_source_count",
+        "approved_source_count",
+        "reason_codes",
     }
     data = cast(
         dict[str, JSONValue], {key: value for key, value in snapshot.items() if key in allowed}

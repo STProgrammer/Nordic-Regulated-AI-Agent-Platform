@@ -2,6 +2,7 @@
 
 import {
   apiRequest,
+  evidenceStartInputSchema,
   intakeCorrectionInputSchema,
   intakeStartInputSchema,
   workflowRunSchema,
@@ -17,6 +18,14 @@ export const workflowsApi = {
   startIntake(caseId: string): Promise<WorkflowRun> {
     return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
       body: JSON.stringify(intakeStartInputSchema.parse({ workflow: 'intake' })),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+  },
+
+  startEvidence(caseId: string): Promise<WorkflowRun> {
+    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
+      body: JSON.stringify(evidenceStartInputSchema.parse({ workflow: 'evidence' })),
       headers: { 'Content-Type': 'application/json' },
       method: 'POST',
     });

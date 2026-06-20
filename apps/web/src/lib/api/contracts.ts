@@ -61,7 +61,13 @@ export const intakeCaseTypeSchema = z.enum([
   'document_intelligence',
   'unknown',
 ]);
-export const workflowRunStatusSchema = z.enum(['queued', 'running', 'completed', 'failed']);
+export const workflowRunStatusSchema = z.enum([
+  'queued',
+  'running',
+  'completed',
+  'needs_more_evidence',
+  'failed',
+]);
 export const detectedLanguageSchema = z.enum(['nb', 'en', 'unknown']);
 export const suggestedWorkflowSchema = z.enum([
   'evidence',
@@ -236,6 +242,7 @@ export const caseCreateInputSchema = z.object({
 });
 
 export const intakeStartInputSchema = z.object({ workflow: z.literal('intake') }).strict();
+export const evidenceStartInputSchema = z.object({ workflow: z.literal('evidence') }).strict();
 export const intakeCorrectionInputSchema = z
   .object({
     case_type: intakeCaseTypeSchema,
@@ -261,13 +268,35 @@ export const intakeResultSchema = z.object({
   classification_source: z.enum(['model', 'human_corrected']).nullable(),
 });
 
+export const evidenceReasonCodeSchema = z.enum([
+  'no_eligible_sources',
+  'insufficient_evidence',
+  'contradictory_evidence',
+]);
+export const evidenceSourceSchema = z.object({
+  citation_label: z.string().regex(/^S[1-9][0-9]*$/),
+  document_id: z.string().uuid(),
+  chunk_id: z.string().uuid(),
+  source_status: z.literal('approved'),
+  warning_codes: z.array(z.string()),
+});
+export const evidenceResultSchema = z.object({
+  outcome: z.enum(['completed', 'needs_more_evidence']).nullable(),
+  sufficient: z.boolean().nullable(),
+  contradiction_detected: z.boolean().nullable(),
+  reason_codes: z.array(evidenceReasonCodeSchema),
+  citation_labels: z.array(z.string()),
+  sources: z.array(evidenceSourceSchema),
+});
+
 export const workflowRunSchema = z.object({
   workflow_run_id: z.string().uuid(),
-  workflow: z.literal('intake'),
+  workflow: z.enum(['intake', 'evidence']),
   status: workflowRunStatusSchema,
   started_at: isoTimestampSchema,
   finished_at: isoTimestampSchema.nullable(),
   intake: intakeResultSchema.nullable(),
+  evidence: evidenceResultSchema.nullable(),
 });
 
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
@@ -297,8 +326,11 @@ export type CaseCreateInput = z.infer<typeof caseCreateInputSchema>;
 export type IntakeCaseType = z.infer<typeof intakeCaseTypeSchema>;
 export type WorkflowRunStatus = z.infer<typeof workflowRunStatusSchema>;
 export type IntakeResult = z.infer<typeof intakeResultSchema>;
+export type EvidenceResult = z.infer<typeof evidenceResultSchema>;
+export type EvidenceSource = z.infer<typeof evidenceSourceSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
 export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
+export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
 export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
 export type DocumentData = z.infer<typeof documentDataSchema>;
 export type DocumentList = z.infer<typeof documentListSchema>;

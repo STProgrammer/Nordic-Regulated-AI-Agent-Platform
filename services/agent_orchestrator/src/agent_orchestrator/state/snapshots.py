@@ -20,7 +20,15 @@ _SCALAR_KEYS = frozenset(
         "preliminary_risk_level",
         "suggested_workflow",
         "classification_source",
+        "evidence_outcome",
         "node_count",
+        "vector_candidate_count",
+        "keyword_candidate_count",
+        "merged_candidate_count",
+        "reranked_source_count",
+        "permitted_source_count",
+        "approved_source_count",
+        "evidence_source_count",
     }
 )
 _BOOLEAN_KEYS = frozenset(
@@ -31,6 +39,8 @@ _BOOLEAN_KEYS = frozenset(
         "low_confidence",
         "pii_detected",
         "prompt_injection_detected",
+        "evidence_sufficient",
+        "contradiction_detected",
     }
 )
 _CODE_LIST_KEYS = frozenset(
@@ -41,9 +51,12 @@ _CODE_LIST_KEYS = frozenset(
         "prompt_injection_categories",
         "preliminary_risk_reasons",
         "suggested_workflow_reasons",
+        "citation_labels",
     }
 )
 _MAX_CODES = 12
+_PRESENTATION_SOURCE_KEYS = frozenset({"evidence_sources"})
+_MAX_PRESENTATION_SOURCES = 12
 
 
 def _mapping(value: Mapping[str, object] | BaseModel) -> Mapping[str, object]:
@@ -71,6 +84,39 @@ def state_snapshot(value: Mapping[str, object] | BaseModel) -> dict[str, object]
             safe[key] = [
                 code for code in item[:_MAX_CODES] if isinstance(code, str) and len(code) <= 80
             ]
+    for key in _PRESENTATION_SOURCE_KEYS:
+        item = source.get(key)
+        if not isinstance(item, (list, tuple)):
+            continue
+        sources: list[dict[str, object]] = []
+        for source in item[:_MAX_PRESENTATION_SOURCES]:
+            if not isinstance(source, Mapping):
+                continue
+            citation_label = source.get("citation_label")
+            document_id = source.get("document_id")
+            chunk_id = source.get("chunk_id")
+            source_status = source.get("source_status")
+            warning_codes = source.get("warning_codes", ())
+            if not all(
+                isinstance(value, str) and len(value) <= 100
+                for value in (citation_label, document_id, chunk_id, source_status)
+            ):
+                continue
+            if not isinstance(warning_codes, (list, tuple)) or not all(
+                isinstance(code, str) and len(code) <= 80 for code in warning_codes[:_MAX_CODES]
+            ):
+                continue
+            sources.append(
+                {
+                    "citation_label": citation_label,
+                    "document_id": document_id,
+                    "chunk_id": chunk_id,
+                    "source_status": source_status,
+                    "warning_codes": list(warning_codes[:_MAX_CODES]),
+                }
+            )
+        if sources:
+            safe[key] = sources
     return safe
 
 

@@ -77,6 +77,14 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
     contextDialog.getByText('Syntetisk dokumenttekst for lokal nettlesertest.'),
   ).toBeVisible();
   await contextDialog.getByRole('button', { name: 'Lukk' }).click();
+
+  await page.getByRole('button', { name: 'Bygg kildepakke' }).click();
+  await expect(
+    page.getByText(
+      /Kildepakken er klar for videre vurdering\.|Det trengs mer kildegrunnlag før videre arbeid\./,
+    ),
+  ).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('S1')).toBeVisible();
   await page.getByRole('button', { name: 'Be om reindeksering' }).click();
   await expect(page.getByText('Reindeksering er forespurt.')).toBeVisible();
 

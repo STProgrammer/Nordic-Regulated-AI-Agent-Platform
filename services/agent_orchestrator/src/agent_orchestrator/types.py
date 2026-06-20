@@ -15,6 +15,7 @@ class RuntimeStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
+    NEEDS_MORE_EVIDENCE = "needs_more_evidence"
     FAILED = "failed"
 
 
@@ -54,7 +55,9 @@ class TerminalOutcome(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    status: Literal[RuntimeStatus.COMPLETED, RuntimeStatus.FAILED]
+    status: Literal[
+        RuntimeStatus.COMPLETED, RuntimeStatus.NEEDS_MORE_EVIDENCE, RuntimeStatus.FAILED
+    ]
     error_code: str | None = None
 
 

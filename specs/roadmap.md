@@ -125,7 +125,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Log all intake decisions in workflow and audit records.
 - Validation: Graph tests cover Norwegian and English cases, PII examples, prompt-injection examples, low-confidence classification, and audit logging.
 
-## Phase 18 — Evidence Graph
+## Phase 18 — Evidence Graph (DONE)
 
 - Implement the evidence workflow with query rewriting, hybrid retrieval, candidate merging, reranking, permission filtering, source-status filtering, evidence sufficiency checks, contradiction checks, and persisted evidence package.
 - Route weak or contradictory evidence to Needs More Evidence.

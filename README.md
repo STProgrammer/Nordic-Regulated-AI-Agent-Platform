@@ -107,9 +107,10 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
 `POST /api/workflows/{workflow_run_id}/intake/correction`. Case dates use ISO calendar dates
 (`YYYY-MM-DD`); the frontend localizes them for display. User and role operations require the
 persisted **Admin** role in the current organization; Case actions use their documented
-server-enforced RBAC policy. The only workflow selector is `{"workflow":"intake"}`; it accepts no
-browser-owned model, prompt, state, tool, queue, or retry controls. The remaining future `/api`
-route groups are still operation-free.
+server-enforced RBAC policy. The closed workflow selectors are `{"workflow":"intake"}` and
+`{"workflow":"evidence"}`; neither accepts browser-owned model, prompt, state, tool, queue, retry,
+query, or source controls. Evidence is a source-gathering workflow that persists a safe citation
+package or `needs_more_evidence`; it does not answer, draft, approve, or expose a trace.
 
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`

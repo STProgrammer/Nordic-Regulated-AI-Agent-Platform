@@ -71,6 +71,7 @@ class MemoryPersistence:
         self,
         context: WorkflowContext,
         *,
+        status: RuntimeStatus,
         state_snapshot: dict[str, object],
         duration_ms: int,
     ) -> None:

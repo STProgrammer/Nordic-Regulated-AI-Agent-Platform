@@ -22,7 +22,33 @@ implementation, tests, and validation checks pass within its defined scope.
 | 15    | RAG Answering with Citations        | DONE   |
 | 16    | Agent Orchestrator Foundation        | DONE   |
 | 17    | Intake Graph                         | DONE   |
-| 18+   | See `specs/roadmap.md`               | TODO   |
+| 18    | Evidence Graph                        | DONE   |
+| 19    | Extraction Graph                      | TODO   |
+| 20    | Drafting Graph                        | TODO   |
+
+## Phase 18 — Evidence Graph (DONE)
+
+Completed on 2026-06-21.
+
+Delivered the first tenant-safe Evidence Graph workflow slice:
+
+- A fixed ten-node LangGraph workflow for server-owned query construction, hybrid candidate
+  retrieval, deterministic merge/reranking, permission and approved-source filtering, evidence
+  sufficiency, contradiction signalling, and safe persistence. State snapshots and node summaries
+  contain only bounded counts, booleans, closed reason codes, and identifier-only citation metadata.
+- Closed Evidence start/status operations, UUID-only Celery dispatch, tenant/RBAC enforcement,
+  duplicate-delivery protection, persisted source provenance, and content-free audit events. Weak or
+  contradictory evidence produces a controlled `needs_more_evidence` terminal state without
+  overwriting an independent case outcome.
+- A localized Bokmål/English Case Detail Evidence Package panel that can start the closed workflow,
+  poll only active runs, show a truthful terminal status, and open the existing authorized bounded
+  source-context view for persisted citations. It adds no answer, draft, approval, edit, trace, or
+  browser-owned retrieval controls.
+
+Validation: graph tests (5 passed), API suite (253 collected, passing), web unit suite (19 passed),
+browser smoke test (1 passed) with a disposable synthetic account, workspace/format/lint/type checks,
+and rebuilt local-stack migration/health/OpenAPI verification all passed. The local stack used the
+explicit deterministic embedding provider for plumbing only; it does not assert retrieval quality.
 
 ## Phases 16–17 — Agent Orchestrator Foundation and Intake Graph (DONE)
 

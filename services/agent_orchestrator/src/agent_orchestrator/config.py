@@ -33,6 +33,10 @@ class AgentSettings(BaseSettings):
     node_maximum_retries: int = Field(default=1, ge=0, le=5)
     snapshot_max_codes: int = Field(default=12, ge=1, le=32)
     intake_confidence_threshold: float = Field(default=0.8, ge=0.5, le=1.0)
+    evidence_maximum_sources: int = Field(default=5, ge=1, le=20)
+    evidence_maximum_excerpt_characters: int = Field(default=5_000, ge=64, le=20_000)
+    evidence_minimum_sources: int = Field(default=1, ge=1, le=20)
+    evidence_minimum_excerpt_characters: int = Field(default=200, ge=1, le=20_000)
 
     @field_validator("model", "azure_api_version")
     @classmethod
@@ -44,6 +48,10 @@ class AgentSettings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_provider(self) -> AgentSettings:
+        if self.evidence_minimum_sources > self.evidence_maximum_sources:
+            raise ValueError("evidence minimum sources must not exceed maximum sources")
+        if self.evidence_minimum_excerpt_characters > self.evidence_maximum_excerpt_characters:
+            raise ValueError("evidence minimum excerpt characters must not exceed the maximum")
         if self.provider == "deterministic" and self.environment not in {"local", "test"}:
             raise ValueError("deterministic agent provider is permitted only in local or test")
         if self.environment in {"staging", "production"} and self.api_key is None:

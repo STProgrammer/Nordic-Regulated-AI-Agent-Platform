@@ -22,6 +22,7 @@ celery_app.conf.update(
         "app.workers.tasks.reconcile_document_tasks": {"queue": "document-parser"},
         "app.workers.tasks.index_document_task": {"queue": "document-indexer"},
         "app.workers.tasks.run_intake_workflow_task": {"queue": "agent-orchestrator"},
+        "app.workers.tasks.run_evidence_workflow_task": {"queue": "agent-orchestrator"},
     },
     task_serializer="json",
     accept_content=["json"],

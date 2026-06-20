@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Literal, TypeVar, cast
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, ValidationError
@@ -114,15 +114,31 @@ class GraphRuntime[StateModel: BaseModel]:
                 state=failed_state,
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="runtime_failure"),
             )
-        completed_state = final_state.model_copy(update={"status": RuntimeStatus.COMPLETED})
+        final_status = getattr(final_state, "status", RuntimeStatus.COMPLETED)
+        terminal_status = (
+            RuntimeStatus.NEEDS_MORE_EVIDENCE
+            if final_status is RuntimeStatus.NEEDS_MORE_EVIDENCE
+            else RuntimeStatus.COMPLETED
+        )
+        completed_state = final_state.model_copy(update={"status": terminal_status})
         await self._persistence.complete_run(
             context,
+            status=terminal_status,
             state_snapshot=_snapshot(context, completed_state),
             duration_ms=_duration_ms(started),
         )
         return GraphRunResult(
             state=completed_state,
-            outcome=TerminalOutcome(status=RuntimeStatus.COMPLETED),
+            outcome=TerminalOutcome(
+                status=cast(
+                    Literal[
+                        RuntimeStatus.COMPLETED,
+                        RuntimeStatus.NEEDS_MORE_EVIDENCE,
+                        RuntimeStatus.FAILED,
+                    ],
+                    terminal_status,
+                )
+            ),
         )
 
     def _wrapped_node(

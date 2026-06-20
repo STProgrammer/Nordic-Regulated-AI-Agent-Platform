@@ -272,6 +272,30 @@
     "contextUnavailable": "Source context is unavailable.",
     "truncated": "This context has been truncated by the service."
   },
+  "evidenceGraph": {
+    "title": "Evidence package",
+    "description": "Builds a governed source package for later review. It does not provide an answer or decision.",
+    "start": "Build evidence package",
+    "starting": "Starting evidence package …",
+    "notStarted": "The evidence package has not been started for this view.",
+    "unavailableForRole": "Your role cannot start an evidence package.",
+    "unavailable": "The evidence package is temporarily unavailable.",
+    "status": {
+      "queued": "The evidence package is queued.",
+      "running": "The evidence package is running.",
+      "completed": "The evidence package is ready for later review.",
+      "needs_more_evidence": "More source evidence is needed before later work.",
+      "failed": "The evidence package could not be completed safely."
+    },
+    "insufficient": "There is not enough approved source evidence.",
+    "contradiction": "The sources have a contradiction signal and need human follow-up.",
+    "sources": "Sources",
+    "openContext": "Open source context",
+    "contextTitle": "Bounded source context",
+    "contextLoading": "Loading bounded source context …",
+    "contextUnavailable": "Source context is unavailable.",
+    "close": "Close"
+  },
   "intake": {
     "title": "Intake assessment",
     "description": "Runs a preliminary classification and routing assessment. It is not final risk or an approval decision.",

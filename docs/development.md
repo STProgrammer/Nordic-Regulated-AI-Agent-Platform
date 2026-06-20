@@ -228,6 +228,18 @@ localized `needs_more_evidence` refusal. It is API-only and does not create a wo
 case-status transition, or frontend answer UI. No endpoint or UI returns a raw document, vector,
 generic chunk list, download link, provider payload, or prompt.
 
+### Evidence workflow
+
+`POST /api/cases/{case_id}/workflows/run` accepts the closed selector `{"workflow":"evidence"}` for
+authorized case and retrieval roles. It queues only a workflow UUID; the worker reloads the current
+tenant, case, user roles, and source policy before running the ten-node Evidence graph. The graph
+uses server-owned bounded case context and approved sources only, persists run-local `[S#]`
+provenance, and returns either `completed`, `needs_more_evidence`, or a neutral failure. Its status
+projection omits case text, rewritten queries, excerpts, ranks, prompts, provider details, node
+traces, and errors. The Case Detail Evidence Package panel can open the existing authorized bounded
+source-context view for a persisted citation. It does not draft, answer, approve, or expose a
+user-adjustable retrieval form.
+
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
 write/delete evidence without a cloud account (it creates and removes one synthetic object):
 

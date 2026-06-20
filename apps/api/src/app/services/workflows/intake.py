@@ -95,8 +95,6 @@ class IntakeWorkflowService:
 
         authorize_case_action(principal, CaseAction.READ)
         run = await self._workflows.get_required(principal.organization_id, workflow_run_id)
-        if run.workflow_name != INTAKE_WORKFLOW_NAME:
-            raise NotFoundError("Workflow run")
         if await self._cases.get(principal.organization_id, run.case_id) is None:
             raise NotFoundError("Workflow run")
         return run
@@ -108,6 +106,8 @@ class IntakeWorkflowService:
 
         authorize_case_action(principal, CaseAction.EDIT)
         run = await self.get_for_principal(principal, workflow_run_id)
+        if run.workflow_name != INTAKE_WORKFLOW_NAME:
+            raise NotFoundError("Workflow run")
         if run.status != "completed" or not bool(run.state_snapshot.get("low_confidence")):
             raise ConflictError("Intake workflow")
         latest = await self._latest_completed_intake(principal.organization_id, run.case_id)

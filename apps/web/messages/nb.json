@@ -272,6 +272,30 @@
     "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
     "truncated": "Denne konteksten er avkortet av tjenesten."
   },
+  "evidenceGraph": {
+    "title": "Kildepakke",
+    "description": "Bygger en kontrollert kildepakke for videre vurdering. Den gir ikke et svar eller en beslutning.",
+    "start": "Bygg kildepakke",
+    "starting": "Starter kildepakke …",
+    "notStarted": "Kildepakken er ikke startet i denne visningen.",
+    "unavailableForRole": "Rollen din kan ikke starte en kildepakke.",
+    "unavailable": "Kildepakken er midlertidig utilgjengelig.",
+    "status": {
+      "queued": "Kildepakken står i kø.",
+      "running": "Kildepakken bygges.",
+      "completed": "Kildepakken er klar for videre vurdering.",
+      "needs_more_evidence": "Det trengs mer kildegrunnlag før videre arbeid.",
+      "failed": "Kildepakken kunne ikke fullføres på en trygg måte."
+    },
+    "insufficient": "Det finnes ikke nok godkjent kildegrunnlag.",
+    "contradiction": "Kildene har et motstridssignal og trenger menneskelig oppfølging.",
+    "sources": "Kilder",
+    "openContext": "Åpne kildekontekst",
+    "contextTitle": "Avgrenset kildekontekst",
+    "contextLoading": "Laster avgrenset kildekontekst …",
+    "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
+    "close": "Lukk"
+  },
   "intake": {
     "title": "Inntaksvurdering",
     "description": "Kjører en foreløpig klassifisering og rutevurdering. Dette er ikke endelig risiko eller en godkjenningsbeslutning.",

@@ -10,6 +10,7 @@ import { PriorityBadge, RiskBadge, StatusBadge } from '@/components/cases/case-b
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { DocumentsSection } from '@/components/documents/documents-section';
 import { EvidencePanel } from '@/components/evidence/evidence-panel';
+import { EvidenceGraphPanel } from '@/components/evidence/evidence-graph-panel';
 import { IntakePanel } from '@/components/cases/intake-panel';
 import { Alert } from '@/components/ui/alert';
 import type { AppLocale } from '@/i18n/routing';
@@ -139,6 +140,7 @@ function DetailContent({
       </section>
       <DocumentsSection caseId={caseData.case_id} />
       <EvidencePanel caseId={caseData.case_id} />
+      <EvidenceGraphPanel caseId={caseData.case_id} />
       <IntakePanel caseId={caseData.case_id} />
       <div className="grid gap-4 md:grid-cols-2">
         {futureKeys.map((key) => (
