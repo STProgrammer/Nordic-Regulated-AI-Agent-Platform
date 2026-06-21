@@ -73,6 +73,7 @@ from app.services.documents.parsers.language import detect_language
 from app.services.documents.parsers.registry import DocumentParserRegistry
 from app.services.documents.parsing import DocumentParseCoordinator, ParseProcessOutcome
 from app.services.documents.storage import AzureBlobObjectStorage
+from app.services.evaluation.service import EvaluationService
 from app.services.memory.service import ControlledMemoryService
 from app.services.retrieval.service import RetrievalService
 from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
@@ -102,6 +103,26 @@ from app.workers.celery_app import celery_app
 
 _logger = get_logger("workers.document_tasks")
 _RECONCILIATION_LIMIT = 100
+
+
+async def _process_evaluation(run_id: UUID, settings: AppSettings) -> str:
+    """Reload a UUID-only deterministic evaluation run and persist its safe terminal result."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            return await EvaluationService(session).execute(run_id)
+    finally:
+        await dispose_database_engines()
+
+
+async def _fail_evaluation(run_id: UUID, settings: AppSettings) -> None:
+    """Persist a neutral terminal failure after exhausted infrastructure retries."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            await EvaluationService(session).fail_unexpected(run_id)
+    finally:
+        await dispose_database_engines()
 
 
 def _intake_language_detector(
@@ -1136,6 +1157,31 @@ def run_human_approval_workflow_task(task: Task, workflow_run_id: str) -> str:
             return "failed"
         raise task.retry(countdown=_retry_delay(task.request.retries)) from error
     return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_evaluation_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_evaluation_task(task: Task, evaluation_run_id: str) -> str:
+    """Execute a UUID-only evaluation task with finite infrastructure retries."""
+
+    try:
+        parsed_id = UUID(evaluation_run_id)
+    except ValueError:
+        _logger.warning("evaluation.task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        return asyncio.run(_process_evaluation(parsed_id, settings))
+    except Exception as error:
+        _logger.warning("evaluation.task_runtime_unavailable", error_type=type(error).__name__)
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            asyncio.run(_fail_evaluation(parsed_id, settings))
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
 
 
 async def _reconcile(settings: AppSettings) -> tuple[tuple[UUID, ...], tuple[UUID, ...]]:

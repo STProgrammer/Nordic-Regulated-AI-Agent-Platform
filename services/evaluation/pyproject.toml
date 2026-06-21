@@ -1,9 +1,12 @@
 [project]
 name = "nordic-regulated-ai-agent-platform-evaluation"
 version = "0.0.0"
-description = "Reserved workspace for future deterministic evaluation."
+description = "Deterministic, synthetic-only evaluation corpus and runner."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+  "pydantic>=2.5,<3",
+  "nordic-regulated-ai-agent-platform-agent-orchestrator",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -11,3 +14,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/evaluation"]
+
+[tool.uv.sources]
+nordic-regulated-ai-agent-platform-agent-orchestrator = { workspace = true }

@@ -41,7 +41,7 @@ Then locate Phase X in `/specs/roadmap.md`.
 
 Write the generated phase plan directly to `/phases/phaseX.md`.
 
-The generated `phaseX.md` must be a detailed implementation plan for Phase X only.
+The generated `phaseX.md` must be a lean execution brief for Phase X only.
 
 It must include:
 
@@ -64,39 +64,79 @@ Rules for G Mode:
 * Do not write source code.
 * Do not expand project scope beyond the specs.
 * Do not include unrelated future-phase work.
-* Include enough context inside `phaseX.md` so implementation can proceed without normally needing to read PRD, architecture, or roadmap.
-* Make the phase self-contained, practical, testable, and suitable for one focused AI coding-agent session.
-* Make the phase file detailed enough to reduce implementation mistakes and unnecessary guessing.
+* Include only the relevant context needed to implement the phase correctly.
+* Make the phase practical, testable, and suitable for one focused AI coding-agent session.
+* Make the phase file concrete enough to reduce mistakes, but not report-like.
+* Validation and testing must be built into the step-by-step implementation sequence.
 * The phase file must support professional implementation quality, not quick or temporary work.
 * A phase is not complete unless its tests and validation checks pass.
 
 ---
 
-## Phase File Style
+## Phase File Quality Standard
 
-When generating a `phaseX.md` file, read the required specs fully (all files in "specs" folder), but write a lean implementation brief.
+Every `phaseX.md` file must make implementation, testing, and validation faster, more reliable, and less dependent on guessing.
 
-The purpose of the phase file is to make implementation, testing, and validation faster, more reliable, and less dependent on guessing.
+The phase file is an execution brief, not a report.
 
-A phase file should be implementation-focused, step-by-step, concrete, scoped to the current phase, and easy to read quickly.
+A good phase file must:
 
-Validation and testing must be part of the implementation sequence, not a separate vague checklist at the end.
+* define the current phase goal clearly
+* define exact in-scope and out-of-scope work
+* identify affected files, folders, modules, and services
+* list step-by-step implementation tasks
+* include focused tests inside the implementation sequence
+* provide exact focused validation commands where possible
+* define conditional broader validation only when affected
+* define expensive validation only when truly required
+* define clear completion criteria
+* mention only the PRD/architecture constraints needed to avoid mistakes
 
-Do not turn the phase file into a report. Avoid long background explanations, repeated product motivation, large copied sections from PRD/architecture, future-phase discussion, excessive manual validation detail, and broad full-suite validation unless truly required.
+Avoid:
 
-Prefer:
+* long background explanations
+* repeated product motivation
+* large copied sections from PRD or architecture
+* future-phase discussion
+* broad full-suite validation by default
+* long manual validation sections
+* report-style writing
 
-* exact scope boundaries
-* affected files/modules
-* step-by-step implementation tasks
-* focused tests to add or update
-* exact focused validation commands
-* conditional broader validation
-* clear completion criteria
+The phase file should be detailed only where detail prevents implementation mistakes.
 
+## Phase Execution Plan Format
 
-Use manual browser validation as a fallback checklist, not as a mandatory phase section unless the user asks for manual validation.
+When generating a `phaseX.md` file, include an ordered execution plan that the implementation agent can follow directly.
 
+Do not separate implementation, testing, and validation into unrelated sections only. Testing and validation must be part of the implementation sequence.
+
+Use this pattern:
+
+1. Inspect the existing files needed for this step.
+2. Implement the smallest coherent part of the phase.
+3. Add or update the focused tests for that part.
+4. Run the focused tests for that part.
+5. Fix focused failures before continuing.
+6. Repeat for the next part of the phase.
+7. Run broader affected checks only after all focused checks pass.
+8. Run expensive validation last only when required.
+9. Perform final scope review.
+10. Mark the phase DONE only after final validation and final scope review pass.
+
+Each implementation step should name:
+
+* intended change
+* likely files/modules
+* tests to add or update
+* focused validation command
+* expected result
+
+Avoid this pattern:
+
+* implement everything first
+* add tests later
+* run broad validation at the end
+* discover scope gaps after marking DONE
 
 
 ### Phase Validation Plan
@@ -123,30 +163,61 @@ When the user says `I X`, implement `/phases/phaseX.md`.
 
 Start by reading `/phases/phaseX.md`.
 
-`phaseX.md` is the main source of truth for implementation scope. It should contain enough context to implement the phase without unnecessary back-and-forth.
+`phaseX.md` is the main source of truth for implementation scope. Follow it step by step.
 
-The agent may also consult `/specs/PRD.md`, `/specs/architecture.md`, and `/specs/roadmap.md` when useful for clarification, architectural consistency, or avoiding wrong assumptions.
+The agent may consult `/specs/PRD.md`, `/specs/architecture.md`, and `/specs/roadmap.md` only when useful for clarification, architectural consistency, or avoiding wrong assumptions.
+
+### I Mode Execution Discipline
+
+Start with the affected files/modules listed in the phase file. Do not begin with broad repository exploration.
+
+Broad search is allowed only when:
+
+* the phase file does not identify the needed file
+* the named file/module does not contain the expected code
+* a focused test failure requires tracing a dependency
+* an import/type/reference cannot be resolved from the named files
+
+When broad search is used, keep it targeted and return immediately to the current implementation step.
+
+Do not implement a large chunk and postpone tests until the end.
+
+For each coherent part:
+
+1. inspect the smallest relevant files
+2. edit the smallest needed code
+3. add or update the focused test
+4. run the focused test
+5. fix that focused test before moving on
+
+Do not run broad suites to diagnose focused failures.
 
 Implementation rules:
 
-* Follow `phaseX.md` as the primary implementation plan.
 * Stay within the phase scope.
 * Do not implement future phases.
 * Do not expand the project beyond the PRD, architecture, roadmap, or phase file.
 * Do not silently change architecture decisions.
 * Keep code typed, tested, maintainable, and consistent with the project structure.
 * Implement professionally, as part of the final product, not as temporary scaffolding or throwaway work.
-* Add or update the tests required by the phase.
-* Run validation checks before marking the phase complete.
-* If tests fail, fix the issue before moving on.
-* If something is ambiguous, make the safest reasonable interpretation based on the specs and document the assumption in the final report.
+* Run validation in the order defined by the phase file: focused first, broader affected checks second, expensive validation last.
+* If validation fails, debug the smallest failing command first.
+* If something is ambiguous, make the safest reasonable interpretation based on the specs and document the assumption briefly.
+
+Before marking the phase complete:
+
+* Confirm all in-scope deliverables from the phase file are implemented.
+* Confirm out-of-scope work was not added.
+* Confirm required tests were added or updated.
+* Confirm required validation passed.
+* Confirm no known blocker remains.
 
 After successful implementation and validation:
 
 * Mark the phase as `(DONE)` in `/specs/roadmap.md`.
 * Update `/specs/progress.md` consistently if it exists.
 
-At the end of implementation, report:
+At the end of implementation, report briefly:
 
 * What was implemented
 * Files changed
@@ -154,6 +225,7 @@ At the end of implementation, report:
 * Validation result
 * Assumptions made
 * Any known limitations or follow-up notes
+
 
 ---
 
@@ -269,6 +341,80 @@ For each phase, finish the normal `I` workflow completely before starting the ne
 Do not move to the next phase until the current phase is validated and committed.
 
 ---
+
+## Worktree Baseline Gate
+
+Before implementing a phase, check the worktree with:
+
+```bash
+git status --short
+```
+
+If there are uncommitted changes from a previous phase, do not silently continue.
+
+Allowed options:
+
+1. Continue only if the phase file explicitly says those changes are the accepted baseline.
+2. Continue only if the user explicitly says to preserve and build on the dirty worktree.
+3. Otherwise stop and report that the previous phase must be committed, reverted, or explicitly accepted before this phase starts.
+
+Do not mark a new phase DONE on top of an unclear dirty worktree.
+
+
+## Roadmap Completion Marking
+
+Only mark a phase as `(DONE)` after all of the following are true:
+
+1. The implementation tasks in the phase file are complete.
+2. Required tests have been added or updated.
+3. Focused validation passes.
+4. Required broader validation passes.
+5. Required expensive validation passes, if applicable.
+6. The final scope review confirms no in-scope requirement was missed.
+7. `git diff --check` passes.
+8. No known blocker remains.
+
+Before marking DONE, perform a final scope review against the phase file:
+
+* in-scope deliverables implemented
+* out-of-scope work not added
+* required tests present
+* validation commands run
+* no late missing requirement discovered
+* no unrelated dirty work mixed in accidentally
+
+Do not mark DONE before final scope review.
+
+If code changes after marking DONE, rerun the affected validation and update the completion report.
+
+
+## Validation Failure Debugging
+
+If validation fails, debug the smallest failing command first.
+
+Use this order:
+
+1. Identify the exact failing command.
+2. Identify the failing test file, assertion, error, or log line.
+3. Classify the failure as:
+
+   * product bug
+   * test bug
+   * fixture/data bug
+   * environment/local-stack issue
+   * timeout/polling issue
+   * selector/assertion wording issue
+   * wrong validation command
+4. Inspect the smallest relevant evidence: API response, DB row, log, component state, or test fixture.
+5. Fix the smallest current-phase cause.
+6. Rerun the smallest failing command.
+7. Run broader validation only after the focused failure is fixed.
+
+Do not repeatedly rerun broad suites to diagnose a focused failure.
+
+If the same focused E2E fails twice after one fix attempt, stop and report the blocker with a manual fallback checklist.
+
+
 
 ## General Discipline
 

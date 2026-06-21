@@ -103,6 +103,16 @@ class WorkflowUnavailableError(ServiceError):
         )
 
 
+class EvaluationUnavailableError(ServiceError):
+    """A durable evaluation run was queued but its private worker was unavailable."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="evaluation_unavailable",
+            message="Evaluation processing is temporarily unavailable.",
+        )
+
+
 class MemoryStoreUnavailableError(ServiceError):
     """The durable controlled-memory backend could not safely complete an operation."""
 

@@ -61,6 +61,10 @@ def test_openapi_declares_the_phase_twenty_four_product_endpoints() -> None:
         "/api/documents/{document_id}/source-status",
         "/api/retrieval/search",
         "/api/retrieval/answer",
+        "/api/evaluations/datasets",
+        "/api/evaluations/datasets/{dataset_key}/runs",
+        "/api/evaluations/runs",
+        "/api/evaluations/runs/{evaluation_run_id}",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
         "/api/workflows/{workflow_run_id}/trace",
@@ -112,6 +116,9 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     ]
     assert schema["paths"]["/api/retrieval/search"]["post"]["security"] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/retrieval/answer"]["post"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/evaluations/datasets"]["get"]["security"] == [
+        {"SessionCookie": []}
+    ]
     assert schema["paths"]["/api/cases/{case_id}/workflows/run"]["post"]["security"] == [
         {"SessionCookie": []}
     ]

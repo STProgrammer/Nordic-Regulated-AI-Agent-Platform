@@ -33,6 +33,8 @@ from app.services.documents.embeddings import build_embedding_provider
 from app.services.documents.service import DocumentService
 from app.services.documents.storage import AzureBlobObjectStorage, ObjectStorage
 from app.services.errors import StorageUnavailableError
+from app.services.evaluation.dispatch import CeleryEvaluationTaskDispatcher
+from app.services.evaluation.service import EvaluationService
 from app.services.memory.service import ControlledMemoryService
 from app.services.retrieval.answering import RagAnswerService
 from app.services.retrieval.generator import build_rag_answer_generator
@@ -275,6 +277,14 @@ def get_risk_workflow_service(
     return RiskWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
+def get_evaluation_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> EvaluationService:
+    """Construct canonical deterministic evaluation operations with UUID-only dispatch."""
+
+    return EvaluationService(session, dispatcher=CeleryEvaluationTaskDispatcher())
+
+
 def get_approval_workflow_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ApprovalWorkflowService:
@@ -368,6 +378,7 @@ ExtractionWorkflowServiceDependency = Annotated[
     ExtractionWorkflowService, Depends(get_extraction_workflow_service)
 ]
 RiskWorkflowServiceDependency = Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)]
+EvaluationServiceDependency = Annotated[EvaluationService, Depends(get_evaluation_service)]
 ApprovalWorkflowServiceDependency = Annotated[
     ApprovalWorkflowService, Depends(get_approval_workflow_service)
 ]

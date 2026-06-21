@@ -174,7 +174,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Ensure memory cannot override source-grounded evidence.
 - Validation: Memory tests verify organization scoping, user scoping, disablement, forbidden memory rejection, and audit events.
 
-## Phase 25 — Evaluation Dataset and Deterministic Evaluation Runner
+## Phase 25 — Evaluation Dataset and Deterministic Evaluation Runner (DONE)
 
 - Add synthetic Norwegian and English evaluation datasets for public sector, banking, energy, and internal policy scenarios.
 - Implement deterministic evaluation runner for retrieval, citation expectations, refusal behavior, risk labels, and LangGraph routing.

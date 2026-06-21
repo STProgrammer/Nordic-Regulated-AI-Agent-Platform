@@ -1050,6 +1050,7 @@ dependencies = [
     { name = "httpx2" },
     { name = "langdetect" },
     { name = "nordic-regulated-ai-agent-platform-agent-orchestrator" },
+    { name = "nordic-regulated-ai-agent-platform-evaluation" },
     { name = "openai" },
     { name = "openpyxl" },
     { name = "pgvector" },
@@ -1077,6 +1078,7 @@ requires-dist = [
     { name = "httpx2", specifier = ">=2.4,<3" },
     { name = "langdetect", specifier = ">=1.0.9,<2" },
     { name = "nordic-regulated-ai-agent-platform-agent-orchestrator", editable = "services/agent_orchestrator" },
+    { name = "nordic-regulated-ai-agent-platform-evaluation", editable = "services/evaluation" },
     { name = "openai", specifier = ">=1.0,<2" },
     { name = "openpyxl", specifier = ">=3.1,<4" },
     { name = "pgvector", specifier = ">=0.4,<1" },
@@ -1101,6 +1103,16 @@ source = { editable = "services/document_processor" }
 name = "nordic-regulated-ai-agent-platform-evaluation"
 version = "0.0.0"
 source = { editable = "services/evaluation" }
+dependencies = [
+    { name = "nordic-regulated-ai-agent-platform-agent-orchestrator" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "nordic-regulated-ai-agent-platform-agent-orchestrator", editable = "services/agent_orchestrator" },
+    { name = "pydantic", specifier = ">=2.5,<3" },
+]
 
 [[package]]
 name = "nordic-regulated-ai-agent-platform-retrieval"

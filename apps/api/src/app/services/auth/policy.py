@@ -165,6 +165,20 @@ def authorize_memory_action(principal: Principal, action: MemoryAction) -> None:
     ensure_roles(principal, RoleName.ADMIN)
 
 
+class EvaluationAction(StrEnum):
+    """Canonical deterministic regression runs are an Admin-only operations boundary."""
+
+    START = "start"
+    READ = "read"
+
+
+def authorize_evaluation_action(principal: Principal, action: EvaluationAction) -> None:
+    """Require the narrowest existing role for evaluation execution and inspection."""
+
+    _ = action
+    ensure_roles(principal, RoleName.ADMIN)
+
+
 @dataclass(frozen=True)
 class ApprovalAuthorizationInput:
     """Trusted future approval data loaded by the owning approval service."""

@@ -27,6 +27,7 @@ dependencies = [
   "tiktoken>=0.8,<1",
   "uvicorn>=0.34,<1",
   "nordic-regulated-ai-agent-platform-agent-orchestrator",
+  "nordic-regulated-ai-agent-platform-evaluation",
 ]
 
 [build-system]
@@ -38,3 +39,4 @@ packages = ["src/app"]
 
 [tool.uv.sources]
 nordic-regulated-ai-agent-platform-agent-orchestrator = { workspace = true }
+nordic-regulated-ai-agent-platform-evaluation = { workspace = true }

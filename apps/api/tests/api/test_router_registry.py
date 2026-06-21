@@ -49,6 +49,7 @@ def test_only_implemented_route_modules_define_operations() -> None:
             "retrieval",
             "workflows",
             "approvals",
+            "evaluations",
             "audit",
             "admin",
         }:
@@ -92,6 +93,10 @@ def test_aggregate_router_mounts_the_phase_twenty_four_business_operations() -> 
         "/api/documents/{document_id}/source-status",
         "/api/retrieval/search",
         "/api/retrieval/answer",
+        "/api/evaluations/datasets",
+        "/api/evaluations/datasets/{dataset_key}/runs",
+        "/api/evaluations/runs",
+        "/api/evaluations/runs/{evaluation_run_id}",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
         "/api/workflows/{workflow_run_id}/trace",

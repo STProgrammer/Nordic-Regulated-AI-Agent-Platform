@@ -29,6 +29,30 @@ implementation, tests, and validation checks pass within its defined scope.
 | 22    | Human Approval Workflow                | DONE   |
 | 23    | Workflow Trace and AI Audit Trail      | DONE   |
 | 24    | Controlled LangMem Memory              | DONE   |
+| 25    | Evaluation Dataset and Deterministic Evaluation Runner | DONE   |
+
+## Phase 25 — Evaluation Dataset and Deterministic Evaluation Runner (DONE)
+
+Completed on 2026-06-21.
+
+Delivered a checked-in, versioned, Pydantic-validated synthetic corpus spanning Norwegian Bokmal and
+English public-sector, banking, energy, and internal-policy scenarios. The pure local runner uses
+logical fixture keys and existing closed Intake-routing/final-risk policies to measure exact
+retrieval, citation, structural answer-criterion, refusal, risk, and routing behavior without a
+model, embedding provider, network call, or database dependency.
+
+The canonical corpus loads idempotently into the existing evaluation tables. Tenant-owned runs bind
+to an immutable dataset version/hash, persist one safe result per case, prevent concurrent active
+duplicates, and are exposed through an Admin-only, cookie-authenticated API. Celery receives only a
+run UUID on the dedicated `evaluation` queue; its worker reloads server-owned data and records only
+safe summaries, numeric metrics, pass/fail, logical case keys, and closed failure codes. No dashboard,
+hosted judge, semantic-quality claim, cost/latency reporting, or browser work was added.
+
+Validation: all 11 evaluation corpus/runner/CLI tests passed; focused API, worker, OpenAPI/router,
+audit, migration, retrieval-citation, Intake, and Risk checks passed; Ruff, mypy, and repository
+format checks passed. A rebuilt local stack migrated to `e25a1c6d7f90`, passed
+`pnpm verify:local-stack`, and completed a cookie-authenticated synthetic Admin queued-run smoke
+with four persisted passing result projections.
 
 ## Phase 24 — Controlled LangMem Memory (DONE)
 

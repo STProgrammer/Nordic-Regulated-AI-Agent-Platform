@@ -1,0 +1,83 @@
+{
+  "schema_version": "v1",
+  "dataset_key": "nordic-regulated-core-v1",
+  "version": "v1",
+  "description": "Synthetic deterministic regression scenarios for governed Nordic workflows.",
+  "cases": [
+    {
+      "case_key": "public_policy_guidance_nb",
+      "locale": "nb",
+      "domain": "public_sector",
+      "query": "Hvilken fiktiv regel gjelder for behandlingstid i denne øvingssaken?",
+      "expected_answer_criterion_ids": ["policy_rule_identified"],
+      "expected_source_keys": ["public_rule_guide"],
+      "expected_citation_keys": ["public_rule_guide"],
+      "expect_refusal": false,
+      "expected_risk_outcome": "low",
+      "expected_routing_outcome": "evidence_then_draft",
+      "fixture": {
+        "retrieved_source_keys": ["public_rule_guide"],
+        "citation_source_keys": ["public_rule_guide"],
+        "supported_answer_criterion_ids": ["policy_rule_identified"],
+        "case_type": "policy_question"
+      }
+    },
+    {
+      "case_key": "banking_review_en",
+      "locale": "en",
+      "domain": "banking",
+      "query": "Which fictional control applies to this training review?",
+      "expected_answer_criterion_ids": ["control_identified"],
+      "expected_source_keys": ["banking_control_note"],
+      "expected_citation_keys": ["banking_control_note"],
+      "expect_refusal": false,
+      "expected_risk_outcome": "high",
+      "expected_routing_outcome": "evidence",
+      "fixture": {
+        "retrieved_source_keys": ["banking_control_note"],
+        "citation_source_keys": ["banking_control_note"],
+        "supported_answer_criterion_ids": ["control_identified"],
+        "case_type": "compliance_review",
+        "sensitive_domain": true
+      }
+    },
+    {
+      "case_key": "energy_weak_evidence_nb",
+      "locale": "nb",
+      "domain": "energy",
+      "query": "Hva kan avgjøres når den fiktive driftskilden mangler?",
+      "expected_answer_criterion_ids": ["refusal_explained"],
+      "expected_source_keys": [],
+      "expected_citation_keys": [],
+      "expect_refusal": true,
+      "expected_risk_outcome": "needs_more_evidence",
+      "expected_routing_outcome": "evidence",
+      "fixture": {
+        "retrieved_source_keys": [],
+        "citation_source_keys": [],
+        "supported_answer_criterion_ids": ["refusal_explained"],
+        "case_type": "operational_incident",
+        "weak_evidence": true
+      }
+    },
+    {
+      "case_key": "internal_sensitive_route_en",
+      "locale": "en",
+      "domain": "internal_policy",
+      "query": "How should this fictional sensitive training request be routed?",
+      "expected_answer_criterion_ids": ["manual_review_required"],
+      "expected_source_keys": ["internal_policy_note"],
+      "expected_citation_keys": ["internal_policy_note"],
+      "expect_refusal": false,
+      "expected_risk_outcome": "high",
+      "expected_routing_outcome": "manual_review",
+      "fixture": {
+        "retrieved_source_keys": ["internal_policy_note"],
+        "citation_source_keys": ["internal_policy_note"],
+        "supported_answer_criterion_ids": ["manual_review_required"],
+        "case_type": "case_support",
+        "pii_detected": true
+      }
+    }
+  ]
+}

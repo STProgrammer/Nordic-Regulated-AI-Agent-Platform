@@ -3,6 +3,7 @@
 from app.db.repositories.audit import AuditEventRepository
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.document import DocumentRepository
+from app.db.repositories.evaluation import EvaluationRepository
 from app.db.repositories.identity import RoleRepository, UserRepository, UserRoleRepository
 from app.db.repositories.organization import OrganizationRepository
 from app.db.repositories.rag_answer import RagAnswerRepository
@@ -12,6 +13,7 @@ __all__ = [
     "AuditEventRepository",
     "CaseRepository",
     "DocumentRepository",
+    "EvaluationRepository",
     "OrganizationRepository",
     "RoleRepository",
     "UserRepository",

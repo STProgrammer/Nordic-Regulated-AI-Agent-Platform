@@ -21,6 +21,7 @@ from app.core.logging import get_logger
 from app.services.errors import (
     AuthorizationDeniedError,
     ConflictError,
+    EvaluationUnavailableError,
     InvalidCommandError,
     MemoryStoreUnavailableError,
     NotFoundError,
@@ -208,6 +209,7 @@ async def _handle_service_error(request: Request, exc: Exception) -> Response:
             RetrievalUnavailableError,
             RagAnswerUnavailableError,
             MemoryStoreUnavailableError,
+            EvaluationUnavailableError,
             WorkflowUnavailableError,
         ),
     ):
