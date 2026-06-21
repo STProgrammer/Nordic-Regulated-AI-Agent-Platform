@@ -398,7 +398,8 @@ class DocumentService:
                 command.file,
                 maximum_bytes=self.maximum_upload_bytes,
             )
-        assert command.email_text is not None
+        if command.email_text is None:
+            raise InvalidCommandError("The document command is invalid.")
         return validate_email_text(command.email_text, maximum_bytes=self.maximum_upload_bytes)
 
     async def _record_uploaded_event(self, document: Document, principal: Principal) -> None:

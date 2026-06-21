@@ -10,7 +10,7 @@ import os
 from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,7 +55,16 @@ class AppSettings(BaseSettings):
     otlp_export_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
 
     api_prefix: str = "/api"
-    enable_docs: bool = True
+    # Documentation is useful in local development and tests, but must not be
+    # published by default from a deployed service. Operators may still opt in
+    # deliberately for a protected environment.
+    enable_docs: bool | None = None
+
+    # Browser origins are exact scheme/host/port values. Empty CORS origins
+    # means CORS is disabled rather than permissive. CSRF origins are required
+    # for deployed cookie-authenticated browser traffic.
+    cors_allowed_origins: tuple[str, ...] = ()
+    csrf_trusted_origins: tuple[str, ...] = ()
 
     request_id_header: str = "X-Request-ID"
     request_id_max_length: int = Field(default=128, ge=8, le=256)
@@ -92,11 +101,24 @@ class AppSettings(BaseSettings):
     # configuration credential-free while still avoiding raw identifier keys.
     rate_limit_key_secret: SecretStr | None = None
 
+    upload_rate_limit_window_seconds: int = Field(default=900, ge=30, le=86_400)
+    upload_rate_limit_user_attempts: int = Field(default=10, ge=1, le=1_000)
+    upload_rate_limit_origin_attempts: int = Field(default=40, ge=1, le=5_000)
+    retrieval_rate_limit_window_seconds: int = Field(default=900, ge=30, le=86_400)
+    retrieval_rate_limit_user_attempts: int = Field(default=60, ge=1, le=10_000)
+    retrieval_rate_limit_origin_attempts: int = Field(default=240, ge=1, le=20_000)
+    workflow_rate_limit_window_seconds: int = Field(default=900, ge=30, le=86_400)
+    workflow_rate_limit_user_attempts: int = Field(default=10, ge=1, le=1_000)
+    workflow_rate_limit_origin_attempts: int = Field(default=40, ge=1, le=5_000)
+
     # Raw document objects stay in a private Azure Blob-compatible container.
     # An explicit connection string is always represented as a secret. Local
     # Compose derives the well-known Azurite development connection only when
     # a document upload actually needs it.
     document_upload_max_bytes: int = Field(default=25 * 1024 * 1024, ge=1, le=100 * 1024 * 1024)
+    document_upload_multipart_overhead_bytes: int = Field(
+        default=1 * 1024 * 1024, ge=1_024, le=10 * 1024 * 1024
+    )
     object_storage_connection_string: SecretStr | None = None
     object_storage_container: str = "nordic-local"
 
@@ -234,6 +256,14 @@ class AppSettings(BaseSettings):
         trimmed = value.strip()
         return trimmed or None
 
+    @field_validator("cors_allowed_origins", "csrf_trusted_origins")
+    @classmethod
+    def _validate_browser_origins(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = tuple(_normalize_browser_origin(value) for value in values)
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("browser origins must be unique")
+        return normalized
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _validate_database_url(cls, value: object) -> object:
@@ -310,6 +340,8 @@ class AppSettings(BaseSettings):
             raise ValueError("secure session cookies are required outside local and test")
         if self.session_cookie_samesite == "none" and not secure_cookie:
             raise ValueError("SameSite=None cookies require the Secure flag")
+        if self.environment in {"staging", "production"} and not self.csrf_trusted_origins:
+            raise ValueError("CSRF trusted origins are required outside local and test")
         if self.document_parser_max_input_bytes > self.document_upload_max_bytes:
             raise ValueError(
                 "document_parser_max_input_bytes must not exceed document_upload_max_bytes"
@@ -358,19 +390,33 @@ class AppSettings(BaseSettings):
     def openapi_url(self) -> str | None:
         """Return the OpenAPI schema path, or ``None`` when docs are disabled."""
 
-        return "/openapi.json" if self.enable_docs else None
+        return "/openapi.json" if self.enable_docs_value else None
 
     @property
     def docs_url(self) -> str | None:
         """Return the Swagger UI path, or ``None`` when docs are disabled."""
 
-        return "/docs" if self.enable_docs else None
+        return "/docs" if self.enable_docs_value else None
 
     @property
     def redoc_url(self) -> str | None:
         """Return the ReDoc path, or ``None`` when docs are disabled."""
 
-        return "/redoc" if self.enable_docs else None
+        return "/redoc" if self.enable_docs_value else None
+
+    @property
+    def enable_docs_value(self) -> bool:
+        """Return the effective docs policy without exposing deployed docs by default."""
+
+        if self.enable_docs is not None:
+            return self.enable_docs
+        return self.environment in {"local", "test"}
+
+    @property
+    def document_upload_max_request_bytes(self) -> int:
+        """Bound the whole multipart request, including trusted transport overhead."""
+
+        return self.document_upload_max_bytes + self.document_upload_multipart_overhead_bytes
 
     def database_async_url(self) -> str:
         """Return the runtime async URL without exposing it through model reprs.
@@ -479,3 +525,21 @@ def reset_settings_cache() -> None:
     """Clear the cached settings so the next call re-reads the environment."""
 
     get_settings.cache_clear()
+
+
+def _normalize_browser_origin(value: str) -> str:
+    """Normalize one exact browser origin and reject wildcard-like configuration."""
+
+    candidate = value.strip()
+    parsed = urlsplit(candidate)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("browser origins must be exact http or https origins")
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"

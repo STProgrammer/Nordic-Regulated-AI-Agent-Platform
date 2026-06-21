@@ -41,6 +41,16 @@ _UNEXPECTED_ERROR_CODE = "internal_error"
 _UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred."
 _VALIDATION_ERROR_CODE = "validation_error"
 _VALIDATION_ERROR_MESSAGE = "The request failed validation."
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+_API_CSP = "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+_HSTS = "max-age=63072000; includeSubDomains"
 
 
 class ApiError(Exception):
@@ -57,12 +67,14 @@ class ApiError(Exception):
         code: str,
         message: str,
         details: list[ErrorDetail] | None = None,
+        response_headers: Mapping[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.details = details
+        self.response_headers = response_headers
 
 
 def _request_id(request: Request) -> str | None:
@@ -104,6 +116,14 @@ def error_response(
         )
     )
     headers = dict(response_headers) if response_headers is not None else {}
+    for name, value in _SECURITY_HEADERS.items():
+        headers.setdefault(name, value)
+    api_prefix = getattr(request.app.state, "api_prefix", "/api")
+    if isinstance(api_prefix, str) and request.url.path.startswith(api_prefix):
+        headers.setdefault("Cache-Control", "no-store")
+        headers.setdefault("Content-Security-Policy", _API_CSP)
+    if getattr(request.app.state, "environment", "local") in {"staging", "production"}:
+        headers.setdefault("Strict-Transport-Security", _HSTS)
     if request_id:
         headers[_request_id_header(request)] = request_id
     return JSONResponse(
@@ -136,6 +156,7 @@ async def _handle_api_error(request: Request, exc: Exception) -> Response:
         code=exc.code,
         message=exc.message,
         details=exc.details,
+        response_headers=exc.response_headers,
     )
 
 

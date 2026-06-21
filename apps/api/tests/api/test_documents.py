@@ -136,7 +136,9 @@ class _DocumentServiceFake:
         return self.document
 
 
-def _client(*roles: RoleName) -> tuple[TestClient, _DocumentServiceFake]:
+def _client(
+    *roles: RoleName, **settings_overrides: object
+) -> tuple[TestClient, _DocumentServiceFake]:
     principal = Principal(
         user_id=uuid4(),
         organization_id=uuid4(),
@@ -145,7 +147,7 @@ def _client(*roles: RoleName) -> tuple[TestClient, _DocumentServiceFake]:
         roles=frozenset(roles),
     )
     documents = _DocumentServiceFake(principal=principal, case_id=uuid4())
-    app = create_api_app(AppSettings(environment="test"))
+    app = create_api_app(AppSettings(environment="test", **settings_overrides))  # type: ignore[arg-type]
     app.dependency_overrides[get_authentication_service] = lambda: _AuthenticationFake(principal)
     app.dependency_overrides[get_document_service] = lambda: documents
     client = TestClient(app)
@@ -177,6 +179,31 @@ def test_document_upload_uses_multipart_and_returns_safe_metadata_only() -> None
     assert "object_storage_key" not in body
     assert "checksum_sha256" not in body
     assert "safe test body" not in response.text
+
+
+def test_multipart_overhead_limit_rejects_before_document_service() -> None:
+    client, documents = _client(
+        RoleName.CASE_WORKER,
+        document_upload_max_bytes=10,
+        document_parser_max_input_bytes=10,
+        document_upload_multipart_overhead_bytes=1_024,
+    )
+    with client:
+        response = client.post(
+            "/api/documents/upload",
+            data={
+                "case_id": str(documents.case_id),
+                # The valid file stays below the document cap. This padding
+                # makes the aggregate multipart transport exceed the cap plus
+                # its bounded framing allowance before route dependencies run.
+                "padding": "x" * 900,
+            },
+            files={"file": ("synthetic.txt", b"x", "text/plain")},
+        )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "payload_too_large"
+    assert documents.last_command is None
 
 
 def test_document_upload_requires_a_session_and_upload_role() -> None:

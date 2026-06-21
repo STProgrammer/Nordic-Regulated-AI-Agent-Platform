@@ -10,7 +10,9 @@ from enum import StrEnum
 from io import BytesIO, StringIO
 from typing import cast
 from uuid import UUID
-from xml.sax.saxutils import escape
+
+# Escaping XML text does not parse untrusted XML.
+from xml.sax.saxutils import escape  # nosec B406
 
 from agent_orchestrator.graphs.approval_types import ApprovalLifecycle, ReviewerDecision
 from reportlab.lib.pagesizes import A4  # type: ignore[import-untyped]

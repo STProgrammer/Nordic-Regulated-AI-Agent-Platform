@@ -11,9 +11,15 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
+from starlette.middleware.cors import CORSMiddleware
 
 from app.api.middleware import RequestContextMiddleware
 from app.api.router import create_api_router, openapi_tags
+from app.api.security_middleware import (
+    CsrfOriginMiddleware,
+    SecurityHeadersMiddleware,
+    UploadRequestBodyLimitMiddleware,
+)
 from app.core.config import AppSettings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -65,18 +71,49 @@ def create_api_app(settings: AppSettings | None = None) -> FastAPI:
         openapi_tags=openapi_tags(),
     )
     app.state.request_id_header = resolved_settings.request_id_header
+    app.state.environment = resolved_settings.environment
+    app.state.api_prefix = resolved_settings.api_prefix
 
     # When settings are injected, route-handler dependencies must see the same
     # configuration rather than re-reading the environment.
     if settings is not None:
         app.dependency_overrides[get_settings] = lambda: resolved_settings
 
+    register_exception_handlers(app)
+
+    # Middleware is added inside-out. RequestContext is deliberately last so a
+    # correlation id is available even when CSRF or body-size guards reject a
+    # request before the router is reached.
+    if resolved_settings.cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(resolved_settings.cors_allowed_origins),
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Accept", "Accept-Language", "Content-Type", "X-Request-ID"],
+            max_age=600,
+        )
+    app.add_middleware(
+        UploadRequestBodyLimitMiddleware,
+        path=f"{resolved_settings.api_prefix}/documents/upload",
+        maximum_bytes=resolved_settings.document_upload_max_request_bytes,
+    )
+    app.add_middleware(
+        CsrfOriginMiddleware,
+        api_prefix=resolved_settings.api_prefix,
+        cookie_name=resolved_settings.session_cookie_name,
+        trusted_origins=resolved_settings.csrf_trusted_origins,
+    )
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        environment=resolved_settings.environment,
+        api_prefix=resolved_settings.api_prefix,
+    )
     app.add_middleware(
         RequestContextMiddleware,
         header_name=resolved_settings.request_id_header,
         max_request_id_length=resolved_settings.request_id_max_length,
     )
-    register_exception_handlers(app)
 
     if resolved_settings.metrics_enabled:
 

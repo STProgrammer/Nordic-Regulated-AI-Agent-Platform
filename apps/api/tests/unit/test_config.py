@@ -26,7 +26,8 @@ def test_defaults_are_safe_local_values() -> None:
     assert settings.environment == "local"
     assert settings.service_name == "nordic-regulated-ai-api"
     assert settings.api_prefix == "/api"
-    assert settings.enable_docs is True
+    assert settings.enable_docs is None
+    assert settings.enable_docs_value is True
     assert settings.log_level == "info"
     assert settings.log_format == "console"
     assert settings.request_id_header == "X-Request-ID"
@@ -57,6 +58,34 @@ def test_documentation_urls_follow_enable_docs() -> None:
     assert disabled.redoc_url is None
 
 
+def test_browser_origins_are_exact_and_deployed_csrf_configuration_is_required() -> None:
+    settings = AppSettings(
+        cors_allowed_origins=("HTTPS://App.Example.Invalid/",),
+        csrf_trusted_origins=("https://app.example.invalid",),
+    )
+    assert settings.cors_allowed_origins == ("https://app.example.invalid",)
+    assert settings.csrf_trusted_origins == ("https://app.example.invalid",)
+
+    with pytest.raises(ValidationError):
+        AppSettings(cors_allowed_origins=("*",))
+    with pytest.raises(ValidationError):
+        AppSettings(
+            environment="production",
+            rag_completion_api_key=SecretStr("synthetic-rag-key"),
+            rag_input_price_per_million=Decimal("1"),
+            rag_output_price_per_million=Decimal("2"),
+        )
+
+    deployed = AppSettings(
+        environment="staging",
+        csrf_trusted_origins=("https://app.example.invalid",),
+        rag_completion_api_key=SecretStr("synthetic-rag-key"),
+        rag_input_price_per_million=Decimal("1"),
+        rag_output_price_per_million=Decimal("2"),
+    )
+    assert deployed.enable_docs_value is False
+
+
 @pytest.mark.parametrize("environment", ["local", "test", "staging", "production"])
 def test_allowed_environments(environment: str) -> None:
     if environment in {"staging", "production"}:
@@ -65,6 +94,7 @@ def test_allowed_environments(environment: str) -> None:
             rag_completion_api_key=SecretStr("synthetic-rag-key"),
             rag_input_price_per_million=Decimal("1"),
             rag_output_price_per_million=Decimal("2"),
+            csrf_trusted_origins=("https://app.example.invalid",),
         )
     else:
         settings = AppSettings(environment=cast(Environment, environment))
@@ -109,6 +139,7 @@ def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("NORDIC_API_RAG_COMPLETION_API_KEY", "synthetic-rag-key")
     monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
     monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
+    monkeypatch.setenv("NORDIC_API_CSRF_TRUSTED_ORIGINS", '["https://app.example.invalid"]')
 
     settings = AppSettings()
 
@@ -126,6 +157,7 @@ def test_get_settings_is_cached_and_resettable(
     monkeypatch.setenv("NORDIC_API_RAG_COMPLETION_API_KEY", "synthetic-rag-key")
     monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
     monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
+    monkeypatch.setenv("NORDIC_API_CSRF_TRUSTED_ORIGINS", '["https://app.example.invalid"]')
     assert get_settings() is first  # still cached
 
     reset_settings_cache()
@@ -146,6 +178,7 @@ def test_production_requires_secure_cookie_but_derives_it_by_default() -> None:
         rag_completion_api_key=SecretStr("synthetic-rag-key"),
         rag_input_price_per_million=Decimal("1"),
         rag_output_price_per_million=Decimal("2"),
+        csrf_trusted_origins=("https://app.example.invalid",),
     )
     assert production_settings.session_cookie_secure_value is True
     with pytest.raises(ValidationError):
@@ -155,6 +188,7 @@ def test_production_requires_secure_cookie_but_derives_it_by_default() -> None:
             rag_completion_api_key=SecretStr("synthetic-rag-key"),
             rag_input_price_per_million=Decimal("1"),
             rag_output_price_per_million=Decimal("2"),
+            csrf_trusted_origins=("https://app.example.invalid",),
         )
 
 

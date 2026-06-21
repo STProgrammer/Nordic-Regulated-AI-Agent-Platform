@@ -33,6 +33,25 @@ implementation, tests, and validation checks pass within its defined scope.
 | 26    | AI Quality Evaluation Dashboard        | DONE   |
 | 27    | Cost, Latency, Metrics, and Observability | DONE   |
 | 28    | Export and Mock Enterprise Integrations | DONE   |
+| 29    | Security Hardening                     | DONE   |
+
+## Phase 29 — Security Hardening (DONE)
+
+Completed on 2026-06-22.
+
+Delivered strict environment-configured CORS/CSRF origins, uniform API security headers, deployed
+HSTS and documentation defaults, fail-closed HMAC-keyed limits for protected expensive routes, and
+bounded multipart/OOXML upload validation. The local Next.js shell retains its same-origin `/api`
+rewrite and adds deployment-only CSP/HSTS headers. The locked Python and JavaScript dependency
+graphs were upgraded to remove audit findings; local `bandit`, `pip-audit`, production dependency,
+and tracked-file secret scans are now available. `SECURITY.md` and `docs/security.md` document the
+boundary, reporting, scan, synthetic-data, and malware-scanning limitations.
+
+Validation: focused security/upload/rate-limit tests (64 passed), full API suite (305 passed), web
+suite (42 passed), agent-orchestrator suite (29 passed), formatting, lint, type, lock, frozen-install,
+and all security checks passed. A rebuilt loopback-only local stack passed `pnpm verify:local-stack`;
+live checks confirmed local docs, safe headers, exact allowed/blocked CORS preflights, and CSRF
+rejection/pass-through behavior. The stack was shut down cleanly.
 
 ## Phase 28 — Export and Mock Enterprise Integrations (DONE)
 

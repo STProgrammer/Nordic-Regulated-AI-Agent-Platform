@@ -65,7 +65,9 @@ pnpm test:api
 
 See [developer guidance](docs/development.md) for the full workflow. The canonical
 [specifications](specs/), [Phase 3 plan](phases/phase3.md), and
-[architecture decisions](docs/adr/README.md) define the intended direction.
+[architecture decisions](docs/adr/README.md) define the intended direction. See the
+[security policy](SECURITY.md) and [security guide](docs/security.md) for the current application
+boundary, repository scans, and public-demo restrictions.
 
 ## Local Docker stack
 

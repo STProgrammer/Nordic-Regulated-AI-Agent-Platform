@@ -148,6 +148,11 @@ connection strings, exception details, or stack traces.
 - **Rate limiting**: `POST /api/auth/login` limits normalized-email and client-origin counters
   through atomic Redis operations with HMAC-derived keys. It returns `429` and `Retry-After` when
   blocked; a Redis failure fails the login closed with a safe `503`.
+- **Browser security**: Cookie-authenticated unsafe API requests require an exact configured
+  `Origin`. The normal same-origin web proxy supplies this automatically. CORS is disabled unless
+  exact origins are configured, and deployed environments must configure CSRF trusted origins.
+  Upload, retrieval/answer, and workflow-start routes use separate HMAC-keyed Redis limits and fail
+  closed if their security state is unavailable.
 - **Route boundaries**: Phase 12 exposes `POST /api/auth/login`, `POST /api/auth/logout`,
   `GET /api/auth/me`, `GET/POST /api/users`, `GET/PATCH /api/users/{user_id}`,
   `PUT /api/users/{user_id}/roles`, `GET /api/roles`, `POST/GET /api/cases`,

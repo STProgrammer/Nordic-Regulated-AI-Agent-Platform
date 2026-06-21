@@ -202,7 +202,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Ensure all exports and mock tool calls are logged and permission-controlled.
 - Validation: API and integration tests verify export formats, source references in exports, permission checks, and mock integration audit logs.
 
-## Phase 29 — Security Hardening
+## Phase 29 — Security Hardening (DONE)
 
 - Add secure headers, CORS restrictions by environment, upload hardening, rate limiting for login/upload/retrieval/workflow routes, CSRF protection where relevant, and production-safe error handling.
 - Add dependency/security scanning and no-secrets checks.

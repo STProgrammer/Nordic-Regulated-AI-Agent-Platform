@@ -12,12 +12,15 @@ from app.api.dependencies import (
     AuditServiceDependency,
     CaseServiceDependency,
     CurrentPrincipalDependency,
+    RouteRateLimiterDependency,
+    SettingsDependency,
     get_drafting_workflow_service,
     get_evidence_workflow_service,
     get_extraction_workflow_service,
     get_intake_workflow_service,
     get_risk_workflow_service,
 )
+from app.api.route_rate_limit import enforce_route_rate_limit
 from app.api.routes.audit import audit_page_data
 from app.api.schemas.audit import AuditEventListData
 from app.api.schemas.cases import (
@@ -50,6 +53,7 @@ from app.api.schemas.workflows import (
     WorkflowRunData,
     WorkflowStartRequest,
 )
+from app.core.rate_limit import RouteRateLimitPolicy
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, Unset
 from app.services.cases.service import CaseCreate, CasePatch
@@ -73,6 +77,7 @@ _CASE_ERROR_RESPONSES = {
     403: {"model": ErrorResponse, "description": "The current role is not allowed."},
     404: {"model": ErrorResponse, "description": "The case or referenced user was not found."},
     409: {"model": ErrorResponse, "description": "The case conflicts with existing data."},
+    429: {"model": ErrorResponse, "description": "The workflow rate limit was reached."},
 }
 
 
@@ -287,8 +292,22 @@ async def start_case_workflow(
     ],
     drafting_workflows: Annotated[DraftingWorkflowService, Depends(get_drafting_workflow_service)],
     risk_workflows: Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)],
+    settings: SettingsDependency,
+    rate_limiter: RouteRateLimiterDependency,
 ) -> SuccessResponse[WorkflowRunData]:
     """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
+
+    await enforce_route_rate_limit(
+        request,
+        rate_limiter,
+        RouteRateLimitPolicy(
+            bucket="workflow",
+            user_attempts=settings.workflow_rate_limit_user_attempts,
+            origin_attempts=settings.workflow_rate_limit_origin_attempts,
+            window_seconds=settings.workflow_rate_limit_window_seconds,
+        ),
+        user_id=str(principal.user_id),
+    )
 
     run = (
         await workflows.start(principal, case_id)

@@ -7,7 +7,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Form, Query, Request, UploadFile, status
 
-from app.api.dependencies import CurrentPrincipalDependency, DocumentServiceDependency
+from app.api.dependencies import (
+    CurrentPrincipalDependency,
+    DocumentServiceDependency,
+    RouteRateLimiterDependency,
+    SettingsDependency,
+)
+from app.api.route_rate_limit import enforce_route_rate_limit
 from app.api.schemas.common import (
     DEFAULT_ERROR_RESPONSES,
     ErrorResponse,
@@ -24,6 +30,7 @@ from app.api.schemas.documents import (
     DocumentSourceStatus,
     DocumentSourceStatusUpdateRequest,
 )
+from app.core.rate_limit import RouteRateLimitPolicy
 from app.db.models.document import Document
 from app.services.common.pagination import Pagination
 from app.services.documents.service import DocumentSourceContext, DocumentUpload
@@ -49,6 +56,7 @@ _DOCUMENT_ERROR_RESPONSES = {
     422: {"model": ErrorResponse, "description": "The document is not ready for indexing."},
     413: {"model": ErrorResponse, "description": "The document exceeds the configured size limit."},
     415: {"model": ErrorResponse, "description": "The document type is not supported."},
+    429: {"model": ErrorResponse, "description": "The upload rate limit was reached."},
     503: {"model": ErrorResponse, "description": "Document storage or queue is unavailable."},
 }
 
@@ -69,6 +77,8 @@ async def upload_document(
     request: Request,
     principal: CurrentPrincipalDependency,
     documents: DocumentServiceDependency,
+    settings: SettingsDependency,
+    rate_limiter: RouteRateLimiterDependency,
     case_id: Annotated[UUID, Form(description="Active case id in the current organization.")],
     file: Annotated[
         UploadFile | None,
@@ -87,6 +97,17 @@ async def upload_document(
     """Keep multipart transport and resource cleanup thin around the document service."""
 
     try:
+        await enforce_route_rate_limit(
+            request,
+            rate_limiter,
+            RouteRateLimitPolicy(
+                bucket="upload",
+                user_attempts=settings.upload_rate_limit_user_attempts,
+                origin_attempts=settings.upload_rate_limit_origin_attempts,
+                window_seconds=settings.upload_rate_limit_window_seconds,
+            ),
+            user_id=str(principal.user_id),
+        )
         document = await documents.upload(
             principal,
             DocumentUpload(
@@ -267,7 +288,8 @@ async def reindex_document(
 def _document_data(document: Document) -> DocumentData:
     """Build the deliberate public view without storage keys, checksums, or raw data."""
 
-    assert document.case_id is not None
+    if document.case_id is None:
+        raise RuntimeError("Document case association is invalid")
     return DocumentData(
         document_id=document.id,
         case_id=document.case_id,

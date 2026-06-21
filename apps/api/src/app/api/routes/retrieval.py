@@ -6,7 +6,10 @@ from app.api.dependencies import (
     CurrentPrincipalDependency,
     RagAnswerServiceDependency,
     RetrievalServiceDependency,
+    RouteRateLimiterDependency,
+    SettingsDependency,
 )
+from app.api.route_rate_limit import enforce_route_rate_limit
 from app.api.schemas.common import (
     DEFAULT_ERROR_RESPONSES,
     ErrorResponse,
@@ -26,6 +29,7 @@ from app.api.schemas.retrieval import (
     RetrievalSourceStatus,
     RetrievalWarningCode,
 )
+from app.core.rate_limit import RouteRateLimitPolicy
 from app.services.retrieval.types import AnswerLanguage, RagAnswerCommand, RetrievalRequest
 
 PREFIX = "/retrieval"
@@ -46,6 +50,7 @@ _RETRIEVAL_ERROR_RESPONSES = {
         "description": "The current role or source entitlement is not allowed.",
     },
     404: {"model": ErrorResponse, "description": "The case or selected document was not found."},
+    429: {"model": ErrorResponse, "description": "The retrieval rate limit was reached."},
     503: {"model": ErrorResponse, "description": "Retrieval is temporarily unavailable."},
 }
 
@@ -66,8 +71,12 @@ async def search_retrieval_sources(
     request: Request,
     principal: CurrentPrincipalDependency,
     retrieval: RetrievalServiceDependency,
+    settings: SettingsDependency,
+    rate_limiter: RouteRateLimiterDependency,
 ) -> SuccessResponse[list[RetrievalSourceData]]:
     """Keep HTTP transport thin; policy, SQL, embeddings, and audit stay in the service."""
+
+    await _enforce_retrieval_rate_limit(request, principal.user_id, rate_limiter, settings)
 
     sources = await retrieval.search(
         principal,
@@ -127,8 +136,12 @@ async def answer_retrieval_question(
     request: Request,
     principal: CurrentPrincipalDependency,
     answering: RagAnswerServiceDependency,
+    settings: SettingsDependency,
+    rate_limiter: RouteRateLimiterDependency,
 ) -> SuccessResponse[RetrievalAnswerData]:
     """Keep HTTP transport thin; policy, evidence, generation, and records stay in the service."""
+
+    await _enforce_retrieval_rate_limit(request, principal.user_id, rate_limiter, settings)
 
     result = await answering.answer(
         principal,
@@ -178,3 +191,22 @@ async def answer_retrieval_question(
 def _meta(request: Request) -> ResponseMeta:
     request_id = getattr(request.state, "request_id", None)
     return ResponseMeta(request_id=request_id if isinstance(request_id, str) else None)
+
+
+async def _enforce_retrieval_rate_limit(
+    request: Request,
+    user_id: object,
+    rate_limiter: RouteRateLimiterDependency,
+    settings: SettingsDependency,
+) -> None:
+    await enforce_route_rate_limit(
+        request,
+        rate_limiter,
+        RouteRateLimitPolicy(
+            bucket="retrieval",
+            user_attempts=settings.retrieval_rate_limit_user_attempts,
+            origin_attempts=settings.retrieval_rate_limit_origin_attempts,
+            window_seconds=settings.retrieval_rate_limit_window_seconds,
+        ),
+        user_id=str(user_id),
+    )

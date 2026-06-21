@@ -17,7 +17,12 @@ from app.services.errors import (
 
 _READ_CHUNK_BYTES = 64 * 1024
 _MAX_ARCHIVE_ENTRIES = 10_000
-_MAX_ARCHIVE_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
+_MAX_ARCHIVE_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+_MAX_ARCHIVE_MEMBER_BYTES = 50 * 1024 * 1024
+_MAX_ARCHIVE_COMPRESSION_RATIO = 100
+_ZIP_ENCRYPTED_FLAG = 0x1
+_ZIP_FILE_TYPE_MASK = 0o170000
+_ZIP_SYMLINK_TYPE = 0o120000
 
 
 @dataclass(frozen=True)
@@ -190,7 +195,16 @@ def _validate_ooxml(payload: bytes, *, expected_directory: str) -> None:
             for entry in entries:
                 name = entry.filename.replace("\\", "/")
                 path = PurePosixPath(name)
-                if "\x00" in name or path.is_absolute() or ".." in path.parts:
+                if (
+                    "\x00" in name
+                    or path.is_absolute()
+                    or ".." in path.parts
+                    or name in names
+                    or entry.flag_bits & _ZIP_ENCRYPTED_FLAG
+                    or (entry.external_attr >> 16) & _ZIP_FILE_TYPE_MASK == _ZIP_SYMLINK_TYPE
+                    or entry.file_size > _MAX_ARCHIVE_MEMBER_BYTES
+                    or _compression_ratio_exceeds_limit(entry)
+                ):
                     raise UnsupportedMediaTypeError()
                 names.add(name)
     except (BadZipFile, OSError, ValueError) as error:
@@ -201,6 +215,22 @@ def _validate_ooxml(payload: bytes, *, expected_directory: str) -> None:
         expected_member = "xl/workbook.xml"
     if "[Content_Types].xml" not in names or expected_member not in names:
         raise UnsupportedMediaTypeError()
+
+
+def _compression_ratio_exceeds_limit(entry: object) -> bool:
+    """Reject compressed archive members that could expand into a zip bomb."""
+
+    # ZipInfo has these attributes, but keeping this helper structural makes
+    # the decision total for malformed third-party archive metadata too.
+    file_size = getattr(entry, "file_size", None)
+    compress_size = getattr(entry, "compress_size", None)
+    if not isinstance(file_size, int) or not isinstance(compress_size, int):
+        return True
+    if file_size == 0:
+        return False
+    if compress_size <= 0:
+        return True
+    return file_size > compress_size * _MAX_ARCHIVE_COMPRESSION_RATIO
 
 
 def _validate_utf8_text(payload: bytes) -> None:

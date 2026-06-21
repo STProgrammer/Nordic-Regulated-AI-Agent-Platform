@@ -13,7 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import AppSettings, get_settings
 from app.core.errors import ApiError
-from app.core.rate_limit import LoginRateLimiter, RedisLoginRateLimiter
+from app.core.rate_limit import (
+    InMemoryRouteRateLimiter,
+    LoginRateLimiter,
+    RedisLoginRateLimiter,
+    RedisRouteRateLimiter,
+    RouteRateLimiter,
+)
 from app.core.security import PasswordSecurity
 from app.core.session_store import (
     AuthStateUnavailableError,
@@ -83,6 +89,19 @@ def get_login_rate_limiter(
         email_attempts=settings.login_rate_limit_email_attempts,
         origin_attempts=settings.login_rate_limit_origin_attempts,
         window_seconds=settings.login_rate_limit_window_seconds,
+    )
+
+
+def get_route_rate_limiter(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> RouteRateLimiter:
+    """Build protected-route limits without opening Redis until a route is invoked."""
+
+    if settings.environment == "test":
+        return InMemoryRouteRateLimiter()
+    return RedisRouteRateLimiter(
+        get_redis_client(settings),
+        digest_key=settings.rate_limit_hmac_key(),
     )
 
 
@@ -359,6 +378,7 @@ RequestIdDependency = Annotated[str | None, Depends(get_request_id)]
 DatabaseSessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
 SessionStoreDependency = Annotated[SessionStore, Depends(get_session_store)]
 LoginRateLimiterDependency = Annotated[LoginRateLimiter, Depends(get_login_rate_limiter)]
+RouteRateLimiterDependency = Annotated[RouteRateLimiter, Depends(get_route_rate_limiter)]
 AuthenticationServiceDependency = Annotated[
     AuthenticationService, Depends(get_authentication_service)
 ]

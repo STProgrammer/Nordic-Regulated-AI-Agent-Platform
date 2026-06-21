@@ -18,6 +18,7 @@ def _make_app(**overrides: object) -> FastAPI:
         params.setdefault("rag_completion_api_key", SecretStr("synthetic-rag-key"))
         params.setdefault("rag_input_price_per_million", "1")
         params.setdefault("rag_output_price_per_million", "2")
+        params.setdefault("csrf_trusted_origins", ("https://app.example.invalid",))
     settings = AppSettings(**params)  # type: ignore[arg-type]
     return create_api_app(settings)
 

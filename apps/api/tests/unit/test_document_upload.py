@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from io import BytesIO
 from uuid import uuid4
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import pytest
 from app.services.documents.keys import document_storage_key
@@ -137,3 +137,29 @@ def test_storage_keys_are_server_owned_and_exclude_filename_data() -> None:
     assert first != second
     assert "unsafe-report.pdf" not in first
     assert first.startswith("v1/organizations/")
+
+
+@pytest.mark.parametrize("attack", ["duplicate", "symlink", "compression_bomb"])
+def test_validator_rejects_hostile_ooxml_archives(attack: str) -> None:
+    stream = BytesIO()
+    with ZipFile(stream, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        if attack == "duplicate":
+            archive.writestr("word/document.xml", "<document />")
+            archive.writestr("word/document.xml", "<document />")
+        elif attack == "symlink":
+            member = ZipInfo("word/document.xml")
+            member.external_attr = 0o120777 << 16
+            archive.writestr(member, "<document />")
+        else:
+            archive.writestr("word/document.xml", b"x" * (256 * 1024))
+
+    with pytest.raises(UnsupportedMediaTypeError):
+        validate_document_bytes(
+            stream.getvalue(),
+            filename="hostile.docx",
+            declared_content_type=(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ),
+            maximum_bytes=1024 * 1024,
+        )
