@@ -284,6 +284,38 @@ Do not also run `G X` for the same phase unless the user explicitly wants a dura
 
 ---
 
+## Validation Preconditions
+
+When generating or approving a validation plan, every validation command must have clear preconditions.
+
+Do not require a command to assert data, metrics, logs, traces, database rows, files, or UI state unless the plan first generates or triggers that state.
+
+A validation step must be one of:
+
+1. **Startup/static validation** — checks something guaranteed to exist after startup, install, migration, or build.
+2. **Triggered validation** — first runs a focused action that generates the expected observation, then checks the result.
+3. **Existing fixture validation** — relies on a named deterministic seed/fixture that the plan explicitly loads.
+
+Avoid validations like:
+
+* checking workflow metrics before any workflow has run
+* checking model metrics before any model path has executed
+* checking audit events before generating the event
+* checking queue results before dispatching a task
+* checking UI state before seeding or genearing the required record
+
+For observability, metrics, logs, traces, audit events, and background jobs, the validation plan must say:
+
+* what action produces the observation
+* which exact metric/log/event/result should appear
+* which absence is acceptable
+* whether missing values should be `null`, zero, empty, or not emitted
+
+If a validation only checks service startup, assert only startup-guaranteed signals.
+
+If a validation checks runtime behavior, trigger the runtime behavior first.
+
+
 ## Validation Efficiency
 
 During implementation, run focused tests first. Run broader checks only after focused tests pass.
