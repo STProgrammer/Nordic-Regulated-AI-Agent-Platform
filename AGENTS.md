@@ -229,6 +229,61 @@ At the end of implementation, report briefly:
 
 ---
 
+## Native Plan Mode
+
+If the user runs an implementation request in Codex plan mode, do not generate a separate `/phases/phaseX.md` file unless the user explicitly asks for one.
+
+In plan mode, first read:
+
+1. `AGENTS.md`
+2. all files in `/specs`
+3. `/phases/phaseX.md` if it already exists
+
+If no `/phases/phaseX.md` exists for the requested phase, use `/specs/roadmap.md` to identify the phase scope and use the other `/specs` files for requirements and architecture boundaries.
+
+The native plan must be a short execution brief, not a report. Its purpose is to make implementation, testing, and validation faster, more reliable, and less dependent on guessing.
+
+The plan must focus on:
+
+* the current phase goal
+* exact in-scope and out-of-scope work
+* affected files, folders, modules, and services
+* implementation slices in order
+* focused tests after each slice
+* broader validation only after focused checks pass
+* expensive validation last and only when truly required
+* worktree baseline assumptions
+* final scope review before marking the phase DONE
+
+Testing and validation must be part of the implementation sequence, not a vague checklist at the end.
+
+Each implementation slice should name:
+
+* intended change
+* likely files/modules
+* tests to add or update
+* focused validation command
+* expected result
+
+Avoid:
+
+* long background explanations
+* repeated product motivation
+* copying large sections from PRD or architecture
+* future-phase discussion
+* broad full-suite validation by default
+* full Playwright by default
+* long manual validation sections
+* meta-plans about generating another plan
+
+Manual browser validation should normally be a fallback checklist only if automated focused E2E fails twice, or if the user explicitly requests it.
+
+When the user approves the native plan, implement it directly according to `AGENTS.md`.
+
+Do not also run `G X` for the same phase unless the user explicitly wants a durable `/phases/phaseX.md` file.
+
+---
+
 ## Validation Efficiency
 
 During implementation, run focused tests first. Run broader checks only after focused tests pass.
@@ -250,6 +305,20 @@ Use deterministic/local model and embedding providers for automated validation. 
 Manual validation is optional after automated validation and is not required before marking a phase `(DONE)`.
 
 ---
+
+## Expensive Validation Gate
+
+Before running local-stack, Playwright, full-suite, or other expensive validation, perform a final scope/read-model/API-contract review against the phase file.
+
+Confirm:
+
+* all in-scope deliverables are implemented
+* required response fields for later phases are present
+* out-of-scope work was not added
+* focused tests already pass
+* no obvious missing field or endpoint remains
+
+Do not run expensive validation before this review. If code changes after expensive validation, rerun only the affected focused checks plus the required final expensive check.
 
 ## Browser E2E Policy
 

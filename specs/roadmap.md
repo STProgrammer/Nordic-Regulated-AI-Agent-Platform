@@ -181,7 +181,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Store evaluation datasets, evaluation runs, and per-case results.
 - Validation: Evaluation tests run locally without external model dependency where possible; expected pass/fail results are stored and inspectable.
 
-## Phase 26 — AI Quality Evaluation Dashboard
+## Phase 26 — AI Quality Evaluation Dashboard (DONE)
 
 - Implement Evaluation Dashboard with latest run status, retrieval score, citation score, faithfulness score, refusal behavior, latency, cost, and regression failures.
 - Add links from failed evaluation cases to detailed result records.

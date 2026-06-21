@@ -787,6 +787,111 @@ export type RiskReasonCode = z.infer<typeof riskReasonCodeSchema>;
 export type RiskAssessment = z.infer<typeof riskAssessmentSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
 export type WorkflowTrace = z.infer<typeof workflowTraceSchema>;
+export const evaluationStatusSchema = z.enum(['queued', 'running', 'completed', 'failed']);
+export const evaluationPassFailSchema = z.enum(['pending', 'pass', 'fail']);
+export const evaluationFailureCodeSchema = z.enum([
+  'retrieval_mismatch',
+  'citation_mismatch',
+  'criterion_mismatch',
+  'refusal_mismatch',
+  'risk_mismatch',
+  'routing_mismatch',
+]);
+export const evaluationRunFailureCodeSchema = z.enum([
+  'dispatch_unavailable',
+  'dataset_not_available',
+  'dataset_identity_mismatch',
+  'dataset_cases_unavailable',
+  'deterministic_runner_failed',
+  'worker_runtime_unavailable',
+]);
+export const evaluationFailureCodeCountSchema = z
+  .object({
+    code: evaluationFailureCodeSchema,
+    count: z.number().int().min(1),
+  })
+  .strict();
+export const evaluationMetricsSchema = z
+  .object({
+    case_total: z.number().int().min(0),
+    passed_case_total: z.number().int().min(0),
+    failed_case_total: z.number().int().min(0),
+    retrieval_mean: z.number().min(0).max(1).nullable(),
+    citation_mean: z.number().min(0).max(1).nullable(),
+    structural_faithfulness_mean: z.number().min(0).max(1).nullable(),
+    refusal_mean: z.number().min(0).max(1).nullable(),
+    risk_mean: z.number().min(0).max(1).nullable(),
+    routing_mean: z.number().min(0).max(1).nullable(),
+    average_latency_ms: z.number().int().min(0).nullable(),
+    latency_sample_count: z.number().int().min(0),
+    total_cost_estimate: z.number().min(0).nullable(),
+    cost_sample_count: z.number().int().min(0),
+    failure_code_counts: z.array(evaluationFailureCodeCountSchema),
+    run_failure_code: evaluationRunFailureCodeSchema.nullable(),
+  })
+  .strict();
+export const evaluationRunSchema = z
+  .object({
+    evaluation_run_id: z.string().uuid(),
+    dataset_key: z.string().regex(/^[a-z][a-z0-9-]{2,63}$/),
+    dataset_version: z.string().regex(/^v[1-9][0-9]*$/),
+    dataset_content_hash: z.string().regex(/^[a-f0-9]{64}$/),
+    status: evaluationStatusSchema,
+    started_at: isoTimestampSchema,
+    finished_at: isoTimestampSchema.nullable(),
+    pass_fail: evaluationPassFailSchema,
+    metrics: evaluationMetricsSchema,
+  })
+  .strict();
+export const evaluationResultSchema = z
+  .object({
+    evaluation_result_id: z.string().uuid(),
+    case_key: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    retrieval_score: z.number().min(0).max(1).nullable(),
+    citation_score: z.number().min(0).max(1).nullable(),
+    structural_faithfulness_score: z.number().min(0).max(1).nullable(),
+    refusal_score: z.number().min(0).max(1).nullable(),
+    risk_score: z.number().min(0).max(1).nullable(),
+    routing_score: z.number().min(0).max(1).nullable(),
+    latency_ms: z.number().int().min(0).nullable(),
+    cost_estimate: z.number().min(0).nullable(),
+    passed: z.boolean(),
+    failure_codes: z.array(evaluationFailureCodeSchema),
+  })
+  .strict();
+export const evaluationRunDetailSchema = z
+  .object({ run: evaluationRunSchema, results: z.array(evaluationResultSchema) })
+  .strict();
+export const evaluationRunListSchema = z
+  .object({
+    items: z.array(evaluationRunSchema),
+    limit: z.number().int().min(1).max(100),
+    offset: z.number().int().min(0),
+    total: z.number().int().min(0),
+    has_more: z.boolean(),
+  })
+  .strict();
+export const evaluationDatasetSchema = z
+  .object({
+    dataset_id: z.string().uuid(),
+    dataset_key: z.string().regex(/^[a-z][a-z0-9-]{2,63}$/),
+    version: z.string().regex(/^v[1-9][0-9]*$/),
+    content_hash: z.string().regex(/^[a-f0-9]{64}$/),
+    description: z.string().min(1).max(240),
+  })
+  .strict();
+export const evaluationDatasetListSchema = z
+  .object({ items: z.array(evaluationDatasetSchema) })
+  .strict();
+
+export type EvaluationStatus = z.infer<typeof evaluationStatusSchema>;
+export type EvaluationMetrics = z.infer<typeof evaluationMetricsSchema>;
+export type EvaluationRun = z.infer<typeof evaluationRunSchema>;
+export type EvaluationResult = z.infer<typeof evaluationResultSchema>;
+export type EvaluationRunDetail = z.infer<typeof evaluationRunDetailSchema>;
+export type EvaluationRunList = z.infer<typeof evaluationRunListSchema>;
+export type EvaluationDatasetList = z.infer<typeof evaluationDatasetListSchema>;
+
 export type AuditEventList = z.infer<typeof auditEventListSchema>;
 export type ApprovalQueue = z.infer<typeof approvalQueueSchema>;
 export type ApprovalReviewPacket = z.infer<typeof approvalReviewPacketSchema>;

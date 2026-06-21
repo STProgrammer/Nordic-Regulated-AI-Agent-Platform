@@ -30,6 +30,29 @@ implementation, tests, and validation checks pass within its defined scope.
 | 23    | Workflow Trace and AI Audit Trail      | DONE   |
 | 24    | Controlled LangMem Memory              | DONE   |
 | 25    | Evaluation Dataset and Deterministic Evaluation Runner | DONE   |
+| 26    | AI Quality Evaluation Dashboard        | DONE   |
+
+## Phase 26 — AI Quality Evaluation Dashboard (DONE)
+
+Completed on 2026-06-21.
+
+Delivered an Admin-only, organization-scoped evaluation dashboard in Norwegian Bokmål and English.
+It shows latest and paginated run history, typed aggregate metrics, honest missing latency/cost
+states, safe failed-result links, and a terminal-run Markdown download. The API now replaces the
+free-form run summary with an allowlisted metric projection, exposes safe nested result detail, and
+generates/audits the bounded report server-side. No corpus question, source, prompt, model payload,
+tenant identifier, or arbitrary JSONB is sent to the browser or report.
+
+The report is rendered from the same projection as the screen, has fixed server-owned filename and
+format, supports fixed Bokmål/English labels, and logs only run/dataset identity plus `markdown`.
+No schema migration, evaluator/worker policy change, hosted judging, p95 telemetry, or generic
+export framework was added.
+
+Validation: focused projection, integration, API/OpenAPI/router/audit tests (20) passed; the web
+suite passed 39 tests; frontend lint/typecheck, Ruff, mypy, and repository format checks passed.
+The rebuilt local stack migrated cleanly, passed `pnpm verify:local-stack`, and focused Playwright
+passed both the Admin dashboard-to-failed-result-to-report path and non-Admin denial. `git diff
+--check` passed after clean shutdown.
 
 ## Phase 25 — Evaluation Dataset and Deterministic Evaluation Runner (DONE)
 

@@ -58,7 +58,7 @@ def test_only_implemented_route_modules_define_operations() -> None:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_twenty_four_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_twenty_six_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -97,6 +97,8 @@ def test_aggregate_router_mounts_the_phase_twenty_four_business_operations() -> 
         "/api/evaluations/datasets/{dataset_key}/runs",
         "/api/evaluations/runs",
         "/api/evaluations/runs/{evaluation_run_id}",
+        "/api/evaluations/runs/{evaluation_run_id}/results/{evaluation_result_id}",
+        "/api/evaluations/runs/{evaluation_run_id}/report",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
         "/api/workflows/{workflow_run_id}/trace",

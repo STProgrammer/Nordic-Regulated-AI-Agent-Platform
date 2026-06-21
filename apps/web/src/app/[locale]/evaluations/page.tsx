@@ -1,5 +1,5 @@
-import { PlaceholderPage } from '@/components/layout/placeholder-page';
+import { EvaluationDashboard } from '@/components/evaluation/evaluation-dashboard';
 
 export default function EvaluationsPage() {
-  return <PlaceholderPage area="evaluations" />;
+  return <EvaluationDashboard />;
 }

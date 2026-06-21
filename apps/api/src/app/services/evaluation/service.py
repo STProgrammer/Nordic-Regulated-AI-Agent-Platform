@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
@@ -16,7 +16,11 @@ from evaluation.runners import EvaluationRunReport, evaluate_dataset
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.evaluation import EvalCase, EvalDataset, EvalResult, EvalRun
-from app.db.repositories.evaluation import EvaluationRepository
+from app.db.repositories.evaluation import (
+    EvaluationRepository,
+    EvaluationResultSnapshot,
+    EvaluationRunSnapshot,
+)
 from app.services.audit.service import AuditEventCreate, AuditService
 from app.services.auth.policy import EvaluationAction, authorize_evaluation_action
 from app.services.auth.principal import Principal
@@ -24,6 +28,13 @@ from app.services.common.pagination import Page, Pagination
 from app.services.common.persistence import stage_write
 from app.services.errors import ConflictError, EvaluationUnavailableError, NotFoundError
 from app.services.evaluation.dispatch import EvaluationTaskDispatcher
+from app.services.evaluation.reporting import (
+    EvaluationResultProjection,
+    EvaluationRunProjection,
+    project_result,
+    project_run,
+    render_markdown_report,
+)
 
 _TERMINAL_STATUSES = frozenset({"completed", "failed"})
 
@@ -33,15 +44,6 @@ class CanonicalDatasetRecord:
     """Safe global dataset identity exposed to authenticated operators."""
 
     dataset: EvalDataset
-
-
-@dataclass(frozen=True)
-class EvaluationRunRecord:
-    """One safe current-tenant projection for API mapping."""
-
-    run: EvalRun
-    results: tuple[EvalResult, ...]
-    result_case_keys: dict[UUID, str] = field(default_factory=dict)
 
 
 class EvaluationService:
@@ -64,7 +66,7 @@ class EvaluationService:
             CanonicalDatasetRecord(item) for item in await self._records.list_canonical_datasets()
         )
 
-    async def start(self, principal: Principal, *, dataset_key: str) -> EvalRun:
+    async def start(self, principal: Principal, *, dataset_key: str) -> EvaluationRunProjection:
         """Queue one server-selected canonical dataset run for the current organization."""
 
         authorize_evaluation_action(principal, EvaluationAction.START)
@@ -106,26 +108,70 @@ class EvaluationService:
             except Exception as error:
                 await self._mark_dispatch_failed(run, principal)
                 raise EvaluationUnavailableError() from error
-        return run
+        return project_run(run, dataset_key=dataset.dataset_key, results=())
 
     async def list_runs(
         self, principal: Principal, *, pagination: Pagination, status: str | None = None
-    ) -> Page[EvalRun]:
+    ) -> Page[EvaluationRunProjection]:
         authorize_evaluation_action(principal, EvaluationAction.READ)
-        return await self._records.list_runs(
+        page = await self._records.list_runs(
             principal.organization_id, pagination=pagination, status=status
         )
-
-    async def get_run(self, principal: Principal, run_id: UUID) -> EvaluationRunRecord:
-        authorize_evaluation_action(principal, EvaluationAction.READ)
-        run = await self._records.get_run(principal.organization_id, run_id)
-        if run is None:
-            raise NotFoundError("Evaluation run")
-        return EvaluationRunRecord(
-            run=run,
-            results=await self._records.list_results(run.id),
-            result_case_keys=await self._records.result_case_keys(run.id),
+        snapshots = await self._records.list_result_snapshots(
+            tuple(item.run.id for item in page.items)
         )
+        by_run_id: dict[UUID, list[EvaluationResultSnapshot]] = {}
+        for snapshot in snapshots:
+            by_run_id.setdefault(snapshot.result.eval_run_id, []).append(snapshot)
+        return Page(
+            items=tuple(
+                self._project_snapshot(item, by_run_id.get(item.run.id, [])) for item in page.items
+            ),
+            limit=page.limit,
+            offset=page.offset,
+            total=page.total,
+        )
+
+    async def get_run(self, principal: Principal, run_id: UUID) -> EvaluationRunProjection:
+        authorize_evaluation_action(principal, EvaluationAction.READ)
+        return await self._get_run_projection(principal.organization_id, run_id)
+
+    async def get_result(
+        self, principal: Principal, run_id: UUID, result_id: UUID
+    ) -> EvaluationResultProjection:
+        """Read one safe result only after proving its parent run is tenant-owned."""
+
+        authorize_evaluation_action(principal, EvaluationAction.READ)
+        snapshot = await self._records.get_run(principal.organization_id, run_id)
+        if snapshot is None:
+            raise NotFoundError("Evaluation run")
+        result = await self._records.get_result_snapshot(snapshot.run.id, result_id)
+        if result is None:
+            raise NotFoundError("Evaluation result")
+        return project_result(result.result, case_key=result.case_key)
+
+    async def export_report(self, principal: Principal, run_id: UUID, *, locale: str) -> str:
+        """Render and audit one current-tenant Markdown report after Admin authorization."""
+
+        authorize_evaluation_action(principal, EvaluationAction.EXPORT)
+        projection = await self._get_run_projection(principal.organization_id, run_id)
+        report = render_markdown_report(projection, locale=locale)
+        await self._audit.record_event(
+            AuditEventCreate(
+                organization_id=principal.organization_id,
+                actor_user_id=principal.user_id,
+                event_type="evaluation.report_exported",
+                resource_type="evaluation_run",
+                resource_id=projection.evaluation_run_id,
+                event_data={
+                    "dataset_key": projection.dataset_key,
+                    "dataset_version": projection.dataset_version,
+                    "format": "markdown",
+                },
+            )
+        )
+        await self._session.commit()
+        return report
 
     async def execute(self, run_id: UUID) -> str:
         """Reload and complete one queued run; repeated delivery is a harmless no-op."""
@@ -193,6 +239,26 @@ class EvaluationService:
             return
         await self._mark_worker_failed(run, "worker_runtime_unavailable")
         await self._session.commit()
+
+    async def _get_run_projection(
+        self, organization_id: UUID, run_id: UUID
+    ) -> EvaluationRunProjection:
+        snapshot = await self._records.get_run(organization_id, run_id)
+        if snapshot is None:
+            raise NotFoundError("Evaluation run")
+        results = await self._records.list_result_snapshots((snapshot.run.id,))
+        return self._project_snapshot(snapshot, results)
+
+    def _project_snapshot(
+        self,
+        snapshot: EvaluationRunSnapshot,
+        results: list[EvaluationResultSnapshot] | tuple[EvaluationResultSnapshot, ...],
+    ) -> EvaluationRunProjection:
+        return project_run(
+            snapshot.run,
+            dataset_key=snapshot.dataset_key,
+            results=(project_result(item.result, case_key=item.case_key) for item in results),
+        )
 
     async def _ensure_all_canonical_datasets(self) -> None:
         for dataset_key in CANONICAL_DATASET_KEYS:

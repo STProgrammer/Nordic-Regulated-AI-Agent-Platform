@@ -170,6 +170,7 @@ class EvaluationAction(StrEnum):
 
     START = "start"
     READ = "read"
+    EXPORT = "export"
 
 
 def authorize_evaluation_action(principal: Principal, action: EvaluationAction) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 from uuid import UUID
@@ -11,6 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.evaluation import EvalCase, EvalDataset, EvalResult, EvalRun
 from app.services.common.pagination import Page, Pagination
+
+
+@dataclass(frozen=True)
+class EvaluationRunSnapshot:
+    """A tenant-owned run paired with the safe canonical dataset key."""
+
+    run: EvalRun
+    dataset_key: str
+
+
+@dataclass(frozen=True)
+class EvaluationResultSnapshot:
+    """A result paired only with its safe logical case key."""
+
+    result: EvalResult
+    case_key: str
 
 
 class EvaluationRepository:
@@ -65,16 +82,21 @@ class EvaluationRepository:
         )
         return tuple((await self.session.scalars(statement)).all())
 
-    async def get_run(self, organization_id: UUID, run_id: UUID) -> EvalRun | None:
-        return cast(
-            EvalRun | None,
-            await self.session.scalar(
-                select(EvalRun).where(
+    async def get_run(self, organization_id: UUID, run_id: UUID) -> EvaluationRunSnapshot | None:
+        row = (
+            await self.session.execute(
+                select(EvalRun, EvalDataset.dataset_key)
+                .join(EvalDataset, EvalDataset.id == EvalRun.eval_dataset_id)
+                .where(
                     EvalRun.organization_id == organization_id,
                     EvalRun.id == run_id,
                 )
-            ),
-        )
+            )
+        ).one_or_none()
+        if row is None:
+            return None
+        run, dataset_key = row
+        return EvaluationRunSnapshot(run=run, dataset_key=dataset_key)
 
     async def get_run_for_update(self, run_id: UUID) -> EvalRun | None:
         return cast(
@@ -104,20 +126,24 @@ class EvaluationRepository:
 
     async def list_runs(
         self, organization_id: UUID, *, pagination: Pagination, status: str | None = None
-    ) -> Page[EvalRun]:
+    ) -> Page[EvaluationRunSnapshot]:
         predicates = [EvalRun.organization_id == organization_id]
         if status is not None:
             predicates.append(EvalRun.status == status)
         total = await self.session.scalar(select(func.count(EvalRun.id)).where(*predicates))
         statement = (
-            select(EvalRun)
+            select(EvalRun, EvalDataset.dataset_key)
+            .join(EvalDataset, EvalDataset.id == EvalRun.eval_dataset_id)
             .where(*predicates)
             .order_by(desc(EvalRun.started_at), desc(EvalRun.id))
             .limit(pagination.limit)
             .offset(pagination.offset)
         )
+        rows = (await self.session.execute(statement)).all()
         return Page(
-            items=tuple((await self.session.scalars(statement)).all()),
+            items=tuple(
+                EvaluationRunSnapshot(run=run, dataset_key=dataset_key) for run, dataset_key in rows
+            ),
             limit=pagination.limit,
             offset=pagination.offset,
             total=int(total or 0),
@@ -131,6 +157,39 @@ class EvaluationRepository:
             .order_by(asc(EvalCase.case_key), asc(EvalResult.id))
         )
         return tuple((await self.session.scalars(statement)).all())
+
+    async def list_result_snapshots(
+        self, run_ids: tuple[UUID, ...]
+    ) -> tuple[EvaluationResultSnapshot, ...]:
+        """Load safe result keys for a page of already tenant-scoped runs in one query."""
+
+        if not run_ids:
+            return ()
+        statement = (
+            select(EvalResult, EvalCase.case_key)
+            .join(EvalCase, EvalCase.id == EvalResult.eval_case_id)
+            .where(EvalResult.eval_run_id.in_(run_ids))
+            .order_by(asc(EvalResult.eval_run_id), asc(EvalCase.case_key), asc(EvalResult.id))
+        )
+        return tuple(
+            EvaluationResultSnapshot(result=result, case_key=case_key)
+            for result, case_key in (await self.session.execute(statement)).all()
+        )
+
+    async def get_result_snapshot(
+        self, run_id: UUID, result_id: UUID
+    ) -> EvaluationResultSnapshot | None:
+        row = (
+            await self.session.execute(
+                select(EvalResult, EvalCase.case_key)
+                .join(EvalCase, EvalCase.id == EvalResult.eval_case_id)
+                .where(EvalResult.eval_run_id == run_id, EvalResult.id == result_id)
+            )
+        ).one_or_none()
+        if row is None:
+            return None
+        result, case_key = row
+        return EvaluationResultSnapshot(result=result, case_key=case_key)
 
     async def result_case_keys(self, run_id: UUID) -> dict[UUID, str]:
         """Resolve only safe logical case keys for an already scoped run projection."""

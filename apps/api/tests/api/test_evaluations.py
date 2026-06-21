@@ -15,7 +15,14 @@ from app.services.auth.policy import EvaluationAction, authorize_evaluation_acti
 from app.services.auth.principal import Principal, RoleName
 from app.services.common.pagination import Page, Pagination
 from app.services.errors import NotFoundError
-from app.services.evaluation.service import CanonicalDatasetRecord, EvaluationRunRecord
+from app.services.evaluation.reporting import (
+    EvaluationResultProjection,
+    EvaluationRunProjection,
+    project_result,
+    project_run,
+    render_markdown_report,
+)
+from app.services.evaluation.service import CanonicalDatasetRecord
 from fastapi.testclient import TestClient
 
 _SESSION_ID = "synthetic_evaluation_session_012345678901234567890123456"
@@ -72,6 +79,8 @@ class _EvaluationServiceFake:
             refusal_score=Decimal("1"),
             risk_score=Decimal("1"),
             routing_score=Decimal("1"),
+            latency_ms=0,
+            cost_estimate=Decimal("0"),
             passed=True,
             failure_reasons={"codes": []},
             inserted_at=now,
@@ -83,31 +92,52 @@ class _EvaluationServiceFake:
         authorize_evaluation_action(principal, EvaluationAction.READ)
         return (CanonicalDatasetRecord(self.dataset),)
 
-    async def start(self, principal: Principal, *, dataset_key: str) -> EvalRun:
+    def _run_projection(self) -> EvaluationRunProjection:
+        return project_run(
+            self.run,
+            dataset_key=self.dataset.dataset_key,
+            results=(project_result(self.result, case_key="synthetic_case"),),
+        )
+
+    async def start(self, principal: Principal, *, dataset_key: str) -> EvaluationRunProjection:
         authorize_evaluation_action(principal, EvaluationAction.START)
         if dataset_key != self.dataset.dataset_key:
             raise NotFoundError("Evaluation dataset")
         self.run.status = "queued"
         self.run.finished_at = None
         self.run.pass_fail = "pending"
-        return self.run
+        return project_run(self.run, dataset_key=self.dataset.dataset_key, results=())
 
     async def list_runs(
         self, principal: Principal, *, pagination: Pagination, status: str | None = None
-    ) -> Page[EvalRun]:
+    ) -> Page[EvaluationRunProjection]:
         authorize_evaluation_action(principal, EvaluationAction.READ)
-        items = (self.run,) if status is None or status == self.run.status else ()
+        items = (self._run_projection(),) if status is None or status == self.run.status else ()
         return Page(items=items, limit=pagination.limit, offset=pagination.offset, total=len(items))
 
-    async def get_run(self, principal: Principal, run_id: UUID) -> EvaluationRunRecord:
+    async def get_run(self, principal: Principal, run_id: UUID) -> EvaluationRunProjection:
         authorize_evaluation_action(principal, EvaluationAction.READ)
         if run_id != self.run.id or principal.organization_id != self.principal.organization_id:
             raise NotFoundError("Evaluation run")
-        return EvaluationRunRecord(
-            run=self.run,
-            results=(self.result,),
-            result_case_keys={self.result.id: "synthetic_case"},
-        )
+        return self._run_projection()
+
+    async def get_result(
+        self, principal: Principal, run_id: UUID, result_id: UUID
+    ) -> EvaluationResultProjection:
+        authorize_evaluation_action(principal, EvaluationAction.READ)
+        if (
+            run_id != self.run.id
+            or result_id != self.result.id
+            or principal.organization_id != self.principal.organization_id
+        ):
+            raise NotFoundError("Evaluation result")
+        return project_result(self.result, case_key="synthetic_case")
+
+    async def export_report(self, principal: Principal, run_id: UUID, *, locale: str) -> str:
+        authorize_evaluation_action(principal, EvaluationAction.EXPORT)
+        if run_id != self.run.id or principal.organization_id != self.principal.organization_id:
+            raise NotFoundError("Evaluation run")
+        return render_markdown_report(self._run_projection(), locale=locale)
 
 
 def _client(*roles: RoleName) -> tuple[TestClient, _EvaluationServiceFake]:
@@ -131,6 +161,8 @@ def test_evaluation_routes_require_admin_and_expose_safe_data_only() -> None:
     denied, _service = _client(RoleName.CASE_WORKER)
     with denied:
         assert denied.get("/api/evaluations/datasets").status_code == 403
+        assert denied.get(f"/api/evaluations/runs/{uuid4()}/results/{uuid4()}").status_code == 403
+        assert denied.post(f"/api/evaluations/runs/{uuid4()}/report", json={}).status_code == 403
 
     client, service = _client(RoleName.ADMIN)
     with client:
@@ -142,6 +174,16 @@ def test_evaluation_routes_require_admin_and_expose_safe_data_only() -> None:
         )
         runs = client.get("/api/evaluations/runs?status=queued")
         detail = client.get(f"/api/evaluations/runs/{service.run.id}")
+        result = client.get(f"/api/evaluations/runs/{service.run.id}/results/{service.result.id}")
+        mismatch = client.get(f"/api/evaluations/runs/{service.run.id}/results/{uuid4()}")
+        report = client.post(
+            f"/api/evaluations/runs/{service.run.id}/report",
+            headers={"Accept-Language": "en"},
+            json={},
+        )
+        report_extra = client.post(
+            f"/api/evaluations/runs/{service.run.id}/report", json={"format": "pdf"}
+        )
         foreign = client.get(f"/api/evaluations/runs/{uuid4()}")
 
     assert datasets.status_code == 200
@@ -154,6 +196,18 @@ def test_evaluation_routes_require_admin_and_expose_safe_data_only() -> None:
     assert detail.status_code == 200
     assert detail.json()["data"]["results"][0]["case_key"] == "synthetic_case"
     assert detail.json()["data"]["results"][0]["risk_score"] == 1.0
+    assert detail.json()["data"]["run"]["metrics"]["average_latency_ms"] == 0
+    assert detail.json()["data"]["run"]["metrics"]["total_cost_estimate"] == 0
+    assert "summary" not in detail.json()["data"]["run"]
+    assert "evaluation_case_id" not in detail.json()["data"]["results"][0]
+    assert result.status_code == 200
+    assert result.json()["data"]["cost_estimate"] == 0
+    assert mismatch.status_code == 404
+    assert report.status_code == 200
+    assert report.headers["content-type"].startswith("text/markdown")
+    assert report.headers["content-disposition"] == 'attachment; filename="evaluation-report.md"'
+    assert report.text.startswith("# Evaluation report")
+    assert report_extra.status_code == 422
     assert "query" not in detail.text
     assert "provider" not in detail.text
     assert foreign.status_code == 404

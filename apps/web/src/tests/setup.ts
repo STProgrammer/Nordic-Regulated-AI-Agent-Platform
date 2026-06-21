@@ -16,7 +16,7 @@ vi.mock('next/link', async () => {
 
 vi.mock('next/navigation', () => ({
   usePathname: () => router.pathname,
-  useRouter: () => ({ replace: router.replace }),
+  useRouter: () => ({ push: router.push, replace: router.replace }),
   useSearchParams: () => new URLSearchParams(router.search),
 }));
 

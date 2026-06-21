@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_the_phase_twenty_four_product_endpoints() -> None:
+def test_openapi_declares_the_phase_twenty_six_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
@@ -65,6 +65,8 @@ def test_openapi_declares_the_phase_twenty_four_product_endpoints() -> None:
         "/api/evaluations/datasets/{dataset_key}/runs",
         "/api/evaluations/runs",
         "/api/evaluations/runs/{evaluation_run_id}",
+        "/api/evaluations/runs/{evaluation_run_id}/results/{evaluation_result_id}",
+        "/api/evaluations/runs/{evaluation_run_id}/report",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
         "/api/workflows/{workflow_run_id}/trace",
@@ -119,6 +121,9 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     assert schema["paths"]["/api/evaluations/datasets"]["get"]["security"] == [
         {"SessionCookie": []}
     ]
+    assert schema["paths"]["/api/evaluations/runs/{evaluation_run_id}/report"]["post"][
+        "security"
+    ] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/cases/{case_id}/workflows/run"]["post"]["security"] == [
         {"SessionCookie": []}
     ]

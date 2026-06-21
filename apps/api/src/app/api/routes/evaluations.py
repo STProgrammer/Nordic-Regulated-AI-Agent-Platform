@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Query, Request, status
+from fastapi import APIRouter, Header, Path, Query, Request, Response, status
 
 from app.api.dependencies import CurrentPrincipalDependency, EvaluationServiceDependency
 from app.api.schemas.common import (
@@ -17,15 +18,18 @@ from app.api.schemas.common import (
 from app.api.schemas.evaluations import (
     EvaluationDatasetData,
     EvaluationDatasetListData,
+    EvaluationFailureCodeCountData,
+    EvaluationMetricsData,
+    EvaluationReportExportRequest,
     EvaluationResultData,
     EvaluationRunData,
     EvaluationRunDetailData,
     EvaluationRunListData,
     EvaluationRunStartRequest,
 )
-from app.db.models.evaluation import EvalResult, EvalRun
 from app.services.common.pagination import Page, Pagination
-from app.services.evaluation.service import CanonicalDatasetRecord, EvaluationRunRecord
+from app.services.evaluation.reporting import EvaluationResultProjection, EvaluationRunProjection
+from app.services.evaluation.service import CanonicalDatasetRecord
 
 PREFIX = "/evaluations"
 TAG = "Evaluations"
@@ -117,6 +121,56 @@ async def get_run(
     return SuccessResponse(data=_run_detail_data(record), meta=_meta(request))
 
 
+@router.get(
+    "/runs/{evaluation_run_id}/results/{evaluation_result_id}",
+    response_model=SuccessResponse[EvaluationResultData],
+    responses=_EVALUATION_ERRORS,
+    summary="Inspect one safe current-organization evaluation result",
+)
+async def get_result(
+    evaluation_run_id: UUID,
+    evaluation_result_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    evaluations: EvaluationServiceDependency,
+) -> SuccessResponse[EvaluationResultData]:
+    result = await evaluations.get_result(principal, evaluation_run_id, evaluation_result_id)
+    return SuccessResponse(data=_result_data(result), meta=_meta(request))
+
+
+@router.post(
+    "/runs/{evaluation_run_id}/report",
+    response_class=Response,
+    responses={
+        **_EVALUATION_ERRORS,
+        200: {
+            "content": {"text/markdown": {"schema": {"type": "string"}}},
+            "description": "A bounded server-generated Markdown evaluation report.",
+        },
+    },
+    summary="Export one safe current-organization Markdown evaluation report",
+)
+async def export_report(
+    evaluation_run_id: UUID,
+    _payload: EvaluationReportExportRequest,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    evaluations: EvaluationServiceDependency,
+    accept_language: Annotated[str | None, Header()] = None,
+) -> Response:
+    report = await evaluations.export_report(
+        principal,
+        evaluation_run_id,
+        locale=accept_language or "nb",
+    )
+    _ = request
+    return Response(
+        content=report,
+        media_type="text/markdown",
+        headers={"Content-Disposition": 'attachment; filename="evaluation-report.md"'},
+    )
+
+
 def _dataset_data(record: CanonicalDatasetRecord) -> EvaluationDatasetData:
     dataset = record.dataset
     return EvaluationDatasetData(
@@ -128,58 +182,72 @@ def _dataset_data(record: CanonicalDatasetRecord) -> EvaluationDatasetData:
     )
 
 
-def _run_data(run: EvalRun) -> EvaluationRunData:
+def _run_data(run: EvaluationRunProjection) -> EvaluationRunData:
     return EvaluationRunData(
-        evaluation_run_id=run.id,
-        dataset_id=run.eval_dataset_id,
+        evaluation_run_id=run.evaluation_run_id,
+        dataset_key=run.dataset_key,
         dataset_version=run.dataset_version,
         dataset_content_hash=run.dataset_content_hash,
         status=cast(Literal["queued", "running", "completed", "failed"], run.status),
         started_at=run.started_at,
         finished_at=run.finished_at,
         pass_fail=cast(Literal["pending", "pass", "fail"], run.pass_fail),
-        summary=dict(run.summary_metrics),
+        metrics=_metrics_data(run),
     )
 
 
-def _result_data(result: EvalResult, *, case_key: str) -> EvaluationResultData:
-    raw_codes = result.failure_reasons.get("codes")
-    codes = (
-        tuple(code for code in raw_codes if isinstance(code, str))
-        if isinstance(raw_codes, list)
-        else ()
+def _metrics_data(run: EvaluationRunProjection) -> EvaluationMetricsData:
+    metrics = run.metrics
+    return EvaluationMetricsData(
+        case_total=metrics.case_total,
+        passed_case_total=metrics.passed_case_total,
+        failed_case_total=metrics.failed_case_total,
+        retrieval_mean=_float_or_none(metrics.retrieval_mean),
+        citation_mean=_float_or_none(metrics.citation_mean),
+        structural_faithfulness_mean=_float_or_none(metrics.structural_faithfulness_mean),
+        refusal_mean=_float_or_none(metrics.refusal_mean),
+        risk_mean=_float_or_none(metrics.risk_mean),
+        routing_mean=_float_or_none(metrics.routing_mean),
+        average_latency_ms=metrics.average_latency_ms,
+        latency_sample_count=metrics.latency_sample_count,
+        total_cost_estimate=_float_or_none(metrics.total_cost_estimate),
+        cost_sample_count=metrics.cost_sample_count,
+        failure_code_counts=tuple(
+            EvaluationFailureCodeCountData(code=item.code, count=item.count)
+            for item in metrics.failure_code_counts
+        ),
+        run_failure_code=metrics.run_failure_code,
     )
+
+
+def _result_data(result: EvaluationResultProjection) -> EvaluationResultData:
     return EvaluationResultData(
-        evaluation_result_id=result.id,
-        evaluation_case_id=result.eval_case_id,
-        case_key=case_key,
-        retrieval_score=float(result.retrieval_score)
-        if result.retrieval_score is not None
-        else None,
-        citation_score=(
-            float(result.citation_score) if result.citation_score is not None else None
-        ),
-        structural_faithfulness_score=(
-            float(result.faithfulness_score) if result.faithfulness_score is not None else None
-        ),
-        refusal_score=float(result.refusal_score) if result.refusal_score is not None else None,
-        risk_score=float(result.risk_score) if result.risk_score is not None else None,
-        routing_score=float(result.routing_score) if result.routing_score is not None else None,
+        evaluation_result_id=result.evaluation_result_id,
+        case_key=result.case_key,
+        retrieval_score=_float_or_none(result.retrieval_score),
+        citation_score=_float_or_none(result.citation_score),
+        structural_faithfulness_score=_float_or_none(result.structural_faithfulness_score),
+        refusal_score=_float_or_none(result.refusal_score),
+        risk_score=_float_or_none(result.risk_score),
+        routing_score=_float_or_none(result.routing_score),
+        latency_ms=result.latency_ms,
+        cost_estimate=_float_or_none(result.cost_estimate),
         passed=result.passed,
-        failure_codes=codes,
+        failure_codes=result.failure_codes,
     )
 
 
-def _run_detail_data(record: EvaluationRunRecord) -> EvaluationRunDetailData:
+def _run_detail_data(record: EvaluationRunProjection) -> EvaluationRunDetailData:
     return EvaluationRunDetailData(
-        run=_run_data(record.run),
-        results=tuple(
-            _result_data(item, case_key=record.result_case_keys[item.id]) for item in record.results
-        ),
+        run=_run_data(record), results=tuple(_result_data(item) for item in record.results)
     )
 
 
-def _run_list_data(page: Page[EvalRun]) -> EvaluationRunListData:
+def _float_or_none(value: Decimal | None) -> float | None:
+    return float(value) if value is not None else None
+
+
+def _run_list_data(page: Page[EvaluationRunProjection]) -> EvaluationRunListData:
     return EvaluationRunListData(
         items=tuple(_run_data(item) for item in page.items),
         limit=page.limit,
