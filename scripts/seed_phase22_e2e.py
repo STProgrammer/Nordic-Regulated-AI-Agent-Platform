@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from datetime import UTC, datetime
@@ -58,6 +59,7 @@ async def main() -> int:
         print("Phase 22 E2E seeding is limited to local and test environments.", file=sys.stderr)
         return 1
 
+    fixture: dict[str, str] | None = None
     try:
         await seed_local(settings, local_password=password)
         sessionmaker = get_sessionmaker(settings)
@@ -184,13 +186,21 @@ async def main() -> int:
                 **approval_run.state_snapshot,
                 "approval_id": str(approval.id),
             }
+            fixture = {
+                "approval_id": str(approval.id),
+                "case_id": str(case.id),
+                "title": case.title,
+            }
     except Exception:
         print("Phase 22 E2E fixture seed failed.", file=sys.stderr)
         return 1
     finally:
         await dispose_database_engines()
 
-    print("Synthetic Phase 22 E2E fixture seeded.")
+    if fixture is None:
+        print("Phase 22 E2E fixture seed produced no fixture.", file=sys.stderr)
+        return 1
+    print(json.dumps(fixture, sort_keys=True))
     return 0
 
 

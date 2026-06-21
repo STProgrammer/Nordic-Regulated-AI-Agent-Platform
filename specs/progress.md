@@ -27,6 +27,53 @@ implementation, tests, and validation checks pass within its defined scope.
 | 20    | Drafting Graph                        | DONE   |
 | 21    | Risk and Compliance Graph              | DONE   |
 | 22    | Human Approval Workflow                | DONE   |
+| 23    | Workflow Trace and AI Audit Trail      | DONE   |
+| 24    | Controlled LangMem Memory              | DONE   |
+
+## Phase 24 — Controlled LangMem Memory (DONE)
+
+Completed on 2026-06-21.
+
+Delivered an explicitly managed, durable controlled-memory boundary. LangMem-compatible LangGraph
+Postgres storage sits behind a server-owned adapter with tenant/user UUID namespaces; SQL remains the
+governed inspection record. Closed payload schemas permit only self `nb`/`en` language preference,
+organization Drafting presentation preference, approved terminology, and case-independent process
+hints. Conservative screening rejects contact/identifier data, storage references, credentials,
+prompt-injection language, and case/document references. Existing organizations default to disabled;
+Admin controls are tenant-scoped, auditable, and preserve archived history.
+
+Drafting reads only bounded, non-evidentiary presentation context after eligible Evidence has been
+revalidated. Explicit language remains authoritative, source/citation/risk/approval/case-state behavior
+is unchanged, and state/trace/audit projections contain only enabled/count/outcome metadata. The
+localized Admin surface exposes typed settings/inspection/create/revise/archive controls; the existing
+locale switcher updates only the current user's closed language preference and keeps working if that
+optional request is unavailable.
+
+Validation: controlled-memory policy/store tests (3), Drafting regression tests (3), focused
+API/Auth/Audit/Trace/OpenAPI/router tests (24), Postgres persistence integration, and database
+foundation migration tests (5) passed; the web suite passed 29 tests. Workspace, format, lint, Ruff,
+mypy, and TypeScript checks passed. The rebuilt local stack migrated to `f24d9a7c4102`, passed
+`pnpm verify:local-stack`, and the focused Playwright journey passed with Admin enable/create,
+metadata-only Drafting use, disablement, and non-Admin denial.
+
+## Phase 23 — Workflow Trace and AI Audit Trail (DONE)
+
+Completed on 2026-06-21.
+
+Delivered a tenant-scoped, metadata-only investigation surface: protected per-run traces of
+lifecycle/node/retry/tool/model/source/accounting/final-state metadata; append-only filtered audit
+inspection; and safe case-scoped audit reads. A new bounded `workflow_tool_calls` record closes the
+durable tool-invocation gap. Response-side sanitization and strict DTO/Zod contracts independently
+exclude stored unsafe data, prompts, raw content, credentials, provider bodies, storage details, and
+transport diagnostics. The localized Bokmål/English Audit Trail and Workflow Trace views are
+accessible, use server-authorized IDs, and retain existing source-context authorization.
+
+Validation: focused tool, API, integration, and web tests passed (27 Vitest tests); strict Ruff,
+mypy, ESLint, and TypeScript checks passed; and `git diff --check` passed. The rebuilt local stack
+migrated to `c23f4a7b8d91`, passed `pnpm verify:local-stack`, and passed the focused two-test
+Playwright flow for trace access, audit filtering, and denied/unknown-resource behavior. The
+migration was additionally exercised through a downgrade/upgrade cycle after correcting its UUID
+server default.
 
 ## Phase 22 — Human Approval Workflow (DONE)
 

@@ -8,8 +8,10 @@ import {
   intakeCorrectionInputSchema,
   intakeStartInputSchema,
   riskComplianceStartInputSchema,
+  workflowTraceSchema,
   workflowRunSchema,
   type IntakeCorrectionInput,
+  type WorkflowTrace,
   type WorkflowRun,
 } from '@/lib/api/contracts';
 
@@ -65,6 +67,10 @@ export const workflowsApi = {
 
   get(runId: string): Promise<WorkflowRun> {
     return apiRequest(runPath(runId), workflowRunSchema);
+  },
+
+  getTrace(runId: string): Promise<WorkflowTrace> {
+    return apiRequest(`${runPath(runId)}/trace`, workflowTraceSchema);
   },
 
   correct(runId: string, input: IntakeCorrectionInput): Promise<WorkflowRun> {

@@ -22,6 +22,7 @@ from app.services.workflows.service import (
     WorkflowNodeStart,
     WorkflowRunFinalize,
     WorkflowRunService,
+    WorkflowToolCallCreate,
 )
 
 
@@ -283,6 +284,40 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
             self._session,
             lambda: self._add_model_usage(record),
             resource="Model usage record",
+        )
+
+    async def record_tool_call(
+        self,
+        context: WorkflowContext,
+        *,
+        node_run_id: UUID | None,
+        tool_name: str,
+        status: str,
+        started_at: datetime,
+        finished_at: datetime,
+        duration_ms: int,
+        retry_count: int,
+        input_summary: dict[str, object],
+        output_summary: dict[str, object],
+        error_code: str | None = None,
+    ) -> None:
+        """Persist a ToolRegistry event without accepting tool payloads or result bodies."""
+
+        await self._workflows.record_tool_call(
+            WorkflowToolCallCreate(
+                organization_id=context.organization_id,
+                workflow_run_id=context.workflow_run_id,
+                workflow_node_run_id=node_run_id,
+                tool_name=tool_name,
+                status=status,
+                started_at=started_at,
+                finished_at=finished_at,
+                duration_ms=duration_ms,
+                retry_count=retry_count,
+                input_summary=input_summary,
+                output_summary=output_summary,
+                error_summary=error_code,
+            )
         )
 
     async def _add_model_usage(self, record: ModelUsageRecord) -> ModelUsageRecord:

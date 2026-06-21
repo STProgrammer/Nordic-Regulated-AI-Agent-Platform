@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { WorkflowTraceLink } from '@/components/workflow/workflow-trace-link';
 import type { AppLocale } from '@/i18n/routing';
 import { type IntakeCaseType, type WorkflowRun } from '@/lib/api/contracts';
 import { workflowsApi } from '@/lib/api/workflows';
@@ -107,6 +108,11 @@ export function IntakePanel({ caseId }: { caseId: string }) {
       ) : (
         <p className="mt-4 text-slate-700">{t('notStarted')}</p>
       )}
+      {activeRun ? (
+        <p className="mt-4">
+          <WorkflowTraceLink workflowRunId={activeRun.workflow_run_id} />
+        </p>
+      ) : null}
       {activeRun?.status === 'completed' && activeRun.intake?.low_confidence ? (
         <CorrectionForm
           initialCaseType={activeRun.intake.case_type ?? 'unknown'}

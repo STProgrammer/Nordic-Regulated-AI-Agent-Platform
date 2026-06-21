@@ -105,13 +105,23 @@ function PacketContent({ approvalId }: { approvalId: string }) {
   }
 
   return (
-    <section aria-labelledby="approval-packet-title" className="space-y-6">
+    <section
+      aria-labelledby="approval-packet-title"
+      className="space-y-6"
+      data-testid="approval-review-packet"
+    >
       <div>
         <p className="text-sm font-medium text-slate-600">{data.case_number}</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight" id="approval-packet-title">
           {data.case_title}
         </h1>
-        <p aria-live="polite" className="mt-2 text-slate-700" role="status">
+        <p
+          aria-live="polite"
+          className="mt-2 text-slate-700"
+          data-approval-status={data.approval_status}
+          data-testid="approval-decision-status"
+          role="status"
+        >
           {t(`status.${data.approval_status}`)} · {t(`risk.${data.risk_level}`)}
         </p>
       </div>
@@ -139,7 +149,12 @@ function PacketContent({ approvalId }: { approvalId: string }) {
         {data.final_text ? (
           <>
             <h3 className="mt-6 font-semibold">{t('finalText')}</h3>
-            <p className="mt-2 whitespace-pre-wrap text-slate-800">{data.final_text}</p>
+            <p
+              className="mt-2 whitespace-pre-wrap text-slate-800"
+              data-testid="approval-final-text"
+            >
+              {data.final_text}
+            </p>
           </>
         ) : null}
       </section>
@@ -179,6 +194,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
               <span className="font-medium">{t('finalTextLabel')}</span>
               <textarea
                 className="mt-2 min-h-32 w-full rounded-md border border-slate-300 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                data-testid="approval-final-text-input"
                 maxLength={20000}
                 onChange={(event) => setFinalText(event.target.value)}
                 value={finalText}
@@ -190,6 +206,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
                 {t('approve')}
               </Button>
               <Button
+                data-testid="approval-edit-and-approve"
                 disabled={isSubmitting || !finalText.trim()}
                 onClick={() => setPendingAction('edit_and_approve')}
               >
@@ -231,6 +248,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           aria-labelledby="approval-confirm-title"
           aria-modal="true"
           className="rounded-xl border-2 border-sky-700 bg-sky-50 p-6"
+          data-testid="approval-decision-confirmation"
           role="alertdialog"
         >
           <h2 className="text-xl font-semibold" id="approval-confirm-title">
@@ -240,7 +258,11 @@ function PacketContent({ approvalId }: { approvalId: string }) {
             {t(`confirmation.${pendingAction}`)}
           </p>
           <div className="mt-4 flex gap-3">
-            <Button disabled={isSubmitting} onClick={() => void submitTerminalAction()}>
+            <Button
+              data-testid="approval-decision-confirm"
+              disabled={isSubmitting}
+              onClick={() => void submitTerminalAction()}
+            >
               {isSubmitting ? t('submitting') : t('confirm')}
             </Button>
             <Button disabled={isSubmitting} onClick={() => setPendingAction(null)}>

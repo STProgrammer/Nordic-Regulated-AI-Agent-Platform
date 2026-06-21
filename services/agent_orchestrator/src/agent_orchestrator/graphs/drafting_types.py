@@ -37,3 +37,7 @@ class DraftingWorkflowState(CaseWorkflowState):
     citation_count: Annotated[int, Field(ge=0, le=20)] = 0
     unsupported_claims_detected: bool = False
     node_count: Annotated[int, Field(ge=0, le=6)] = 0
+    memory_enabled: bool = False
+    memory_considered_count: Annotated[int, Field(ge=0, le=4)] = 0
+    memory_applied_count: Annotated[int, Field(ge=0, le=4)] = 0
+    memory_outcome_codes: tuple[str, ...] = ()

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { WorkflowTraceLink } from '@/components/workflow/workflow-trace-link';
 import { documentsApi } from '@/lib/api/documents';
 import {
   type ExtractedField,
@@ -111,6 +112,11 @@ export function ExtractionPanel({ caseId }: { caseId: string }) {
       ) : (
         <p className="mt-4 text-slate-700">{t('notStarted')}</p>
       )}
+      {displayedRun ? (
+        <p className="mt-4">
+          <WorkflowTraceLink workflowRunId={displayedRun.workflow_run_id} />
+        </p>
+      ) : null}
     </section>
   );
 }

@@ -14,6 +14,7 @@ from agent_orchestrator.graphs.drafting_types import (
     OutputLanguage,
 )
 from agent_orchestrator.graphs.runtime import GraphNode, GraphRunResult, GraphRuntime
+from agent_orchestrator.memory.policy import PresentationMemoryContext
 from agent_orchestrator.model_providers.base import StructuredModelProvider, StructuredModelRequest
 from agent_orchestrator.persistence.ports import WorkflowPersistence
 from agent_orchestrator.prompts.base import EffectivePrompt, PromptLoader
@@ -58,6 +59,7 @@ class DraftingGraphDependencies:
     persistence: WorkflowPersistence
     persist_draft: PersistDraft
     retry_policy: RetryPolicy
+    presentation_memory: PresentationMemoryContext = PresentationMemoryContext()
 
 
 DRAFTING_NODE_NAMES: tuple[str, ...] = (
@@ -123,6 +125,7 @@ class DraftingGraph:
                         {"citation_label": source.citation_label, "excerpt": source.excerpt}
                         for source in self._dependencies.evidence_sources
                     ],
+                    "presentation": _presentation_input(self._dependencies.presentation_memory),
                 },
                 output_model=DraftProviderOutput,
             )
@@ -220,3 +223,19 @@ def _claims_are_source_supported(draft: str, sources: tuple[DraftingEvidenceSour
 
 def _normalized(value: str) -> str:
     return " ".join(re.findall(r"\w+", value.casefold()))
+
+
+def _presentation_input(context: PresentationMemoryContext) -> dict[str, object]:
+    """Build the tiny non-factual model input without putting it in graph state."""
+
+    payload: dict[str, object] = {}
+    if context.style is not None:
+        payload["style"] = context.style
+    if context.terminology:
+        payload["approved_terminology"] = [
+            {"source_term": source, "preferred_term": preferred}
+            for source, preferred in context.terminology
+        ]
+    if context.process_hints:
+        payload["approved_process_hints"] = list(context.process_hints)
+    return payload

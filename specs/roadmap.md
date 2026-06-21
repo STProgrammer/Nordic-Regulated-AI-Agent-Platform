@@ -160,14 +160,14 @@ Every phase must include at least one validation method. A phase is not complete
 - Store original AI draft separately from final human-approved text.
 - Validation: Integration and Playwright tests cover full case worker to reviewer approval flow, edit tracking, rejection, and request-more-evidence paths.
 
-## Phase 23 — Workflow Trace and AI Audit Trail
+## Phase 23 — Workflow Trace and AI Audit Trail (DONE)
 
 - Implement trace views for workflow runs, LangGraph nodes, tool calls, model calls, retrieved sources, errors, retries, timing, token usage, cost estimate, and final state.
 - Implement audit event filtering by organization, case, resource type, event type, and time.
 - Ensure traces exclude secrets and unsafe raw credentials.
 - Validation: Tests verify trace completeness, audit filtering, role restrictions, and absence of secrets in trace output.
 
-## Phase 24 — Controlled LangMem Memory
+## Phase 24 — Controlled LangMem Memory (DONE)
 
 - Implement LangMem-backed controlled memory for approved non-sensitive use cases such as UI language preference, organization workflow preference, approved terminology, and reusable process hints.
 - Add memory scoping, admin disablement, memory usage logging, and memory inspection where appropriate.

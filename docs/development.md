@@ -316,6 +316,24 @@ AZURITE_HOST=127.0.0.1 NORDIC_RUN_AZURITE_TEST=1 \
   uv run pytest apps/api/tests/integration/test_azurite_storage.py
 ```
 
+### Workflow trace and audit trail
+
+Phase 23 adds read-only investigation views, not a general observability console. A permitted Case
+reader can open a workflow trace from a workflow panel in Case Detail at
+`/nb/workflows/{workflow_run_id}/trace`; Admins, Compliance Reviewers, and Read-only Auditors can
+inspect their organization's filtered event list at `http://127.0.0.1:3000/nb/audit`. The equivalent
+English routes use `/en`. The API equivalents are `GET /api/workflows/{workflow_run_id}/trace`,
+`GET /api/audit/events`, and the case-read-protected `GET /api/cases/{case_id}/audit`.
+
+Use synthetic data only. Inspect lifecycle timing, retries, controlled error codes, model
+accounting, metadata-only tool calls, and currently authorized source references. A source context
+is fetched only after an explicit action through its existing governed route. Trace and audit
+responses deliberately exclude prompts, AI draft text, document/case text, source excerpts and
+scores, tool payloads/results, provider request/response bodies, credentials, cookies, tokens,
+storage keys, SQL, stack traces, IP addresses, and user-agent data. They do not export, replay,
+mutate, cancel, or resume workflows, and automated validation uses no external model or tool
+provider.
+
 ### Database foundation workflow
 
 The PostgreSQL schema is owned by Alembic and is never mutated by normal API or worker startup. The
@@ -393,6 +411,24 @@ tenant guard and repository predicates together hide cross-organization resource
 backend policy, not frontend or OpenAPI-only behavior. Required high-risk review is enforced by the
 dedicated Phase 22 approval workflow; there is no generic case-status shortcut around it.
 
+### Controlled memory local walkthrough
+
+Controlled memory is a narrow, server-owned preference facility. It accepts only approved
+organization terminology, bounded Drafting presentation preferences, and case-independent process
+hints, plus the current user's `nb`/`en` UI-language preference. It is disabled by default for every
+organization. It never stores case/document/source text, contact data, links, secrets, or model
+instructions; it cannot alter retrieval, citations, risk, approvals, or case state.
+
+With the local stack running and a synthetic seed password provisioned, sign in as
+`per.eksempel+admin@demo.invalid` at `http://127.0.0.1:3000/nb/admin`. Enable controlled memory,
+create one short approved-terminology entry, and inspect only its typed safe fields. A later
+eligible deterministic Drafting run may consume bounded presentation context; inspect the existing
+Audit Trail or Workflow Trace for counts and closed outcome codes only. No page should display the
+stored term, LangGraph namespace, database URL, provider/store error, or protected workflow data.
+Disable memory, then run another eligible draft: normal evidence-grounded Drafting continues, but no
+memory entry is applied. Use only synthetic local content and remove the synthetic password from the
+shell when done.
+
 ### Troubleshooting
 
 - If startup fails before containers run, use
@@ -443,8 +479,11 @@ marked complete.
 
 ### Browser smoke test
 
-The independent `pnpm test:e2e` command covers login, Case submission, inbox search, and Case Detail
-navigation against a running local Compose stack. Install its project-managed browser once:
+The independent `pnpm test:e2e` command covers the focused human-approval journey against a running
+local Compose stack. It seeds one synthetic case already at completed drafting, approval-required
+risk, and pending human review; it then verifies reviewer approval and the case worker's terminal
+case view. Login UI, case submission, upstream workflow graphs, and inbox search are intentionally
+out of scope for this browser test. Install its project-managed browser once:
 
 ```bash
 pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
@@ -452,11 +491,10 @@ pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --
 
 On Linux, this command may ask for `sudo` to install browser libraries. Start Compose with
 `NORDIC_API_EMBEDDING_PROVIDER=deterministic` for this local-only plumbing test. After migrations
-and password provisioning, export `NORDIC_E2E_CASE_WORKER_EMAIL` with a synthetic seeded Case Worker
-address and retain `NORDIC_LOCAL_SEED_PASSWORD` in the shell. The spec rejects missing setup without
-printing values, creates/indexes one synthetic document through the API setup boundary, and disables
-traces, video, and screenshots. Run `unset NORDIC_E2E_CASE_WORKER_EMAIL NORDIC_LOCAL_SEED_PASSWORD`
-after the test.
+and password provisioning, retain `NORDIC_LOCAL_SEED_PASSWORD` in the shell. The spec rejects
+missing setup without printing values, uses a local-only direct seed, transfers the fixture IDs to
+the browser test, establishes two browser sessions through the local API, and disables traces,
+video, and screenshots. Run `unset NORDIC_LOCAL_SEED_PASSWORD` after the test.
 
 ## Working agreements
 

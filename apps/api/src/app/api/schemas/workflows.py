@@ -285,3 +285,101 @@ class WorkflowRunData(BaseModel):
     extraction: ExtractionResultData | None = None
     drafting: DraftingResultData | None = None
     risk_compliance: RiskResultData | None = None
+
+
+class WorkflowTraceHeaderData(BaseModel):
+    """Safe workflow lifecycle and aggregate accounting for one trace."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    workflow_run_id: UUID
+    workflow_name: str = Field(min_length=1, max_length=255)
+    workflow_version: str = Field(min_length=1, max_length=100)
+    case_id: UUID
+    status: str = Field(min_length=1, max_length=50)
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    total_cost_estimate: float | None = Field(default=None, ge=0)
+    final_error_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,99}$")
+
+
+class WorkflowTraceNodeData(BaseModel):
+    """One sanitized graph-node attempt; summaries contain only safe state shape."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    node_run_id: UUID
+    node_name: str = Field(min_length=1, max_length=255)
+    status: str = Field(min_length=1, max_length=50)
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: int | None = Field(default=None, ge=0)
+    retry_count: int = Field(ge=0)
+    input_summary: dict[str, object] = Field(default_factory=dict)
+    output_summary: dict[str, object] = Field(default_factory=dict)
+    error_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,99}$")
+
+
+class WorkflowTraceToolCallData(BaseModel):
+    """Tool identity/outcome metadata without any input or output body."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    tool_call_id: UUID
+    node_run_id: UUID | None
+    tool_name: str = Field(min_length=1, max_length=100)
+    status: str = Field(min_length=1, max_length=50)
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: int | None = Field(default=None, ge=0)
+    retry_count: int = Field(ge=0)
+    input_summary: dict[str, object] = Field(default_factory=dict)
+    output_summary: dict[str, object] = Field(default_factory=dict)
+    error_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,99}$")
+
+
+class WorkflowTraceModelCallData(BaseModel):
+    """Provider accounting metadata without prompts or provider request/response data."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model_usage_id: UUID
+    provider: str = Field(min_length=1, max_length=100)
+    model_name: str = Field(min_length=1, max_length=255)
+    operation: str = Field(min_length=1, max_length=100)
+    success: bool
+    token_input: int | None = Field(default=None, ge=0)
+    token_output: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    estimated_cost: float | None = Field(default=None, ge=0)
+    latency_ms: int | None = Field(default=None, ge=0)
+    error_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,99}$")
+
+
+class WorkflowTraceSourceData(BaseModel):
+    """A governed source link that remains subject to the existing context endpoint."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source_status: Literal["available", "unavailable"]
+    citation_label: str | None = Field(default=None, max_length=160)
+    document_id: UUID | None = None
+    chunk_id: UUID | None = None
+    rank: int | None = Field(default=None, ge=0)
+    retrieval_method: str | None = Field(default=None, max_length=100)
+
+
+class WorkflowTraceData(BaseModel):
+    """The complete safe trace projection for one readable workflow run."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    header: WorkflowTraceHeaderData
+    final_state: dict[str, object] = Field(default_factory=dict)
+    nodes: tuple[WorkflowTraceNodeData, ...] = ()
+    tool_calls: tuple[WorkflowTraceToolCallData, ...] = ()
+    model_calls: tuple[WorkflowTraceModelCallData, ...] = ()
+    sources: tuple[WorkflowTraceSourceData, ...] = ()
+    unavailable_source_count: int = Field(default=0, ge=0)

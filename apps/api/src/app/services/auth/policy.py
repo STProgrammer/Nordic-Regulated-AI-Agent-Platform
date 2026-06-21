@@ -131,6 +131,40 @@ def has_restricted_source_entitlement(principal: Principal) -> bool:
     return not principal.roles.isdisjoint(_RESTRICTED_SOURCE_ROLES)
 
 
+class AuditAction(StrEnum):
+    """Read-only audit inspection; audit mutation is intentionally not an action."""
+
+    READ = "read"
+
+
+_AUDIT_ACTION_ROLES: dict[AuditAction, frozenset[RoleName]] = {
+    AuditAction.READ: frozenset(
+        {RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER, RoleName.READ_ONLY_AUDITOR}
+    )
+}
+
+
+def authorize_audit_action(principal: Principal, action: AuditAction) -> None:
+    """Apply the tenant-wide, read-only audit inspection role matrix."""
+
+    ensure_roles(principal, *_AUDIT_ACTION_ROLES[action])
+
+
+class MemoryAction(StrEnum):
+    """Controlled memory has a deliberately Admin-only organization boundary."""
+
+    CONFIGURE = "configure"
+    INSPECT = "inspect"
+    MANAGE = "manage"
+
+
+def authorize_memory_action(principal: Principal, action: MemoryAction) -> None:
+    """Require an active Administrator for every organization memory operation."""
+
+    _ = action
+    ensure_roles(principal, RoleName.ADMIN)
+
+
 @dataclass(frozen=True)
 class ApprovalAuthorizationInput:
     """Trusted future approval data loaded by the owning approval service."""

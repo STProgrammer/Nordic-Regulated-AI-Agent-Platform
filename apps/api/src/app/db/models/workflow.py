@@ -88,6 +88,9 @@ class WorkflowRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     node_runs: Mapped[list[WorkflowNodeRun]] = relationship(
         back_populates="workflow_run", lazy="raise"
     )
+    tool_calls: Mapped[list[WorkflowToolCall]] = relationship(
+        back_populates="workflow_run", lazy="raise"
+    )
 
 
 class WorkflowNodeRun(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
@@ -119,6 +122,40 @@ class WorkflowNodeRun(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
     workflow_run: Mapped[WorkflowRun] = relationship(back_populates="node_runs", lazy="raise")
+
+
+class WorkflowToolCall(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
+    """Metadata-only invocation record for one server-registered workflow tool."""
+
+    __tablename__ = "workflow_tool_calls"
+    __table_args__ = (
+        CheckConstraint("duration_ms IS NULL OR duration_ms >= 0", name="duration_ms_nonnegative"),
+        CheckConstraint("retry_count >= 0", name="retry_count_nonnegative"),
+        Index("ix_workflow_tool_calls_workflow_run_started", "workflow_run_id", "started_at"),
+        Index("ix_workflow_tool_calls_workflow_node_run_id", "workflow_node_run_id"),
+    )
+
+    workflow_run_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True), ForeignKey("workflow_runs.id"), nullable=False
+    )
+    workflow_node_run_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True), ForeignKey("workflow_node_runs.id")
+    )
+    tool_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    input_summary: Mapped[dict[str, object]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    output_summary: Mapped[dict[str, object]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    error_summary: Mapped[str | None] = mapped_column(Text)
+
+    workflow_run: Mapped[WorkflowRun] = relationship(back_populates="tool_calls", lazy="raise")
 
 
 class AgentMessage(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):

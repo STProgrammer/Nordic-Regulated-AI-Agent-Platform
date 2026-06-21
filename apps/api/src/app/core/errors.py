@@ -22,6 +22,7 @@ from app.services.errors import (
     AuthorizationDeniedError,
     ConflictError,
     InvalidCommandError,
+    MemoryStoreUnavailableError,
     NotFoundError,
     PayloadTooLargeError,
     QueueUnavailableError,
@@ -206,6 +207,7 @@ async def _handle_service_error(request: Request, exc: Exception) -> Response:
             QueueUnavailableError,
             RetrievalUnavailableError,
             RagAnswerUnavailableError,
+            MemoryStoreUnavailableError,
             WorkflowUnavailableError,
         ),
     ):

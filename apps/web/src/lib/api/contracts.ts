@@ -33,6 +33,75 @@ export const logoutDataSchema = z.object({
   logged_out: z.literal(true),
 });
 
+export const languagePreferenceInputSchema = z
+  .object({ preferred_language: z.enum(['nb', 'en']) })
+  .strict();
+
+export const controlledMemoryTypeSchema = z.enum([
+  'workflow_presentation_preference',
+  'approved_terminology',
+  'process_hint',
+]);
+const workflowPresentationContentSchema = z
+  .object({ workflow: z.literal('drafting'), style: z.enum(['plain', 'formal']) })
+  .strict();
+const approvedTerminologyContentSchema = z
+  .object({
+    locale: z.enum(['nb', 'en']),
+    source_term: z.string().trim().min(1).max(80),
+    preferred_term: z.string().trim().min(1).max(80),
+  })
+  .strict();
+const processHintContentSchema = z
+  .object({
+    category: z.enum(['drafting_clarity', 'workflow_presentation']),
+    guidance: z.string().trim().min(1).max(240),
+  })
+  .strict();
+export const controlledMemoryContentSchema = z.union([
+  workflowPresentationContentSchema,
+  approvedTerminologyContentSchema,
+  processHintContentSchema,
+]);
+export const controlledMemoryInputSchema = z
+  .object({
+    memory_type: controlledMemoryTypeSchema,
+    content: controlledMemoryContentSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const valid =
+      (value.memory_type === 'workflow_presentation_preference' &&
+        workflowPresentationContentSchema.safeParse(value.content).success) ||
+      (value.memory_type === 'approved_terminology' &&
+        approvedTerminologyContentSchema.safeParse(value.content).success) ||
+      (value.memory_type === 'process_hint' &&
+        processHintContentSchema.safeParse(value.content).success);
+    if (!valid) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid controlled memory entry.',
+      });
+    }
+  });
+export const memorySettingsSchema = z.object({ enabled: z.boolean() }).strict();
+export const controlledMemoryEntrySchema = z
+  .object({
+    memory_entry_id: z.string().uuid(),
+    memory_scope: z.literal('organization'),
+    memory_type: controlledMemoryTypeSchema,
+    content: controlledMemoryContentSchema,
+    source: z.literal('admin_approved'),
+    is_active: z.boolean(),
+    archived_at: z.string().datetime({ offset: true }).nullable(),
+    inserted_at: z.string().datetime({ offset: true }),
+    updated_at: z.string().datetime({ offset: true }),
+  })
+  .strict();
+export const controlledMemoryEntryListSchema = z
+  .object({ items: z.array(controlledMemoryEntrySchema) })
+  .strict();
+
 export const caseStatusSchema = z.enum([
   'new',
   'processing',
@@ -106,6 +175,32 @@ export const documentIndexingStatusSchema = z.enum([
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const isoTimestampSchema = z.string().datetime({ offset: true });
+
+const forbiddenMetadataKey =
+  /(?:secret|authorization|cookie|credential|password|token|prompt|request|response|body|query|excerpt|embedding|vector|storage|objectkey|checksum|sql|exception|traceback|stacktrace|ipaddress|useragent|content|rawtext|documenttext|message)/i;
+
+function hasUnsafeMetadata(value: unknown, depth = 0): boolean {
+  if (depth > 4 || value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return depth > 4;
+  }
+  if (typeof value === 'number') return !Number.isFinite(value);
+  if (Array.isArray(value))
+    return value.length > 32 || value.some((item) => hasUnsafeMetadata(item, depth + 1));
+  if (typeof value !== 'object') return true;
+  const entries = Object.entries(value);
+  return (
+    entries.length > 32 ||
+    entries.some(
+      ([key, item]) => forbiddenMetadataKey.test(key) || hasUnsafeMetadata(item, depth + 1),
+    )
+  );
+}
+
+const safeMetadataSchema = z.record(z.string(), z.unknown()).superRefine((value, context) => {
+  if (hasUnsafeMetadata(value)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'Unsafe metadata payload.' });
+  }
+});
 
 const caseSummarySchema = z.object({
   case_id: z.string().uuid(),
@@ -431,6 +526,121 @@ export const workflowRunSchema = z.object({
   risk_compliance: riskResultSchema.nullable().optional(),
 });
 
+const workflowTraceHeaderSchema = z
+  .object({
+    case_id: z.string().uuid(),
+    duration_ms: z.number().int().nonnegative().nullable(),
+    final_error_code: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,99}$/)
+      .nullable(),
+    finished_at: isoTimestampSchema.nullable(),
+    started_at: isoTimestampSchema,
+    status: z.string().min(1).max(50),
+    total_cost_estimate: z.number().nonnegative().nullable(),
+    total_tokens: z.number().int().nonnegative().nullable(),
+    workflow_name: z.string().min(1).max(255),
+    workflow_run_id: z.string().uuid(),
+    workflow_version: z.string().min(1).max(100),
+  })
+  .strict();
+const workflowTraceNodeSchema = z
+  .object({
+    duration_ms: z.number().int().nonnegative().nullable(),
+    error_code: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,99}$/)
+      .nullable(),
+    finished_at: isoTimestampSchema.nullable(),
+    input_summary: safeMetadataSchema,
+    node_name: z.string().min(1).max(255),
+    node_run_id: z.string().uuid(),
+    output_summary: safeMetadataSchema,
+    retry_count: z.number().int().nonnegative(),
+    started_at: isoTimestampSchema,
+    status: z.string().min(1).max(50),
+  })
+  .strict();
+const workflowTraceToolCallSchema = z
+  .object({
+    duration_ms: z.number().int().nonnegative().nullable(),
+    error_code: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,99}$/)
+      .nullable(),
+    finished_at: isoTimestampSchema.nullable(),
+    input_summary: safeMetadataSchema,
+    node_run_id: z.string().uuid().nullable(),
+    output_summary: safeMetadataSchema,
+    retry_count: z.number().int().nonnegative(),
+    started_at: isoTimestampSchema,
+    status: z.string().min(1).max(50),
+    tool_call_id: z.string().uuid(),
+    tool_name: z.string().min(1).max(100),
+  })
+  .strict();
+const workflowTraceModelCallSchema = z
+  .object({
+    error_code: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,99}$/)
+      .nullable(),
+    estimated_cost: z.number().nonnegative().nullable(),
+    latency_ms: z.number().int().nonnegative().nullable(),
+    model_name: z.string().min(1).max(255),
+    model_usage_id: z.string().uuid(),
+    operation: z.string().min(1).max(100),
+    provider: z.string().min(1).max(100),
+    success: z.boolean(),
+    token_input: z.number().int().nonnegative().nullable(),
+    token_output: z.number().int().nonnegative().nullable(),
+    total_tokens: z.number().int().nonnegative().nullable(),
+  })
+  .strict();
+const workflowTraceSourceSchema = z
+  .object({
+    chunk_id: z.string().uuid().nullable(),
+    citation_label: z.string().max(160).nullable(),
+    document_id: z.string().uuid().nullable(),
+    rank: z.number().int().nonnegative().nullable(),
+    retrieval_method: z.string().max(100).nullable(),
+    source_status: z.enum(['available', 'unavailable']),
+  })
+  .strict();
+export const workflowTraceSchema = z
+  .object({
+    final_state: safeMetadataSchema,
+    header: workflowTraceHeaderSchema,
+    model_calls: z.array(workflowTraceModelCallSchema),
+    nodes: z.array(workflowTraceNodeSchema),
+    sources: z.array(workflowTraceSourceSchema),
+    tool_calls: z.array(workflowTraceToolCallSchema),
+    unavailable_source_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const auditEventSchema = z
+  .object({
+    actor_user_id: z.string().uuid().nullable(),
+    case_id: z.string().uuid().nullable(),
+    event_id: z.string().uuid(),
+    event_type: z.string().min(1).max(100),
+    inserted_at: isoTimestampSchema,
+    metadata: safeMetadataSchema,
+    resource_id: z.string().uuid().nullable(),
+    resource_type: z.string().min(1).max(100),
+  })
+  .strict();
+export const auditEventListSchema = z
+  .object({
+    has_more: z.boolean(),
+    items: z.array(auditEventSchema),
+    limit: z.number().int().min(1).max(100),
+    offset: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const approvalLifecycleSchema = z.enum([
   'pending',
   'assigned',
@@ -550,6 +760,10 @@ const unknownSuccessEnvelopeSchema = z.object({
 
 export type ApiErrorDetail = z.infer<typeof errorDetailSchema>;
 export type CurrentUser = z.infer<typeof currentUserSchema>;
+export type LanguagePreferenceInput = z.infer<typeof languagePreferenceInputSchema>;
+export type ControlledMemoryType = z.infer<typeof controlledMemoryTypeSchema>;
+export type ControlledMemoryInput = z.infer<typeof controlledMemoryInputSchema>;
+export type ControlledMemoryEntry = z.infer<typeof controlledMemoryEntrySchema>;
 export type CaseStatus = z.infer<typeof caseStatusSchema>;
 export type CasePriority = z.infer<typeof casePrioritySchema>;
 export type CaseDomain = z.infer<typeof caseDomainSchema>;
@@ -572,6 +786,8 @@ export type Draft = z.infer<typeof draftSchema>;
 export type RiskReasonCode = z.infer<typeof riskReasonCodeSchema>;
 export type RiskAssessment = z.infer<typeof riskAssessmentSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
+export type WorkflowTrace = z.infer<typeof workflowTraceSchema>;
+export type AuditEventList = z.infer<typeof auditEventListSchema>;
 export type ApprovalQueue = z.infer<typeof approvalQueueSchema>;
 export type ApprovalReviewPacket = z.infer<typeof approvalReviewPacketSchema>;
 export type ApprovalActionResult = z.infer<typeof approvalActionResultSchema>;

@@ -28,6 +28,8 @@ export function ApprovalStatusPanel({ status }: { status: CaseStatus }) {
     <section
       aria-labelledby="approval-status-title"
       className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      data-case-status={status}
+      data-testid="case-approval-status"
     >
       <h2 className="text-xl font-semibold" id="approval-status-title">
         {t('title')}

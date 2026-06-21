@@ -72,50 +72,48 @@ Rules for G Mode:
 
 ---
 
-## Phase File Quality Standard
+## Phase File Style
 
-Every `phaseX.md` file must be strong enough to guide a coding agent toward professional implementation.
+When generating a `phaseX.md` file, read the required specs fully (all files in "specs" folder), but write a lean implementation brief.
 
-A good phase file must:
+The purpose of the phase file is to make implementation, testing, and validation faster, more reliable, and less dependent on guessing.
 
-* Restate the phase goal clearly.
-* Explain how the phase fits into the final product.
-* Identify relevant architecture constraints.
-* Identify affected services, folders, modules, and documentation.
-* Define what must be implemented now.
-* Define what must not be implemented yet.
-* Include testing requirements for the phase.
-* Include validation commands or validation expectations where possible.
-* Include a concise Validation Plan with focused validation, broader validation, and full validation.
-* Include completion criteria that are objective and checkable.
-* Include assumptions only when necessary, and make them explicit.
-* Keep the implementation focused on the current phase.
+A phase file should be implementation-focused, step-by-step, concrete, scoped to the current phase, and easy to read quickly.
 
-The phase file should make the implementation agent less likely to:
+Validation and testing must be part of the implementation sequence, not a separate vague checklist at the end.
 
-* implement future phases too early
-* ignore architecture decisions
-* skip tests
-* leave incomplete work
-* add unnecessary features
-* produce demo-quality or temporary code
-* make silent assumptions that damage the final system
+Do not turn the phase file into a report. Avoid long background explanations, repeated product motivation, large copied sections from PRD/architecture, future-phase discussion, excessive manual validation detail, and broad full-suite validation unless truly required.
+
+Prefer:
+
+* exact scope boundaries
+* affected files/modules
+* step-by-step implementation tasks
+* focused tests to add or update
+* exact focused validation commands
+* conditional broader validation
+* clear completion criteria
+
+
+Use manual browser validation as a fallback checklist, not as a mandatory phase section unless the user asks for manual validation.
+
+
 
 ### Phase Validation Plan
 
-When generating a `phaseX.md` file, include a concise **Validation Plan** section.
+When generating a `phaseX.md` file, include a concise Validation Plan.
 
-The Validation Plan must separate checks into:
+Separate validation into:
 
-1. **Focused validation** — fastest tests/checks directly related to this phase.
-2. **Broader validation** — affected backend/frontend/worker tests.
-3. **Full validation** — local-stack, Playwright, migration, or full-suite checks only when needed.
+1. **Focused validation** — required fast tests/checks directly related to this phase.
+2. **Broader validation** — affected backend/frontend/worker checks only when this phase touches those areas.
+3. **Expensive validation** — local-stack, full-suite, full Playwright, Docker rebuild, deployment, or manual browser validation only when truly needed.
 
-Prefer focused validation during implementation. Full validation should normally run only after focused checks pass.
+Prefer exact focused commands over broad commands like `run all tests`.
 
-The phase file should list exact commands where possible and avoid vague instructions like “run all tests” unless the phase genuinely requires full validation.
+Do not make full API suites, full integration suites, full web suites, full Playwright, Docker rebuilds, or long manual validation checklists mandatory by default.
 
-If the phase depends on local AI/model/embedding behavior, specify deterministic/local providers for automated validation. Real external AI provider calls are for manual demo verification only.
+Manual browser validation should normally be a fallback checklist if automated focused E2E fails twice, or if the user explicitly requests it.
 
 ---
 
@@ -166,9 +164,10 @@ During implementation, run focused tests first. Run broader checks only after fo
 Full-suite, full-stack, Docker rebuild, and full Playwright validation are expensive checks. Do not include them as mandatory phase validation unless the phase directly changes global app behavior, Docker/Compose, migrations, worker runtime, authentication flow, or deployment infrastructure.
 
 When generating a phase file, list:
-- focused validation as required
-- broader validation as required when affected
-- expensive full validation as conditional or final-check only
+
+* focused validation as required
+* broader validation as required when affected
+* expensive full validation as conditional or final-check only
 
 Prefer exact focused test commands over broad commands like `run all tests`.
 
@@ -182,13 +181,25 @@ Manual validation is optional after automated validation and is not required bef
 
 ## Browser E2E Policy
 
-During normal phase implementation, do not require Playwright/browser E2E as a blocker unless the user explicitly asks for automated E2E.
+During normal phase implementation, run focused backend, API, service, unit, integration, lint, type, and format checks first.
 
-Use focused backend, API, service, unit, integration, lint, type, and format checks as required automated validation.
+Do not run Playwright/browser E2E for every phase by default. Backend-only, service-only, API-only, documentation-only, and infrastructure-planning phases do not require browser E2E unless the user explicitly asks for it.
 
-For user-visible workflow phases, provide a manual browser validation checklist at the end. If the user confirms the manual browser flow passes, that may replace automated E2E for phase completion.
+Run Playwright/browser E2E only when the phase changes a user-visible browser workflow, and only after the focused automated checks pass, unless the phase specifically requires earlier browser validation.
 
-Automated Playwright E2E is reserved for CI, staging, production, final validation, or explicit user request.
+E2E should be focused on the main user journey affected by the phase. Do not run the full E2E suite unless the user explicitly asks, or the phase is CI, staging, production, final validation, or a dedicated E2E stabilization task.
+
+If focused E2E fails, diagnose whether the failure is a real product bug, test fixture issue, stale data issue, UI refresh issue, wrong selector/assertion, or environment issue.
+
+Fix the current-phase issue once and rerun the focused E2E once.
+
+If focused E2E fails again, stop. Do not keep looping. Report the exact blocker and provide a step-by-step manual browser validation checklist for the user.
+
+If the user confirms the manual browser validation passes, that may replace automated E2E for phase completion.
+
+Use stable selectors or test IDs for critical workflow UI. Avoid fragile exact-text assertions when testing state.
+
+Use API/service tests for edge cases, permissions, concurrency, invalid payloads, and backend correctness. Use browser E2E only for critical user journeys.
 
 ---
 

@@ -60,6 +60,7 @@ EXPECTED_TABLES = {
     "eval_runs",
     "extracted_fields",
     "memory_entries",
+    "memory_usage_records",
     "model_usage_records",
     "organizations",
     "prompt_versions",
@@ -69,6 +70,7 @@ EXPECTED_TABLES = {
     "user_roles",
     "users",
     "workflow_node_runs",
+    "workflow_tool_calls",
     "workflow_runs",
 }
 
@@ -541,9 +543,11 @@ async def _exercise_records(settings: AppSettings) -> None:
                         organization_id=organization.id,
                         user_id=user.id,
                         memory_scope="user",
-                        memory_type="language_preference",
+                        memory_type="ui_language_preference",
                         content={"language": "nb"},
-                        source="synthetic integration test",
+                        source="self_preference",
+                        store_key="synthetic-memory-store-key",
+                        natural_key="ui_language_preference",
                         is_active=True,
                     ),
                 ]

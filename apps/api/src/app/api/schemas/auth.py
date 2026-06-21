@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -48,3 +49,11 @@ class LogoutData(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     logged_out: bool = True
+
+
+class LanguagePreferenceRequest(BaseModel):
+    """Current-user-only language update; organization/user ids are server-derived."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    preferred_language: Literal["nb", "en"]

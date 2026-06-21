@@ -39,6 +39,8 @@ _SCALAR_KEYS = frozenset(
         "approval_id",
         "approval_lifecycle",
         "approval_decision",
+        "memory_considered_count",
+        "memory_applied_count",
     }
 )
 _BOOLEAN_KEYS = frozenset(
@@ -60,6 +62,7 @@ _BOOLEAN_KEYS = frozenset(
         "high_impact_action",
         "policy_conflict",
         "requires_approval",
+        "memory_enabled",
     }
 )
 _CODE_LIST_KEYS = frozenset(
@@ -71,6 +74,7 @@ _CODE_LIST_KEYS = frozenset(
         "preliminary_risk_reasons",
         "suggested_workflow_reasons",
         "citation_labels",
+        "memory_outcome_codes",
     }
 )
 _MAX_CODES = 12

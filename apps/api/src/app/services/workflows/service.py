@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -9,10 +10,14 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.workflow import WorkflowNodeRun, WorkflowRun
+from app.db.models.workflow import WorkflowNodeRun, WorkflowRun, WorkflowToolCall
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.identity import UserRepository
-from app.db.repositories.workflow import WorkflowNodeRunRepository, WorkflowRunRepository
+from app.db.repositories.workflow import (
+    WorkflowNodeRunRepository,
+    WorkflowRunRepository,
+    WorkflowToolCallRepository,
+)
 from app.services.common.pagination import Page, Pagination
 from app.services.common.persistence import stage_write
 from app.services.common.querying import SortSpec
@@ -78,6 +83,29 @@ class WorkflowRunFinalize:
     error_summary: str | None = None
 
 
+@dataclass(frozen=True)
+class WorkflowToolCallCreate:
+    """Trusted server-side metadata for a registered tool invocation only."""
+
+    organization_id: UUID
+    workflow_run_id: UUID
+    workflow_node_run_id: UUID | None
+    tool_name: str
+    status: str
+    started_at: datetime
+    finished_at: datetime
+    duration_ms: int
+    retry_count: int
+    input_summary: dict[str, object] = field(default_factory=dict)
+    output_summary: dict[str, object] = field(default_factory=dict)
+    error_summary: str | None = None
+
+
+_CONTROLLED_CODE = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
+_TOOL_NAME = re.compile(r"^[a-z][a-z0-9_.-]{0,99}$")
+_TOOL_STATUSES = frozenset({"succeeded", "failed", "rejected"})
+
+
 class WorkflowRunService:
     """Verify scoped references before persisting a workflow run."""
 
@@ -85,6 +113,7 @@ class WorkflowRunService:
         self.session = session
         self.repository = WorkflowRunRepository(session)
         self.nodes = WorkflowNodeRunRepository(session)
+        self.tool_calls = WorkflowToolCallRepository(session)
         self.cases = CaseRepository(session)
         self.users = UserRepository(session)
 
@@ -214,6 +243,40 @@ class WorkflowRunService:
             error_summary=command.error_summary,
         )
 
+    async def record_tool_call(self, command: WorkflowToolCallCreate) -> WorkflowToolCall:
+        """Persist a bounded server-owned tool event under a tenant-owned workflow run."""
+
+        run = await self.get_required(command.organization_id, command.workflow_run_id)
+        if command.workflow_node_run_id is not None:
+            node = await self.nodes.get_for_update(run.id, command.workflow_node_run_id)
+            if node is None:
+                raise NotFoundError("Workflow node")
+        if command.duration_ms < 0 or command.retry_count < 0:
+            raise ValueError("Tool timing is invalid")
+        if command.status not in _TOOL_STATUSES or _TOOL_NAME.fullmatch(command.tool_name) is None:
+            raise ValueError("Tool trace identity is invalid")
+        error_code = _controlled_code(command.error_summary)
+        if command.error_summary is not None and error_code is None:
+            raise ValueError("Tool error code is invalid")
+        tool_call = WorkflowToolCall(
+            workflow_run_id=run.id,
+            workflow_node_run_id=command.workflow_node_run_id,
+            tool_name=command.tool_name,
+            status=command.status,
+            started_at=command.started_at,
+            finished_at=command.finished_at,
+            duration_ms=command.duration_ms,
+            retry_count=command.retry_count,
+            input_summary=_tool_summary(command.input_summary),
+            output_summary=_tool_summary(command.output_summary),
+            error_summary=error_code,
+        )
+        return await stage_write(
+            self.session,
+            lambda: self.tool_calls.create(tool_call),
+            resource="Workflow tool call",
+        )
+
     async def finalize(self, command: WorkflowRunFinalize) -> WorkflowRun | None:
         """Persist a terminal safe snapshot only from a running tenant-owned run."""
 
@@ -232,3 +295,25 @@ class WorkflowRunService:
             run.error_summary = command.error_summary
             await self.session.flush()
             return run
+
+
+def _controlled_code(value: str | None) -> str | None:
+    """Keep only compact controlled codes, never provider or exception text."""
+
+    if value is None:
+        return None
+    return value if _CONTROLLED_CODE.fullmatch(value) is not None else None
+
+
+def _tool_summary(value: dict[str, object]) -> dict[str, object]:
+    """Store only a schema shape, so payloads and result bodies cannot persist here."""
+
+    field_names = value.get("field_names")
+    if not isinstance(field_names, (list, tuple)):
+        return {}
+    safe_names = [
+        item
+        for item in field_names[:32]
+        if isinstance(item, str) and _TOOL_NAME.fullmatch(item) is not None
+    ]
+    return {"field_names": safe_names} if safe_names else {}

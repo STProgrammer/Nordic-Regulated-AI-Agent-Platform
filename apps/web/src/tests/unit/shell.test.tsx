@@ -15,6 +15,7 @@ vi.mock('@/lib/api/auth', () => ({
     getCurrentUser: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
+    updatePreferredLanguage: vi.fn(),
   },
 }));
 

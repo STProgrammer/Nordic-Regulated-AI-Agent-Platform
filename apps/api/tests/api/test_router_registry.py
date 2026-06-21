@@ -49,13 +49,15 @@ def test_only_implemented_route_modules_define_operations() -> None:
             "retrieval",
             "workflows",
             "approvals",
+            "audit",
+            "admin",
         }:
             assert group.router.routes
         else:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_twenty_four_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -66,6 +68,7 @@ def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> N
         "/api/auth/login",
         "/api/auth/logout",
         "/api/auth/me",
+        "/api/auth/me/preferred-language",
         "/api/users",
         "/api/users/{user_id}",
         "/api/users/{user_id}/roles",
@@ -79,6 +82,7 @@ def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> N
         "/api/cases/{case_id}/extraction/fields/{field_id}",
         "/api/cases/{case_id}/draft",
         "/api/cases/{case_id}/risk-assessment",
+        "/api/cases/{case_id}/audit",
         "/api/documents",
         "/api/documents/upload",
         "/api/documents/{document_id}",
@@ -90,6 +94,8 @@ def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> N
         "/api/retrieval/answer",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
+        "/api/workflows/{workflow_run_id}/trace",
+        "/api/audit/events",
         "/api/approvals",
         "/api/approvals/{approval_id}",
         "/api/approvals/{approval_id}/approve",
@@ -97,6 +103,10 @@ def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> N
         "/api/approvals/{approval_id}/reject",
         "/api/approvals/{approval_id}/request-more-evidence",
         "/api/approvals/{approval_id}/reassign",
+        "/api/admin/memory/settings",
+        "/api/admin/memory/entries",
+        "/api/admin/memory/entries/{memory_entry_id}",
+        "/api/admin/memory/entries/{memory_entry_id}/archive",
     }
 
 

@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
+def test_openapi_declares_the_phase_twenty_four_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
@@ -37,6 +37,7 @@ def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
         "/api/auth/login",
         "/api/auth/logout",
         "/api/auth/me",
+        "/api/auth/me/preferred-language",
         "/api/users",
         "/api/users/{user_id}",
         "/api/users/{user_id}/roles",
@@ -50,6 +51,7 @@ def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
         "/api/cases/{case_id}/extraction/fields/{field_id}",
         "/api/cases/{case_id}/draft",
         "/api/cases/{case_id}/risk-assessment",
+        "/api/cases/{case_id}/audit",
         "/api/documents",
         "/api/documents/upload",
         "/api/documents/{document_id}",
@@ -61,6 +63,8 @@ def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
         "/api/retrieval/answer",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
+        "/api/workflows/{workflow_run_id}/trace",
+        "/api/audit/events",
         "/api/approvals",
         "/api/approvals/{approval_id}",
         "/api/approvals/{approval_id}/approve",
@@ -68,6 +72,10 @@ def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
         "/api/approvals/{approval_id}/reject",
         "/api/approvals/{approval_id}/request-more-evidence",
         "/api/approvals/{approval_id}/reassign",
+        "/api/admin/memory/settings",
+        "/api/admin/memory/entries",
+        "/api/admin/memory/entries/{memory_entry_id}",
+        "/api/admin/memory/entries/{memory_entry_id}/archive",
     }
 
 
@@ -92,6 +100,9 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     }
     assert schema["paths"]["/api/auth/login"]["post"].get("security") is None
     assert schema["paths"]["/api/auth/me"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/auth/me/preferred-language"]["put"]["security"] == [
+        {"SessionCookie": []}
+    ]
     assert schema["paths"]["/api/users"]["get"]["security"] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/cases"]["get"]["security"] == [{"SessionCookie": []}]
     assert schema["paths"]["/api/documents/upload"]["post"]["security"] == [{"SessionCookie": []}]
@@ -122,7 +133,17 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     assert schema["paths"]["/api/workflows/{workflow_run_id}/intake/correction"]["post"][
         "security"
     ] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/workflows/{workflow_run_id}/trace"]["get"]["security"] == [
+        {"SessionCookie": []}
+    ]
+    assert schema["paths"]["/api/audit/events"]["get"]["security"] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/cases/{case_id}/audit"]["get"]["security"] == [
+        {"SessionCookie": []}
+    ]
     assert schema["paths"]["/api/cases"]["post"]["responses"]["201"]
+    assert schema["paths"]["/api/admin/memory/settings"]["get"]["security"] == [
+        {"SessionCookie": []}
+    ]
 
 
 def test_docs_and_redoc_render_locally() -> None:

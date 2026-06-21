@@ -212,14 +212,15 @@ variable without printing the password:
 ```bash
 pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
 NORDIC_API_EMBEDDING_PROVIDER=deterministic pnpm dev:up
-export NORDIC_E2E_CASE_WORKER_EMAIL='kari.eksempel+caseworker@demo.invalid'
 pnpm test:e2e
-unset NORDIC_E2E_CASE_WORKER_EMAIL
 ```
 
 On Linux, the browser dependency installation may require an interactive `sudo` prompt.
-`pnpm test:e2e` requires `NORDIC_LOCAL_SEED_PASSWORD`; it uses only a unique synthetic case and
-disables browser screenshots, video, and tracing.
+`pnpm test:e2e` requires `NORDIC_LOCAL_SEED_PASSWORD`. It creates a unique synthetic case directly
+in the completed-drafting, approval-required risk, and pending-human-review state, then verifies
+only the reviewer approval and the case worker's terminal-state view. It establishes browser
+sessions through the local API instead of exercising login UI, and disables browser screenshots,
+video, and tracing.
 
 This provisions local passwords for the synthetic `demo.invalid` fixtures only. Login sets an opaque
 HTTP-only cookie; use the same client/cookie jar for `/api/auth/me` and `/api/auth/logout`. Wrong

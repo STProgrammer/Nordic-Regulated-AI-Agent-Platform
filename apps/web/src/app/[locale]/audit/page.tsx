@@ -1,5 +1,5 @@
-import { PlaceholderPage } from '@/components/layout/placeholder-page';
+import { AuditTrail } from '@/components/audit/audit-trail';
 
 export default function AuditPage() {
-  return <PlaceholderPage area="audit" />;
+  return <AuditTrail />;
 }

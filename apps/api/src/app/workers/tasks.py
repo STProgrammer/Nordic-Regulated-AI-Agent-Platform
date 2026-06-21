@@ -45,6 +45,7 @@ from agent_orchestrator.graphs.intake_types import (
 )
 from agent_orchestrator.graphs.risk_graph import RiskGraph, RiskGraphDependencies
 from agent_orchestrator.graphs.risk_types import RiskWorkflowState
+from agent_orchestrator.memory.store import PostgresControlledMemoryStore
 from agent_orchestrator.model_providers.factory import build_model_provider
 from agent_orchestrator.types import RetryPolicy, RuntimeStatus, WorkflowContext
 from celery import Task  # type: ignore[import-untyped]
@@ -72,6 +73,7 @@ from app.services.documents.parsers.language import detect_language
 from app.services.documents.parsers.registry import DocumentParserRegistry
 from app.services.documents.parsing import DocumentParseCoordinator, ParseProcessOutcome
 from app.services.documents.storage import AzureBlobObjectStorage
+from app.services.memory.service import ControlledMemoryService
 from app.services.retrieval.service import RetrievalService
 from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
 from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
@@ -555,6 +557,19 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                 language = OutputLanguage(
                     requested_language if isinstance(requested_language, str) else case.language
                 )
+                memory_read = await ControlledMemoryService(
+                    session,
+                    store=PostgresControlledMemoryStore(settings.langgraph_store_url()),
+                ).presentation_context_for_drafting(
+                    context,
+                    requested_language=language,
+                    explicit_language=run.state_snapshot.get("language_explicit") is True,
+                )
+                if (
+                    memory_read.presentation.language is not None
+                    and run.state_snapshot.get("language_explicit") is not True
+                ):
+                    language = memory_read.presentation.language
                 first_source = evidence.sources[0]
                 fixture = {
                     "drafting_response": {
@@ -590,11 +605,19 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                         retry_policy=RetryPolicy(
                             maximum_retries=agent_settings.node_maximum_retries
                         ),
+                        presentation_memory=memory_read.presentation,
                     )
                 )
                 result = await graph.run(
                     context,
-                    DraftingWorkflowState(context=context, target_language=language.value),
+                    DraftingWorkflowState(
+                        context=context,
+                        target_language=language.value,
+                        memory_enabled=memory_read.memory_enabled,
+                        memory_considered_count=memory_read.considered_count,
+                        memory_applied_count=memory_read.applied_count,
+                        memory_outcome_codes=memory_read.outcome_codes,
+                    ),
                 )
                 await session.commit()
                 return result.outcome.status.value

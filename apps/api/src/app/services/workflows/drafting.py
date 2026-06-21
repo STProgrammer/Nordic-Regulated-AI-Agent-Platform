@@ -31,7 +31,7 @@ from app.services.workflows.extraction import load_eligible_evidence
 from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
 
 DRAFTING_WORKFLOW_NAME = "drafting"
-DRAFTING_WORKFLOW_VERSION = "phase20-v1"
+DRAFTING_WORKFLOW_VERSION = "phase24-v1"
 
 
 @dataclass(frozen=True)
@@ -85,6 +85,7 @@ class DraftingWorkflowService:
                     "state_schema_version": "v1",
                     "status": "queued",
                     "target_language": language.value,
+                    "language_explicit": output_language is not None,
                     "evidence_available": True,
                     "draft_available": False,
                 },
@@ -102,6 +103,7 @@ class DraftingWorkflowService:
                     "workflow": DRAFTING_WORKFLOW_NAME,
                     "status": "queued",
                     "target_language": language.value,
+                    "language_explicit": output_language is not None,
                 },
             )
         )

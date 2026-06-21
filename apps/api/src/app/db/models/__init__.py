@@ -5,7 +5,7 @@ from app.db.models.case import Case
 from app.db.models.document import Document, DocumentChunk, DocumentText
 from app.db.models.evaluation import EvalCase, EvalDataset, EvalResult, EvalRun
 from app.db.models.identity import Role, User, UserRole
-from app.db.models.memory import MemoryEntry
+from app.db.models.memory import MemoryEntry, MemoryUsageRecord
 from app.db.models.organization import Organization
 from app.db.models.prompt import ModelUsageRecord, PromptVersion
 from app.db.models.workflow import (
@@ -16,6 +16,7 @@ from app.db.models.workflow import (
     RiskAssessment,
     WorkflowNodeRun,
     WorkflowRun,
+    WorkflowToolCall,
 )
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "EvalRun",
     "ExtractedField",
     "MemoryEntry",
+    "MemoryUsageRecord",
     "ModelUsageRecord",
     "Organization",
     "PromptVersion",
@@ -42,4 +44,5 @@ __all__ = [
     "UserRole",
     "WorkflowNodeRun",
     "WorkflowRun",
+    "WorkflowToolCall",
 ]

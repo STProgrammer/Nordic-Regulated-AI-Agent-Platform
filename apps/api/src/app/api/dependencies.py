@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated
 from uuid import UUID
 
+from agent_orchestrator.memory.store import PostgresControlledMemoryStore
 from fastapi import Depends, Request, Security
 from fastapi.security import APIKeyCookie
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from app.core.session_store import (
 )
 from app.db.session import get_db_session
 from app.services.approvals.service import ApprovalWorkflowService
+from app.services.audit.service import AuditService
 from app.services.auth.policy import ensure_roles, guard_tenant_resource
 from app.services.auth.principal import Principal, RoleName
 from app.services.auth.service import AuthenticationService, UserAdministrationService
@@ -31,6 +33,7 @@ from app.services.documents.embeddings import build_embedding_provider
 from app.services.documents.service import DocumentService
 from app.services.documents.storage import AzureBlobObjectStorage, ObjectStorage
 from app.services.errors import StorageUnavailableError
+from app.services.memory.service import ControlledMemoryService
 from app.services.retrieval.answering import RagAnswerService
 from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
@@ -40,6 +43,7 @@ from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
 from app.services.workflows.risk import RiskWorkflowService
+from app.services.workflows.trace import WorkflowTraceService
 
 # The runtime setting defaults to this name. The dependency itself reads the
 # configured cookie name, while this object documents cookie authentication in
@@ -120,6 +124,34 @@ def get_case_service(
     """Construct the request-scoped Case Management domain service."""
 
     return CaseService(session)
+
+
+def get_audit_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AuditService:
+    """Construct the append-only audit read/write service for its owned router."""
+
+    return AuditService(session)
+
+
+def get_workflow_trace_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> WorkflowTraceService:
+    """Construct the read-only safe workflow trace assembler."""
+
+    return WorkflowTraceService(session)
+
+
+def get_controlled_memory_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> ControlledMemoryService:
+    """Build the persistent-only controlled-memory service for one request."""
+
+    return ControlledMemoryService(
+        session,
+        store=PostgresControlledMemoryStore(settings.langgraph_store_url()),
+    )
 
 
 async def get_object_storage(
@@ -315,6 +347,13 @@ UserAdministrationServiceDependency = Annotated[
     UserAdministrationService, Depends(get_user_administration_service)
 ]
 CaseServiceDependency = Annotated[CaseService, Depends(get_case_service)]
+AuditServiceDependency = Annotated[AuditService, Depends(get_audit_service)]
+WorkflowTraceServiceDependency = Annotated[
+    WorkflowTraceService, Depends(get_workflow_trace_service)
+]
+ControlledMemoryServiceDependency = Annotated[
+    ControlledMemoryService, Depends(get_controlled_memory_service)
+]
 ObjectStorageDependency = Annotated[ObjectStorage, Depends(get_object_storage)]
 DocumentServiceDependency = Annotated[DocumentService, Depends(get_document_service)]
 RetrievalServiceDependency = Annotated[RetrievalService, Depends(get_retrieval_service)]

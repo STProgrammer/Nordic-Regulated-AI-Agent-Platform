@@ -1,5 +1,10 @@
-import { PlaceholderPage } from '@/components/layout/placeholder-page';
+import { ProtectedPage } from '@/components/auth/protected-page';
+import { ControlledMemoryPanel } from '@/components/admin/controlled-memory-panel';
 
 export default function AdminPage() {
-  return <PlaceholderPage area="admin" />;
+  return (
+    <ProtectedPage>
+      <ControlledMemoryPanel />
+    </ProtectedPage>
+  );
 }

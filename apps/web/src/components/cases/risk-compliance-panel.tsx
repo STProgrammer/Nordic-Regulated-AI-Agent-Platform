@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { WorkflowTraceLink } from '@/components/workflow/workflow-trace-link';
 import { type RiskAssessment, type RiskReasonCode, type WorkflowRun } from '@/lib/api/contracts';
 import { riskApi } from '@/lib/api/risk';
 import { workflowsApi } from '@/lib/api/workflows';
@@ -91,6 +92,11 @@ export function RiskCompliancePanel({ caseId }: { caseId: string }) {
       ) : (
         <p className="mt-4 text-slate-700">{t('notStarted')}</p>
       )}
+      {displayedRun ? (
+        <p className="mt-4">
+          <WorkflowTraceLink workflowRunId={displayedRun.workflow_run_id} />
+        </p>
+      ) : null}
     </section>
   );
 }

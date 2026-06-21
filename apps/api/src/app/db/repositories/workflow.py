@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 from uuid import UUID
@@ -10,7 +11,15 @@ from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.db.models.workflow import Approval, WorkflowNodeRun, WorkflowRun
+from app.db.models.document import Document
+from app.db.models.prompt import ModelUsageRecord
+from app.db.models.workflow import (
+    Approval,
+    RetrievedSource,
+    WorkflowNodeRun,
+    WorkflowRun,
+    WorkflowToolCall,
+)
 from app.db.repositories.base import TenantScopedRepository
 from app.services.common.pagination import Page, Pagination
 from app.services.common.querying import SortSpec, resolve_sort
@@ -111,6 +120,121 @@ class WorkflowNodeRunRepository:
         node_run.retry_count = retry_count
         node_run.error_summary = error_summary
         return node_run
+
+
+class WorkflowToolCallRepository:
+    """Metadata-only tool calls scoped through a trusted parent workflow run."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, tool_call: WorkflowToolCall) -> WorkflowToolCall:
+        self.session.add(tool_call)
+        return tool_call
+
+    async def list_for_run(self, workflow_run_id: UUID) -> tuple[WorkflowToolCall, ...]:
+        statement = (
+            select(WorkflowToolCall)
+            .where(WorkflowToolCall.workflow_run_id == workflow_run_id)
+            .order_by(asc(WorkflowToolCall.started_at), asc(WorkflowToolCall.id))
+        )
+        return tuple((await self.session.scalars(statement)).all())
+
+
+@dataclass(frozen=True)
+class WorkflowTraceSourceRecord:
+    """A governed source plus its current document record for a read-side policy check."""
+
+    source: RetrievedSource
+    document: Document | None
+
+
+@dataclass(frozen=True)
+class WorkflowTraceRecords:
+    """Tenant-scoped persisted records needed to assemble one public workflow trace."""
+
+    run: WorkflowRun
+    nodes: tuple[WorkflowNodeRun, ...]
+    tool_calls: tuple[WorkflowToolCall, ...]
+    model_usage: tuple[ModelUsageRecord, ...]
+    sources: tuple[WorkflowTraceSourceRecord, ...]
+
+
+class WorkflowTraceRepository:
+    """Load one trace only after binding every child query to a tenant-owned parent run."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def get(
+        self, organization_id: UUID, workflow_run_id: UUID
+    ) -> WorkflowTraceRecords | None:
+        run = cast(
+            WorkflowRun | None,
+            await self.session.scalar(
+                select(WorkflowRun).where(
+                    WorkflowRun.organization_id == organization_id,
+                    WorkflowRun.id == workflow_run_id,
+                )
+            ),
+        )
+        if run is None:
+            return None
+        nodes = tuple(
+            (
+                await self.session.scalars(
+                    select(WorkflowNodeRun)
+                    .where(WorkflowNodeRun.workflow_run_id == run.id)
+                    .order_by(asc(WorkflowNodeRun.started_at), asc(WorkflowNodeRun.id))
+                )
+            ).all()
+        )
+        tool_calls = tuple(
+            (
+                await self.session.scalars(
+                    select(WorkflowToolCall)
+                    .where(WorkflowToolCall.workflow_run_id == run.id)
+                    .order_by(asc(WorkflowToolCall.started_at), asc(WorkflowToolCall.id))
+                )
+            ).all()
+        )
+        model_usage = tuple(
+            (
+                await self.session.scalars(
+                    select(ModelUsageRecord)
+                    .where(
+                        ModelUsageRecord.organization_id == organization_id,
+                        ModelUsageRecord.workflow_run_id == run.id,
+                    )
+                    .order_by(asc(ModelUsageRecord.inserted_at), asc(ModelUsageRecord.id))
+                )
+            ).all()
+        )
+        source_rows = (
+            await self.session.execute(
+                select(RetrievedSource, Document)
+                .outerjoin(
+                    Document,
+                    (Document.id == RetrievedSource.document_id)
+                    & (Document.organization_id == RetrievedSource.organization_id),
+                )
+                .where(
+                    RetrievedSource.organization_id == organization_id,
+                    RetrievedSource.workflow_run_id == run.id,
+                )
+                .order_by(asc(RetrievedSource.rank), asc(RetrievedSource.id))
+            )
+        ).all()
+        sources = tuple(
+            WorkflowTraceSourceRecord(source=row[0], document=row[1]) for row in source_rows
+        )
+        return WorkflowTraceRecords(
+            run=run,
+            nodes=nodes,
+            tool_calls=tool_calls,
+            model_usage=model_usage,
+            sources=sources,
+        )
 
 
 class ApprovalRepository:

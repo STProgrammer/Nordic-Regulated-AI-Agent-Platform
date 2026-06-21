@@ -5,6 +5,8 @@ description = "Reserved workspace for future LangGraph workflows."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "langgraph>=0.4,<1",
+    "langgraph-checkpoint-postgres>=2,<4",
+    "langmem>=0.0.30,<0.1",
     "openai>=1.0,<2",
     "pydantic>=2.8,<3",
     "pydantic-settings>=2.5,<3",

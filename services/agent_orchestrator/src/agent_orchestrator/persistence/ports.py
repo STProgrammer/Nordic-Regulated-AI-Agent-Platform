@@ -2,10 +2,31 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from agent_orchestrator.types import ModelUsage, RuntimeStatus, WorkflowContext
+
+
+class ToolCallRecorder(Protocol):
+    """Metadata-only tool trace sink, scoped by a server-owned workflow context."""
+
+    async def record_tool_call(
+        self,
+        context: WorkflowContext,
+        *,
+        node_run_id: UUID | None,
+        tool_name: str,
+        status: str,
+        started_at: datetime,
+        finished_at: datetime,
+        duration_ms: int,
+        retry_count: int,
+        input_summary: dict[str, object],
+        output_summary: dict[str, object],
+        error_code: str | None = None,
+    ) -> None: ...
 
 
 class WorkflowPersistence(Protocol):

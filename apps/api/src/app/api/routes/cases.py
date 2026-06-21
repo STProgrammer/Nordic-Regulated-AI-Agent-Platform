@@ -9,6 +9,7 @@ from agent_orchestrator.graphs.drafting_types import DraftKind, OutputLanguage
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.dependencies import (
+    AuditServiceDependency,
     CaseServiceDependency,
     CurrentPrincipalDependency,
     get_drafting_workflow_service,
@@ -17,6 +18,8 @@ from app.api.dependencies import (
     get_intake_workflow_service,
     get_risk_workflow_service,
 )
+from app.api.routes.audit import audit_page_data
+from app.api.schemas.audit import AuditEventListData
 from app.api.schemas.cases import (
     CaseAssigneeListData,
     CaseAssigneeOptionData,
@@ -410,6 +413,30 @@ async def get_risk_assessment(
         ),
         meta=_meta(request),
     )
+
+
+@router.get(
+    "/{case_id}/audit",
+    response_model=SuccessResponse[AuditEventListData],
+    responses=_CASE_ERROR_RESPONSES,
+    summary="List immutable audit events for one readable current-tenant case",
+)
+async def list_case_audit_events(
+    case_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    audit: AuditServiceDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> SuccessResponse[AuditEventListData]:
+    """Apply case-read policy before a server-owned case filter is sent to the audit service."""
+
+    page = await audit.list_for_case(
+        principal,
+        case_id,
+        pagination=Pagination(limit=limit, offset=offset),
+    )
+    return SuccessResponse(data=audit_page_data(page), meta=_meta(request))
 
 
 def _case_data(case: Case) -> CaseData:

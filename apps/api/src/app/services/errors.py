@@ -103,6 +103,16 @@ class WorkflowUnavailableError(ServiceError):
         )
 
 
+class MemoryStoreUnavailableError(ServiceError):
+    """The durable controlled-memory backend could not safely complete an operation."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="memory_store_unavailable",
+            message="Controlled memory is temporarily unavailable.",
+        )
+
+
 class RetrievalUnavailableError(ServiceError):
     """A retrieval provider or database cannot safely complete a search."""
 

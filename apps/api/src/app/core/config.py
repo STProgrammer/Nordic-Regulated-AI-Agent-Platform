@@ -385,6 +385,15 @@ class AppSettings(BaseSettings):
             raise RuntimeError("Database configuration is invalid")
         return "postgresql+psycopg://" + async_url.removeprefix(prefix)
 
+    def langgraph_store_url(self) -> str:
+        """Return the private Postgres URL consumed by LangGraph's async store.
+
+        This conversion is intentionally performed only at adapter construction;
+        callers must never serialize, log, or return its value.
+        """
+
+        return self.database_sync_url().replace("postgresql+psycopg://", "postgresql://", 1)
+
     @property
     def session_cookie_secure_value(self) -> bool:
         """Return the effective secure-cookie policy without exposing secrets."""

@@ -1,24 +1,54 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-const caseWorkerEmail = process.env.NORDIC_E2E_CASE_WORKER_EMAIL;
+const caseWorkerEmail = 'kari.eksempel+caseworker@demo.invalid';
 const password = process.env.NORDIC_LOCAL_SEED_PASSWORD;
 const reviewerEmail = 'ole.eksempel+reviewer@demo.invalid';
 const fixtureTitle = `E2E Phase 22 human approval ${Date.now()}`;
 
+type SeededApprovalFixture = {
+  approval_id: string;
+  case_id: string;
+  title: string;
+};
+
+let fixture: SeededApprovalFixture;
+
 function requireE2eCredentials() {
-  if (!caseWorkerEmail || !password) {
-    throw new Error(
-      'NORDIC_E2E_CASE_WORKER_EMAIL and NORDIC_LOCAL_SEED_PASSWORD must be set for the local browser smoke test.',
-    );
+  if (!password) {
+    throw new Error('NORDIC_LOCAL_SEED_PASSWORD must be set for the local browser smoke test.');
   }
+}
+
+function parseFixture(output: string): SeededApprovalFixture {
+  const parsed: unknown = JSON.parse(output);
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    !('approval_id' in parsed) ||
+    !('case_id' in parsed) ||
+    !('title' in parsed) ||
+    typeof parsed.approval_id !== 'string' ||
+    typeof parsed.case_id !== 'string' ||
+    typeof parsed.title !== 'string'
+  ) {
+    throw new Error('Phase 22 E2E fixture seed returned an invalid fixture reference.');
+  }
+  return parsed;
+}
+
+async function authenticate(page: Page, email: string): Promise<void> {
+  const response = await page.request.post('/api/auth/login', {
+    data: { email, password: password! },
+  });
+  expect(response.status()).toBe(200);
 }
 
 test.beforeAll(() => {
   requireE2eCredentials();
-  execFileSync(
+  const output = execFileSync(
     'docker',
     [
       'compose',
@@ -36,8 +66,9 @@ test.beforeAll(() => {
       '--password-env',
       'NORDIC_LOCAL_SEED_PASSWORD',
     ],
-    { cwd: resolve(process.cwd(), '../..'), env: process.env, stdio: 'inherit' },
+    { cwd: resolve(process.cwd(), '../..'), encoding: 'utf8', env: process.env },
   );
+  fixture = parseFixture(output);
 });
 
 test('reviewer resolves a pre-seeded human approval and the case worker sees approval', async ({
@@ -45,52 +76,45 @@ test('reviewer resolves a pre-seeded human approval and the case worker sees app
   page,
 }) => {
   test.setTimeout(60_000);
-  await page.goto('/nb/login');
-  await page.getByLabel('E-postadresse').fill(reviewerEmail);
-  await page.getByLabel('Passord').fill(password!);
-  await page.getByRole('button', { name: 'Logg inn' }).click();
+  await authenticate(page, reviewerEmail);
   await page.goto('/nb/approvals');
-  await expect(page.getByRole('heading', { name: 'Godkjenningskø' })).toBeVisible({
-    timeout: 15_000,
-  });
-  await expect(page.getByText(fixtureTitle)).toBeVisible();
+  await expect(page).toHaveURL(/\/nb\/approvals$/);
+  await expect(page.getByTestId('approval-queue')).toBeVisible();
+  const queueItem = page.getByTestId(`approval-queue-item-${fixture.approval_id}`);
+  await expect(queueItem).toBeVisible({ timeout: 15_000 });
+  await queueItem.getByTestId('open-approval-packet').click();
+  await expect(page).toHaveURL(new RegExp(`/nb/approvals/${fixture.approval_id}$`));
+  const packet = page.getByTestId('approval-review-packet');
+  await expect(packet).toBeVisible({ timeout: 15_000 });
+  await expect(packet.getByRole('heading', { level: 1, name: fixture.title })).toBeVisible();
   await page
-    .locator('li')
-    .filter({ hasText: fixtureTitle })
-    .getByRole('link', { name: 'Åpne vurderingspakke' })
-    .click();
-  await expect(page.getByText('Dette uforanderlige KI-utkastet er ikke endelig.')).toBeVisible();
-  await expect(
-    page.getByText('Syntetisk uforanderlig KI-utkast for lokal Phase 22-validering.'),
-  ).toBeVisible();
-  await page
-    .getByLabel('Endelig mennesketekst (kun ved rediger og godkjenn)')
+    .getByTestId('approval-final-text-input')
     .fill('Syntetisk menneskegodkjent slutttekst.');
-  await page.getByRole('button', { name: 'Rediger og godkjenn' }).click();
-  const confirmation = page.getByRole('alertdialog', {
-    name: 'Bekreft vurdererbeslutning',
-  });
+  await page.getByTestId('approval-edit-and-approve').click();
+  const confirmation = page.getByTestId('approval-decision-confirmation');
   await expect(confirmation).toBeVisible();
-  await confirmation.getByRole('button', { name: 'Bekreft' }).click();
-  await expect(page.getByText('Godkjent av menneske')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText('Syntetisk menneskegodkjent slutttekst.')).toBeVisible();
+  await confirmation.getByTestId('approval-decision-confirm').click();
+  await expect(page.getByTestId('approval-decision-status')).toHaveAttribute(
+    'data-approval-status',
+    'approved',
+    { timeout: 30_000 },
+  );
+  await expect(page.getByTestId('approval-final-text')).toHaveText(
+    'Syntetisk menneskegodkjent slutttekst.',
+  );
 
   const workerContext = await browser.newContext();
   const workerPage = await workerContext.newPage();
-  await workerPage.goto('/nb/login');
-  await workerPage.getByLabel('E-postadresse').fill(caseWorkerEmail!);
-  await workerPage.getByLabel('Passord').fill(password!);
-  await workerPage.getByRole('button', { name: 'Logg inn' }).click();
-  await expect(workerPage.getByRole('heading', { name: 'Saksinnboks' })).toBeVisible({
-    timeout: 15_000,
-  });
-  await workerPage.getByLabel('Søk i saker').fill(fixtureTitle);
-  await workerPage.getByRole('button', { name: 'Bruk filtre' }).click();
-  const result = workerPage.getByRole('row', { name: new RegExp(fixtureTitle) });
-  await expect(result).toBeVisible();
-  await result.getByRole('link', { name: /^CASE-/ }).click();
-  await expect(workerPage.getByText('Denne saken har et menneskegodkjent utfall.')).toBeVisible({
-    timeout: 30_000,
-  });
-  await workerContext.close();
+  try {
+    await authenticate(workerPage, caseWorkerEmail);
+    await workerPage.goto(`/nb/cases/${fixture.case_id}`);
+    await expect(workerPage).toHaveURL(new RegExp(`/nb/cases/${fixture.case_id}$`));
+    await expect(workerPage.getByTestId('case-approval-status')).toHaveAttribute(
+      'data-case-status',
+      'approved',
+      { timeout: 30_000 },
+    );
+  } finally {
+    await workerContext.close();
+  }
 });

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,9 @@ from app.services.common.pagination import Page, Pagination
 from app.services.common.persistence import stage_write
 from app.services.common.querying import SortSpec
 from app.services.errors import InvalidCommandError, NotFoundError
+
+if TYPE_CHECKING:
+    from app.services.auth.principal import Principal
 
 type JSONScalar = str | int | float | bool | None
 type JSONValue = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
@@ -151,4 +155,42 @@ class AuditService:
             pagination=pagination,
             filters=filters,
             sort=sort,
+        )
+
+    async def list_for_principal(
+        self,
+        principal: Principal,
+        *,
+        pagination: Pagination,
+        filters: AuditEventFilters | None = None,
+    ) -> Page[AuditEvent]:
+        """List tenant-wide immutable events only for a dedicated audit role."""
+
+        from app.services.auth.policy import AuditAction, authorize_audit_action
+
+        authorize_audit_action(principal, AuditAction.READ)
+        return await self.list(
+            principal.organization_id,
+            pagination=pagination,
+            filters=filters,
+        )
+
+    async def list_for_case(
+        self,
+        principal: Principal,
+        case_id: UUID,
+        *,
+        pagination: Pagination,
+    ) -> Page[AuditEvent]:
+        """Return a case's events under case-read access without tenant-wide browsing."""
+
+        from app.services.auth.policy import CaseAction, authorize_case_action
+
+        authorize_case_action(principal, CaseAction.READ)
+        if await self.cases.get(principal.organization_id, case_id) is None:
+            raise NotFoundError("Case")
+        return await self.list(
+            principal.organization_id,
+            pagination=pagination,
+            filters=AuditEventFilters(case_id=case_id),
         )

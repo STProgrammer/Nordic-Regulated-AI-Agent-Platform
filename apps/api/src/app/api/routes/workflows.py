@@ -13,7 +13,11 @@ from agent_orchestrator.graphs.intake_types import (
 )
 from fastapi import APIRouter, Depends, Request
 
-from app.api.dependencies import CurrentPrincipalDependency, get_intake_workflow_service
+from app.api.dependencies import (
+    CurrentPrincipalDependency,
+    WorkflowTraceServiceDependency,
+    get_intake_workflow_service,
+)
 from app.api.schemas.common import (
     DEFAULT_ERROR_RESPONSES,
     ErrorResponse,
@@ -29,6 +33,7 @@ from app.api.schemas.workflows import (
     RiskResultData,
     WorkflowRunData,
     WorkflowRunStatus,
+    WorkflowTraceData,
 )
 from app.db.models.workflow import WorkflowRun
 from app.services.errors import NotFoundError
@@ -36,7 +41,10 @@ from app.services.workflows.intake import IntakeCorrection, IntakeWorkflowServic
 
 PREFIX = "/workflows"
 TAG = "Workflows"
-DESCRIPTION = "Closed Intake and Evidence workflow status plus Intake-only correction operations."
+DESCRIPTION = (
+    "Closed workflow status and correction operations plus safe, read-only workflow trace "
+    "inspection. Trace responses exclude prompts, state dumps, model bodies, and content."
+)
 
 router = APIRouter()
 
@@ -47,6 +55,24 @@ _WORKFLOW_ERRORS = {
     404: {"model": ErrorResponse, "description": "The workflow run was not found."},
     409: {"model": ErrorResponse, "description": "The workflow run cannot be corrected."},
 }
+
+
+@router.get(
+    "/{workflow_run_id}/trace",
+    response_model=SuccessResponse[WorkflowTraceData],
+    responses=_WORKFLOW_ERRORS,
+    summary="Get a safe tenant-scoped trace for one readable workflow run",
+)
+async def get_workflow_trace(
+    workflow_run_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    traces: WorkflowTraceServiceDependency,
+) -> SuccessResponse[WorkflowTraceData]:
+    """Return lifecycle metadata only after current case access and source governance checks."""
+
+    trace = await traces.get_for_principal(principal, workflow_run_id)
+    return SuccessResponse(data=trace, meta=_meta(request))
 
 
 @router.get(

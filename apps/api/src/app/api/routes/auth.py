@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from agent_orchestrator.graphs.drafting_types import OutputLanguage
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
 from app.api.dependencies import (
     AuthenticationServiceDependency,
+    ControlledMemoryServiceDependency,
     CurrentPrincipalDependency,
     LoginRateLimiterDependency,
     SettingsDependency,
 )
-from app.api.schemas.auth import CurrentUserData, LoginRequest, LogoutData
+from app.api.schemas.auth import (
+    CurrentUserData,
+    LanguagePreferenceRequest,
+    LoginRequest,
+    LogoutData,
+)
 from app.api.schemas.common import (
     DEFAULT_ERROR_RESPONSES,
     ErrorResponse,
@@ -22,6 +29,8 @@ from app.core.errors import ApiError, error_response
 from app.core.rate_limit import RateLimitDecision
 from app.core.session_store import AuthStateUnavailableError
 from app.services.auth.service import LoginCommand, LoginRejected, LoginSucceeded
+from app.services.errors import MemoryStoreUnavailableError
+from app.services.memory.service import MemoryStoreUnavailableError as MemoryStoreOperationError
 
 PREFIX = "/auth"
 TAG = "Auth"
@@ -152,6 +161,38 @@ async def me(
 
     return SuccessResponse(
         data=_current_user_data(principal),
+        meta=ResponseMeta(request_id=getattr(request.state, "request_id", None)),
+    )
+
+
+@router.put(
+    "/me/preferred-language",
+    response_model=SuccessResponse[CurrentUserData],
+    responses=_AUTH_ERROR_RESPONSES,
+    summary="Update the current user's closed language preference",
+)
+async def update_preferred_language(
+    payload: LanguagePreferenceRequest,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    memory: ControlledMemoryServiceDependency,
+) -> SuccessResponse[CurrentUserData]:
+    """Synchronize the canonical account preference and governed user-memory record."""
+
+    try:
+        user = await memory.update_self_language(
+            principal, language=OutputLanguage(payload.preferred_language)
+        )
+    except MemoryStoreOperationError as error:
+        raise MemoryStoreUnavailableError() from error
+    return SuccessResponse(
+        data=CurrentUserData(
+            user_id=principal.user_id,
+            organization_id=principal.organization_id,
+            display_name=principal.display_name,
+            preferred_language=user.preferred_language,
+            roles=tuple(sorted(principal.roles, key=str)),
+        ),
         meta=ResponseMeta(request_id=getattr(request.state, "request_id", None)),
     )
 

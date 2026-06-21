@@ -21,7 +21,7 @@ export function ApprovalQueue() {
 
   return (
     <ProtectedPage>
-      <main className="mx-auto max-w-5xl space-y-6">
+      <main className="mx-auto max-w-5xl space-y-6" data-testid="approval-queue">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{t('title')}</h1>
           <p className="mt-2 text-slate-700">{t('description')}</p>
@@ -39,6 +39,7 @@ export function ApprovalQueue() {
             {queue.data.items.map((item) => (
               <li
                 className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                data-testid={`approval-queue-item-${item.approval_id}`}
                 key={item.approval_id}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -55,6 +56,7 @@ export function ApprovalQueue() {
                   {canReview ? (
                     <Link
                       className="inline-flex min-h-10 items-center rounded-md bg-slate-900 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                      data-testid="open-approval-packet"
                       href={`/${locale}/approvals/${item.approval_id}`}
                     >
                       {t('openPacket')}
