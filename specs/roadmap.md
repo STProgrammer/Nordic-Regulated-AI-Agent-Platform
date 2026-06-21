@@ -213,6 +213,7 @@ Every phase must include at least one validation method. A phase is not complete
 
 - Polish the UI for Norwegian Bokmål as default, English option, Norwegian date/number/currency formatting, clear enterprise language, and domain-relevant sample flows.
 - Improve keyboard navigation, labels, error messages, semantic structure, contrast, and non-color-only state indicators.
+- Make design and UI more attractive and beautiful, but still serious looking.
 - Add axe-core accessibility checks for critical pages.
 - Validation: Frontend accessibility tests pass; Playwright verifies language switching, Norwegian formatting, and critical keyboard navigation.
 
