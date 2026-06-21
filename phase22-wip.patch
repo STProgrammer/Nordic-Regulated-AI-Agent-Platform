@@ -1,0 +1,2940 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 56e99bf..1de31ec 100755
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -6,21 +6,21 @@ This project uses a Spec-Driven Development workflow.
+ 
+ Core specification files live in `/specs`:
+ 
+-- `/specs/PRD.md`
+-- `/specs/architecture.md`
+-- `/specs/roadmap.md`
+-- `/phases/phaseX.md` files
++* `/specs/PRD.md`
++* `/specs/architecture.md`
++* `/specs/roadmap.md`
++* `/phases/phaseX.md` files
+ 
+ ## Command Shortcuts
+ 
+ The user may give short commands:
+ 
+-- `G 7` = generate `/phases/phase7.md`
+-- `I 7` = implement `/phases/phase7.md`
+-- `G` = generate the next phase file from `/specs/roadmap.md` that is not marked `(DONE)`
+-- `I` = implement the next unimplemented phase file
++* `G 7` = generate `/phases/phase7.md`
++* `I 7` = implement `/phases/phase7.md`
++* `G` = generate the next phase file from `/specs/roadmap.md` that is not marked `(DONE)`
++* `I` = implement the next unimplemented phase file
+ 
+-`G` means **Generate Phase Plan**.  
++`G` means **Generate Phase Plan**.
+ `I` means **Implement Phase**.
+ 
+ If the phase number is not provided, determine it from `/specs/roadmap.md`, existing `/phases/phaseX.md` files, and `/specs/progress.md` if present. Use the safest deterministic choice.
+@@ -45,29 +45,30 @@ The generated `phaseX.md` must be a detailed implementation plan for Phase X onl
+ 
+ It must include:
+ 
+-- Phase title
+-- Phase objective
+-- Relevant context from PRD, architecture, and roadmap
+-- In-scope deliverables
+-- Out-of-scope items
+-- Likely files, folders, modules, and services affected
+-- Implementation tasks
+-- Required tests
+-- Validation steps
+-- Completion criteria
+-- Risks or dependencies for this phase
+-- Notes for the implementation agent
++* Phase title
++* Phase objective
++* Relevant context from PRD, architecture, and roadmap
++* In-scope deliverables
++* Out-of-scope items
++* Likely files, folders, modules, and services affected
++* Implementation tasks
++* Required tests
++* Validation steps
++* A concise Validation Plan separating focused validation, broader validation, and full validation
++* Completion criteria
++* Risks or dependencies for this phase
++* Notes for the implementation agent
+ 
+ Rules for G Mode:
+ 
+-- Do not write source code.
+-- Do not expand project scope beyond the specs.
+-- Do not include unrelated future-phase work.
+-- Include enough context inside `phaseX.md` so implementation can proceed without normally needing to read PRD, architecture, or roadmap.
+-- Make the phase self-contained, practical, testable, and suitable for one focused AI coding-agent session.
+-- Make the phase file detailed enough to reduce implementation mistakes and unnecessary guessing.
+-- The phase file must support professional implementation quality, not quick or temporary work.
+-- A phase is not complete unless its tests and validation checks pass.
++* Do not write source code.
++* Do not expand project scope beyond the specs.
++* Do not include unrelated future-phase work.
++* Include enough context inside `phaseX.md` so implementation can proceed without normally needing to read PRD, architecture, or roadmap.
++* Make the phase self-contained, practical, testable, and suitable for one focused AI coding-agent session.
++* Make the phase file detailed enough to reduce implementation mistakes and unnecessary guessing.
++* The phase file must support professional implementation quality, not quick or temporary work.
++* A phase is not complete unless its tests and validation checks pass.
+ 
+ ---
+ 
+@@ -77,27 +78,44 @@ Every `phaseX.md` file must be strong enough to guide a coding agent toward prof
+ 
+ A good phase file must:
+ 
+-- Restate the phase goal clearly.
+-- Explain how the phase fits into the final product.
+-- Identify relevant architecture constraints.
+-- Identify affected services, folders, modules, and documentation.
+-- Define what must be implemented now.
+-- Define what must not be implemented yet.
+-- Include testing requirements for the phase.
+-- Include validation commands or validation expectations where possible.
+-- Include completion criteria that are objective and checkable.
+-- Include assumptions only when necessary, and make them explicit.
+-- Keep the implementation focused on the current phase.
++* Restate the phase goal clearly.
++* Explain how the phase fits into the final product.
++* Identify relevant architecture constraints.
++* Identify affected services, folders, modules, and documentation.
++* Define what must be implemented now.
++* Define what must not be implemented yet.
++* Include testing requirements for the phase.
++* Include validation commands or validation expectations where possible.
++* Include a concise Validation Plan with focused validation, broader validation, and full validation.
++* Include completion criteria that are objective and checkable.
++* Include assumptions only when necessary, and make them explicit.
++* Keep the implementation focused on the current phase.
+ 
+ The phase file should make the implementation agent less likely to:
+ 
+-- implement future phases too early
+-- ignore architecture decisions
+-- skip tests
+-- leave incomplete work
+-- add unnecessary features
+-- produce demo-quality or temporary code
+-- make silent assumptions that damage the final system
++* implement future phases too early
++* ignore architecture decisions
++* skip tests
++* leave incomplete work
++* add unnecessary features
++* produce demo-quality or temporary code
++* make silent assumptions that damage the final system
++
++### Phase Validation Plan
++
++When generating a `phaseX.md` file, include a concise **Validation Plan** section.
++
++The Validation Plan must separate checks into:
++
++1. **Focused validation** — fastest tests/checks directly related to this phase.
++2. **Broader validation** — affected backend/frontend/worker tests.
++3. **Full validation** — local-stack, Playwright, migration, or full-suite checks only when needed.
++
++Prefer focused validation during implementation. Full validation should normally run only after focused checks pass.
++
++The phase file should list exact commands where possible and avoid vague instructions like “run all tests” unless the phase genuinely requires full validation.
++
++If the phase depends on local AI/model/embedding behavior, specify deterministic/local providers for automated validation. Real external AI provider calls are for manual demo verification only.
+ 
+ ---
+ 
+@@ -113,31 +131,53 @@ The agent may also consult `/specs/PRD.md`, `/specs/architecture.md`, and `/spec
+ 
+ Implementation rules:
+ 
+-- Follow `phaseX.md` as the primary implementation plan.
+-- Stay within the phase scope.
+-- Do not implement future phases.
+-- Do not expand the project beyond the PRD, architecture, roadmap, or phase file.
+-- Do not silently change architecture decisions.
+-- Keep code typed, tested, maintainable, and consistent with the project structure.
+-- Implement professionally, as part of the final product, not as temporary scaffolding or throwaway work.
+-- Add or update the tests required by the phase.
+-- Run validation checks before marking the phase complete.
+-- If tests fail, fix the issue before moving on.
+-- If something is ambiguous, make the safest reasonable interpretation based on the specs and document the assumption in the final report.
++* Follow `phaseX.md` as the primary implementation plan.
++* Stay within the phase scope.
++* Do not implement future phases.
++* Do not expand the project beyond the PRD, architecture, roadmap, or phase file.
++* Do not silently change architecture decisions.
++* Keep code typed, tested, maintainable, and consistent with the project structure.
++* Implement professionally, as part of the final product, not as temporary scaffolding or throwaway work.
++* Add or update the tests required by the phase.
++* Run validation checks before marking the phase complete.
++* If tests fail, fix the issue before moving on.
++* If something is ambiguous, make the safest reasonable interpretation based on the specs and document the assumption in the final report.
+ 
+ After successful implementation and validation:
+ 
+-- Mark the phase as `(DONE)` in `/specs/roadmap.md`.
+-- Update `/specs/progress.md` consistently if it exists.
++* Mark the phase as `(DONE)` in `/specs/roadmap.md`.
++* Update `/specs/progress.md` consistently if it exists.
+ 
+ At the end of implementation, report:
+ 
+-- What was implemented
+-- Files changed
+-- Tests run
+-- Validation result
+-- Assumptions made
+-- Any known limitations or follow-up notes
++* What was implemented
++* Files changed
++* Tests run
++* Validation result
++* Assumptions made
++* Any known limitations or follow-up notes
++
++---
++
++## Validation Efficiency
++
++During implementation, run focused tests first. Run broader checks only after focused tests pass.
++
++Full-suite, full-stack, Docker rebuild, and full Playwright validation are expensive checks. Do not include them as mandatory phase validation unless the phase directly changes global app behavior, Docker/Compose, migrations, worker runtime, authentication flow, or deployment infrastructure.
++
++When generating a phase file, list:
++- focused validation as required
++- broader validation as required when affected
++- expensive full validation as conditional or final-check only
++
++Prefer exact focused test commands over broad commands like `run all tests`.
++
++If full-stack or Playwright validation fails, fix the current-phase issue and rerun it once. If it fails again, stop and report the blocker instead of repeatedly looping.
++
++Use deterministic/local model and embedding providers for automated validation. Real external AI provider calls are for manual demo verification only.
++
++Manual validation is optional after automated validation and is not required before marking a phase `(DONE)`.
++
+ 
+ ---
+ 
+@@ -161,20 +201,20 @@ becomes:
+ 
+ Only mark a phase as `(DONE)` when:
+ 
+-- the implementation for that phase is complete
+-- required tests have been added or updated
+-- required tests pass
+-- validation checks pass
+-- the implementation stays within phase scope
+-- no known blocker remains for that phase
++* the implementation for that phase is complete
++* required tests have been added or updated
++* required tests pass
++* validation checks pass
++* the implementation stays within phase scope
++* no known blocker remains for that phase
+ 
+ Do not mark a phase as `(DONE)` if:
+ 
+-- tests fail
+-- validation was not run
+-- implementation is partial
+-- the phase scope was changed without clear justification
+-- the code only works as temporary or demo-quality work
++* tests fail
++* validation was not run
++* implementation is partial
++* the phase scope was changed without clear justification
++* the code only works as temporary or demo-quality work
+ 
+ If `/specs/progress.md` exists, update it consistently with the roadmap status.
+ 
+@@ -210,13 +250,13 @@ Do not move to the next phase until the current phase is validated and committed
+ 
+ ## General Discipline
+ 
+-- The PRD defines product requirements.
+-- The architecture file defines technical boundaries.
+-- The roadmap defines phase order.
+-- The phase file defines implementation scope.
+-- During phase generation, read the full specs.
+-- During implementation, rely mainly on the phase file.
+-- Keep every phase shippable, reviewable, and testable.
+-- Never treat early phases as disposable prototypes.
+-- The project is one final professional system, built progressively.
+-- Mark phases as `(DONE)` in `/specs/roadmap.md` only after successful implementation and validation.
++* The PRD defines product requirements.
++* The architecture file defines technical boundaries.
++* The roadmap defines phase order.
++* The phase file defines implementation scope.
++* During phase generation, read the full specs.
++* During implementation, rely mainly on the phase file.
++* Keep every phase shippable, reviewable, and testable.
++* Never treat early phases as disposable prototypes.
++* The project is one final professional system, built progressively.
++* Mark phases as `(DONE)` in `/specs/roadmap.md` only after successful implementation and validation.
+diff --git a/README.md b/README.md
+index 6cc4c0c..5e6ea72 100644
+--- a/README.md
++++ b/README.md
+@@ -108,10 +108,10 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
+ `GET /api/cases/{case_id}/draft`. Case dates use ISO calendar dates (`YYYY-MM-DD`); the frontend
+ localizes them for display. User and role operations require the persisted **Admin** role in the
+ current organization; Case actions use their documented server-enforced RBAC policy. The closed
+-workflow selectors are `{"workflow":"intake"}` and `{"workflow":"evidence"}`; neither accepts
+-browser-owned model, prompt, state, tool, queue, retry, query, or source controls. Evidence is a
+-source-gathering workflow that persists a safe citation package or `needs_more_evidence`; it does
+-not answer, draft, approve, or expose a trace.
++workflow selectors are closed and server-owned, including `{"workflow":"intake"}` and
++`{"workflow":"evidence"}`; none accepts browser-owned model, prompt, state, tool, queue, retry,
++query, or source controls. Evidence is a source-gathering workflow that persists a safe citation
++package or `needs_more_evidence`; it does not answer, draft, approve, or expose a trace.
+ 
+ The closed `{"workflow":"extraction"}` operation uses only a completed eligible Evidence package for
+ that case. It produces bounded source-linked structured observations and permits typed edits to the
+@@ -124,6 +124,15 @@ when its `[S#]` citations validate against that run's approved sources; otherwis
+ `needs_more_evidence` state. Draft display is read-only and explicitly awaits later human review;
+ approval, final text, risk decisions, and edits remain out of scope.
+ 
++The closed `{"workflow":"risk_compliance"}` operation accepts no risk score, source, policy,
++provider, or override input. It revalidates the completed protected Draft, current approved Evidence
++provenance, and Intake signals in the worker. Its fixed policy matrix routes missing or stale
++prerequisites to `needs_more_evidence`; PII, sensitive-domain, high-impact, policy-conflict, and
++prompt-injection signals produce high risk; low confidence produces a review-required medium result.
++Every high-risk result requires later human approval, but this phase creates no approval, reviewer
++queue, interrupt, or final text. The safe assessment read is
++`GET /api/cases/{case_id}/risk-assessment`.
++
+ Document list/detail responses are always metadata-only. A source-status update accepts only the
+ closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`
+ does not physically archive or delete a document. The bounded context operation reuses retrieval
+diff --git a/apps/api/src/app/api/dependencies.py b/apps/api/src/app/api/dependencies.py
+index 69b40ab..a2ddb2b 100644
+--- a/apps/api/src/app/api/dependencies.py
++++ b/apps/api/src/app/api/dependencies.py
+@@ -21,6 +21,7 @@ from app.core.session_store import (
+     get_redis_client,
+ )
+ from app.db.session import get_db_session
++from app.services.approvals.service import ApprovalWorkflowService
+ from app.services.auth.policy import ensure_roles, guard_tenant_resource
+ from app.services.auth.principal import Principal, RoleName
+ from app.services.auth.service import AuthenticationService, UserAdministrationService
+@@ -38,6 +39,7 @@ from app.services.workflows.drafting import DraftingWorkflowService
+ from app.services.workflows.evidence import EvidenceWorkflowService
+ from app.services.workflows.extraction import ExtractionWorkflowService
+ from app.services.workflows.intake import IntakeWorkflowService
++from app.services.workflows.risk import RiskWorkflowService
+ 
+ # The runtime setting defaults to this name. The dependency itself reads the
+ # configured cookie name, while this object documents cookie authentication in
+@@ -233,6 +235,22 @@ def get_drafting_workflow_service(
+     return DraftingWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
+ 
+ 
++def get_risk_workflow_service(
++    session: Annotated[AsyncSession, Depends(get_db_session)],
++) -> RiskWorkflowService:
++    """Construct the closed Risk and Compliance service with UUID-only dispatch."""
++
++    return RiskWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
++
++
++def get_approval_workflow_service(
++    session: Annotated[AsyncSession, Depends(get_db_session)],
++) -> ApprovalWorkflowService:
++    """Construct the protected Phase-22 approval coordinator with UUID-only dispatch."""
++
++    return ApprovalWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
++
++
+ async def get_current_principal(
+     request: Request,
+     settings: Annotated[AppSettings, Depends(get_settings)],
+@@ -310,5 +328,9 @@ EvidenceWorkflowServiceDependency = Annotated[
+ ExtractionWorkflowServiceDependency = Annotated[
+     ExtractionWorkflowService, Depends(get_extraction_workflow_service)
+ ]
++RiskWorkflowServiceDependency = Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)]
++ApprovalWorkflowServiceDependency = Annotated[
++    ApprovalWorkflowService, Depends(get_approval_workflow_service)
++]
+ CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
+ AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]
+diff --git a/apps/api/src/app/api/routes/approvals.py b/apps/api/src/app/api/routes/approvals.py
+index 5afe0a4..0194209 100644
+--- a/apps/api/src/app/api/routes/approvals.py
++++ b/apps/api/src/app/api/routes/approvals.py
+@@ -1,17 +1,294 @@
+-"""Approvals API boundary.
++"""Protected queue, review-packet, and explicit human decision operations."""
+ 
+-Stable ownership boundary for the approval queue and approve/reject/request-more
+-endpoints. No operations are defined yet; the human approval workflow is implemented
+-in Phase 22.
+-"""
++from typing import Annotated, Literal, cast
++from uuid import UUID
+ 
+-from fastapi import APIRouter
++from agent_orchestrator.graphs.approval_types import ApprovalLifecycle, ReviewerDecision
++from agent_orchestrator.graphs.risk_types import FinalRiskLevel, RiskReason
++from fastapi import APIRouter, Query, Request
++
++from app.api.dependencies import ApprovalWorkflowServiceDependency, CurrentPrincipalDependency
++from app.api.schemas.approvals import (
++    ApprovalActionResultData,
++    ApprovalCommentRequest,
++    ApprovalExtractedFieldData,
++    ApprovalQueueData,
++    ApprovalQueueItemData,
++    ApprovalReviewPacketData,
++    ApprovalSourceData,
++    EditAndApproveRequest,
++    ReassignApprovalRequest,
++)
++from app.api.schemas.cases import CaseStatus
++from app.api.schemas.common import (
++    DEFAULT_ERROR_RESPONSES,
++    ErrorResponse,
++    ResponseMeta,
++    SuccessResponse,
++)
++from app.services.approvals.service import (
++    ApprovalActionSubmission,
++    ApprovalQueueItem,
++    ApprovalReviewPacket,
++)
+ 
+ PREFIX = "/approvals"
+ TAG = "Approvals"
+-DESCRIPTION = (
+-    "Human approval workflow boundary. Operations are added in Phase 22; no "
+-    "endpoints are implemented yet."
+-)
++DESCRIPTION = "Tenant-scoped human review queue, packet, assignments, and explicit decisions."
+ 
+ router = APIRouter()
++
++_APPROVAL_ERRORS = {
++    **DEFAULT_ERROR_RESPONSES,
++    401: {"model": ErrorResponse, "description": "Authentication is required."},
++    403: {"model": ErrorResponse, "description": "The current role is not allowed."},
++    404: {"model": ErrorResponse, "description": "The approval was not found."},
++    409: {"model": ErrorResponse, "description": "The approval cannot be changed."},
++    503: {"model": ErrorResponse, "description": "Workflow processing is unavailable."},
++}
++
++
++@router.get(
++    "",
++    response_model=SuccessResponse[ApprovalQueueData],
++    responses=_APPROVAL_ERRORS,
++    summary="List pending human review work in deterministic queue order",
++)
++async def list_approvals(
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++    limit: Annotated[int, Query(ge=1, le=100)] = 25,
++    offset: Annotated[int, Query(ge=0)] = 0,
++) -> SuccessResponse[ApprovalQueueData]:
++    items, total = await approvals.list_queue(principal, limit=limit, offset=offset)
++    data_items = tuple(_queue_item_data(item) for item in items)
++    return SuccessResponse(
++        data=ApprovalQueueData(
++            items=data_items,
++            limit=limit,
++            offset=offset,
++            total=total,
++            has_more=offset + len(data_items) < total,
++        ),
++        meta=_meta(request),
++    )
++
++
++@router.get(
++    "/{approval_id}",
++    response_model=SuccessResponse[ApprovalReviewPacketData],
++    responses=_APPROVAL_ERRORS,
++    summary="Read one protected human review packet",
++)
++async def get_approval(
++    approval_id: UUID,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalReviewPacketData]:
++    packet = await approvals.get_review_packet(principal, approval_id)
++    return SuccessResponse(data=_packet_data(packet), meta=_meta(request))
++
++
++@router.post(
++    "/{approval_id}/approve",
++    response_model=SuccessResponse[ApprovalActionResultData],
++    responses=_APPROVAL_ERRORS,
++    summary="Submit an unchanged-draft approval for worker-owned resume",
++)
++async def approve(
++    approval_id: UUID,
++    payload: ApprovalCommentRequest,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalActionResultData]:
++    result = await approvals.submit_decision(
++        principal,
++        approval_id,
++        decision=ReviewerDecision.APPROVE,
++        reviewer_comment=payload.reviewer_comment,
++    )
++    return SuccessResponse(data=_action_data(result), meta=_meta(request))
++
++
++@router.post(
++    "/{approval_id}/edit-and-approve",
++    response_model=SuccessResponse[ApprovalActionResultData],
++    responses=_APPROVAL_ERRORS,
++    summary="Submit separate human final text and approve for worker-owned resume",
++)
++async def edit_and_approve(
++    approval_id: UUID,
++    payload: EditAndApproveRequest,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalActionResultData]:
++    result = await approvals.submit_decision(
++        principal,
++        approval_id,
++        decision=ReviewerDecision.EDIT_AND_APPROVE,
++        reviewer_comment=payload.reviewer_comment,
++        final_text=payload.final_text,
++    )
++    return SuccessResponse(data=_action_data(result), meta=_meta(request))
++
++
++@router.post(
++    "/{approval_id}/reject",
++    response_model=SuccessResponse[ApprovalActionResultData],
++    responses=_APPROVAL_ERRORS,
++    summary="Reject a review packet for worker-owned controlled resolution",
++)
++async def reject(
++    approval_id: UUID,
++    payload: ApprovalCommentRequest,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalActionResultData]:
++    result = await approvals.submit_decision(
++        principal,
++        approval_id,
++        decision=ReviewerDecision.REJECT,
++        reviewer_comment=payload.reviewer_comment,
++    )
++    return SuccessResponse(data=_action_data(result), meta=_meta(request))
++
++
++@router.post(
++    "/{approval_id}/request-more-evidence",
++    response_model=SuccessResponse[ApprovalActionResultData],
++    responses=_APPROVAL_ERRORS,
++    summary="Request more evidence without automatically starting another workflow",
++)
++async def request_more_evidence(
++    approval_id: UUID,
++    payload: ApprovalCommentRequest,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalActionResultData]:
++    result = await approvals.submit_decision(
++        principal,
++        approval_id,
++        decision=ReviewerDecision.REQUEST_MORE_EVIDENCE,
++        reviewer_comment=payload.reviewer_comment,
++    )
++    return SuccessResponse(data=_action_data(result), meta=_meta(request))
++
++
++@router.post(
++    "/{approval_id}/reassign",
++    response_model=SuccessResponse[ApprovalActionResultData],
++    responses=_APPROVAL_ERRORS,
++    summary="Reassign a pending review to an active approval-capable tenant user",
++)
++async def reassign(
++    approval_id: UUID,
++    payload: ReassignApprovalRequest,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    approvals: ApprovalWorkflowServiceDependency,
++) -> SuccessResponse[ApprovalActionResultData]:
++    approval = await approvals.reassign(
++        principal, approval_id, assigned_user_id=payload.assigned_user_id
++    )
++    return SuccessResponse(
++        data=ApprovalActionResultData(
++            approval_id=approval.id,
++            approval_status=ApprovalLifecycle(approval.status),
++            decision=ReviewerDecision(approval.decision) if approval.decision is not None else None,
++            case_id=approval.case_id,
++            workflow_status="waiting_for_human_review",
++        ),
++        meta=_meta(request),
++    )
++
++
++def _queue_item_data(item: ApprovalQueueItem) -> ApprovalQueueItemData:
++    risk_level = FinalRiskLevel(item.case.risk_level or "medium")
++    return ApprovalQueueItemData(
++        approval_id=item.approval.id,
++        case_id=item.case.id,
++        case_number=item.case.case_number,
++        case_title=item.case.title,
++        case_status=CaseStatus(item.case.status),
++        risk_level=risk_level,
++        approval_status=ApprovalLifecycle(item.approval.status),
++        assigned_user_id=item.approval.assigned_user_id,
++        inserted_at=item.approval.inserted_at,
++    )
++
++
++def _packet_data(packet: ApprovalReviewPacket) -> ApprovalReviewPacketData:
++    codes = packet.risk.risk_reasons.get("codes")
++    risk_reasons = tuple(RiskReason(code) for code in codes) if isinstance(codes, list) else ()
++    return ApprovalReviewPacketData(
++        approval_id=packet.approval.id,
++        case_id=packet.case.id,
++        case_number=packet.case.case_number,
++        case_title=packet.case.title,
++        case_status=CaseStatus(packet.case.status),
++        risk_level=FinalRiskLevel(packet.risk.risk_level),
++        risk_reasons=risk_reasons,
++        approval_status=ApprovalLifecycle(packet.approval.status),
++        workflow_status=cast(
++            Literal["queued", "running", "waiting_for_human_review", "completed", "failed"],
++            packet.workflow_status,
++        ),
++        assigned_user_id=packet.approval.assigned_user_id,
++        reviewer_user_id=packet.approval.reviewer_user_id,
++        reviewer_comment=packet.approval.reviewer_comment,
++        decision=(
++            ReviewerDecision(packet.approval.decision)
++            if packet.approval.decision is not None
++            else None
++        ),
++        decision_at=packet.approval.decision_at,
++        ai_draft=packet.approval.ai_draft or "",
++        final_text=packet.approval.final_text,
++        sources=tuple(
++            ApprovalSourceData(
++                citation_label=source.citation_label,
++                document_id=source.document_id,
++                chunk_id=source.chunk_id,
++            )
++            for source in packet.sources
++        ),
++        extracted_fields=tuple(
++            ApprovalExtractedFieldData(
++                field_id=field.field_id,
++                field_kind=field.field_kind,
++                field_value=field.field_value,
++                source_document_id=field.source_document_id,
++                source_chunk_id=field.source_chunk_id,
++                human_edited=field.human_edited,
++            )
++            for field in packet.extracted_fields
++        ),
++    )
++
++
++def _action_data(result: ApprovalActionSubmission) -> ApprovalActionResultData:
++    return ApprovalActionResultData(
++        approval_id=result.approval.id,
++        approval_status=ApprovalLifecycle(result.approval.status),
++        decision=(
++            ReviewerDecision(result.approval.decision)
++            if result.approval.decision is not None
++            else None
++        ),
++        case_id=result.approval.case_id,
++        workflow_status=cast(
++            Literal["queued", "running", "waiting_for_human_review", "completed", "failed"],
++            result.workflow_status,
++        ),
++    )
++
++
++def _meta(request: Request) -> ResponseMeta:
++    request_id = getattr(request.state, "request_id", None)
++    return ResponseMeta(request_id=request_id if isinstance(request_id, str) else None)
+diff --git a/apps/api/src/app/api/routes/cases.py b/apps/api/src/app/api/routes/cases.py
+index 980edd3..e1b7862 100644
+--- a/apps/api/src/app/api/routes/cases.py
++++ b/apps/api/src/app/api/routes/cases.py
+@@ -15,6 +15,7 @@ from app.api.dependencies import (
+     get_evidence_workflow_service,
+     get_extraction_workflow_service,
+     get_intake_workflow_service,
++    get_risk_workflow_service,
+ )
+ from app.api.schemas.cases import (
+     CaseAssigneeListData,
+@@ -42,6 +43,7 @@ from app.api.schemas.workflows import (
+     ExtractedFieldData,
+     ExtractedFieldEditRequest,
+     ExtractedFieldListData,
++    RiskAssessmentData,
+     WorkflowRunData,
+     WorkflowStartRequest,
+ )
+@@ -54,6 +56,7 @@ from app.services.workflows.drafting import DraftingWorkflowService
+ from app.services.workflows.evidence import EvidenceWorkflowService
+ from app.services.workflows.extraction import ExtractionWorkflowService
+ from app.services.workflows.intake import IntakeWorkflowService
++from app.services.workflows.risk import RiskWorkflowService
+ 
+ PREFIX = "/cases"
+ TAG = "Cases"
+@@ -280,6 +283,7 @@ async def start_case_workflow(
+         ExtractionWorkflowService, Depends(get_extraction_workflow_service)
+     ],
+     drafting_workflows: Annotated[DraftingWorkflowService, Depends(get_drafting_workflow_service)],
++    risk_workflows: Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)],
+ ) -> SuccessResponse[WorkflowRunData]:
+     """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
+ 
+@@ -292,7 +296,11 @@ async def start_case_workflow(
+             else (
+                 await extraction_workflows.start(principal, case_id)
+                 if payload.workflow == "extraction"
+-                else await drafting_workflows.start(principal, case_id, payload.output_language)
++                else (
++                    await drafting_workflows.start(principal, case_id, payload.output_language)
++                    if payload.workflow == "drafting"
++                    else await risk_workflows.start(principal, case_id)
++                )
+             )
+         )
+     )
+@@ -377,6 +385,33 @@ async def get_draft(
+     )
+ 
+ 
++@router.get(
++    "/{case_id}/risk-assessment",
++    response_model=SuccessResponse[RiskAssessmentData],
++    responses=_CASE_ERROR_RESPONSES,
++    summary="Read the latest safe final risk assessment for one current-tenant case",
++)
++async def get_risk_assessment(
++    case_id: UUID,
++    request: Request,
++    principal: CurrentPrincipalDependency,
++    workflows: Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)],
++) -> SuccessResponse[RiskAssessmentData]:
++    """This is read-only: Phase 22 owns approval decisions and review actions."""
++
++    assessment = await workflows.get_latest_assessment(principal, case_id)
++    return SuccessResponse(
++        data=RiskAssessmentData(
++            workflow_run_id=assessment.workflow_run_id,
++            risk_level=assessment.result.risk_level,
++            risk_reasons=assessment.result.risk_reasons,
++            requires_approval=assessment.result.requires_approval,
++            safe_next_state=assessment.result.safe_next_state,
++        ),
++        meta=_meta(request),
++    )
++
++
+ def _case_data(case: Case) -> CaseData:
+     return CaseData(
+         case_id=case.id,
+diff --git a/apps/api/src/app/api/routes/workflows.py b/apps/api/src/app/api/routes/workflows.py
+index 12bf4d7..e2340b0 100644
+--- a/apps/api/src/app/api/routes/workflows.py
++++ b/apps/api/src/app/api/routes/workflows.py
+@@ -26,6 +26,7 @@ from app.api.schemas.workflows import (
+     ExtractionResultData,
+     IntakeCorrectionRequest,
+     IntakeResultData,
++    RiskResultData,
+     WorkflowRunData,
+     WorkflowRunStatus,
+ )
+@@ -98,7 +99,14 @@ def workflow_run_data(run: object) -> WorkflowRunData:
+ 
+     workflow_run = cast(WorkflowRun, run)
+     snapshot = workflow_run.state_snapshot
+-    if workflow_run.workflow_name not in {"intake", "evidence", "extraction", "drafting"}:
++    if workflow_run.workflow_name not in {
++        "intake",
++        "evidence",
++        "extraction",
++        "drafting",
++        "risk_compliance",
++        "human_approval",
++    }:
+         raise NotFoundError("Workflow run")
+     intake = (
+         _intake_data(snapshot)
+@@ -123,10 +131,19 @@ def workflow_run_data(run: object) -> WorkflowRunData:
+         and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
+         else None
+     )
++    risk_compliance = (
++        _risk_data(snapshot)
++        if workflow_run.workflow_name == "risk_compliance"
++        and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
++        else None
++    )
+     return WorkflowRunData(
+         workflow_run_id=workflow_run.id,
+         workflow=cast(
+-            Literal["intake", "evidence", "extraction", "drafting"], workflow_run.workflow_name
++            Literal[
++                "intake", "evidence", "extraction", "drafting", "risk_compliance", "human_approval"
++            ],
++            workflow_run.workflow_name,
+         ),
+         status=WorkflowRunStatus(workflow_run.status),
+         started_at=workflow_run.started_at,
+@@ -135,6 +152,7 @@ def workflow_run_data(run: object) -> WorkflowRunData:
+         evidence=evidence,
+         extraction=extraction,
+         drafting=drafting,
++        risk_compliance=risk_compliance,
+     )
+ 
+ 
+@@ -226,6 +244,25 @@ def _drafting_data(snapshot: dict[str, object]) -> DraftingResultData | None:
+     return DraftingResultData.model_validate(data) if data else None
+ 
+ 
++def _risk_data(snapshot: dict[str, object]) -> RiskResultData | None:
++    """Select only closed final-risk labels and booleans from the safe snapshot."""
++
++    if not snapshot:
++        return None
++    data: dict[str, object] = {}
++    mapping = {
++        "final_risk_level": "final_risk_level",
++        "reason_codes": "risk_reasons",
++        "approval_required": "requires_approval",
++        "safe_next_state": "safe_next_state",
++    }
++    for source, target in mapping.items():
++        value = snapshot.get(source)
++        if value is not None:
++            data[target] = value
++    return RiskResultData.model_validate(data) if data else None
++
++
+ def _meta(request: Request) -> ResponseMeta:
+     request_id = getattr(request.state, "request_id", None)
+     return ResponseMeta(request_id=request_id if isinstance(request_id, str) else None)
+diff --git a/apps/api/src/app/api/schemas/workflows.py b/apps/api/src/app/api/schemas/workflows.py
+index f4401d1..182ca5a 100644
+--- a/apps/api/src/app/api/schemas/workflows.py
++++ b/apps/api/src/app/api/schemas/workflows.py
+@@ -13,6 +13,7 @@ from agent_orchestrator.graphs.extraction_types import (
+     ExtractionFieldKind,
+     ExtractionValue,
+ )
++from agent_orchestrator.graphs.risk_types import FinalRiskLevel, RiskReason, RiskSafeNextState
+ from pydantic import BaseModel, ConfigDict, Field
+ 
+ from app.api.schemas.cases import CaseDomain, CaseRiskLevel
+@@ -30,6 +31,7 @@ class IntakeCaseType(StrEnum):
+ class WorkflowRunStatus(StrEnum):
+     QUEUED = "queued"
+     RUNNING = "running"
++    WAITING_FOR_HUMAN_REVIEW = "waiting_for_human_review"
+     COMPLETED = "completed"
+     NEEDS_MORE_EVIDENCE = "needs_more_evidence"
+     FAILED = "failed"
+@@ -87,8 +89,20 @@ class DraftingStartRequest(BaseModel):
+     output_language: OutputLanguage | None = None
+ 
+ 
++class RiskComplianceStartRequest(BaseModel):
++    """Closed final-risk selector; all policy inputs remain server owned."""
++
++    model_config = ConfigDict(extra="forbid")
++
++    workflow: Literal["risk_compliance"]
++
++
+ WorkflowStartRequest = Annotated[
+-    IntakeStartRequest | EvidenceStartRequest | ExtractionStartRequest | DraftingStartRequest,
++    IntakeStartRequest
++    | EvidenceStartRequest
++    | ExtractionStartRequest
++    | DraftingStartRequest
++    | RiskComplianceStartRequest,
+     Field(discriminator="workflow"),
+ ]
+ 
+@@ -201,6 +215,29 @@ class DraftData(BaseModel):
+     citations: tuple[DraftCitationData, ...]
+ 
+ 
++class RiskResultData(BaseModel):
++    """Safe lifecycle summary for the closed Risk and Compliance workflow."""
++
++    model_config = ConfigDict(frozen=True, extra="forbid")
++
++    final_risk_level: FinalRiskLevel | None = None
++    risk_reasons: tuple[RiskReason, ...] = ()
++    requires_approval: bool | None = None
++    safe_next_state: RiskSafeNextState | None = None
++
++
++class RiskAssessmentData(BaseModel):
++    """Read-only latest final assessment; policy internals stay private."""
++
++    model_config = ConfigDict(frozen=True, extra="forbid")
++
++    workflow_run_id: UUID
++    risk_level: FinalRiskLevel
++    risk_reasons: tuple[RiskReason, ...]
++    requires_approval: bool
++    safe_next_state: RiskSafeNextState
++
++
+ class ExtractedFieldData(BaseModel):
+     """One source-linked typed business field from the latest completed extraction run."""
+ 
+@@ -237,7 +274,9 @@ class WorkflowRunData(BaseModel):
+     model_config = ConfigDict(frozen=True)
+ 
+     workflow_run_id: UUID
+-    workflow: Literal["intake", "evidence", "extraction", "drafting"]
++    workflow: Literal[
++        "intake", "evidence", "extraction", "drafting", "risk_compliance", "human_approval"
++    ]
+     status: WorkflowRunStatus
+     started_at: datetime
+     finished_at: datetime | None
+@@ -245,3 +284,4 @@ class WorkflowRunData(BaseModel):
+     evidence: EvidenceResultData | None = None
+     extraction: ExtractionResultData | None = None
+     drafting: DraftingResultData | None = None
++    risk_compliance: RiskResultData | None = None
+diff --git a/apps/api/src/app/db/models/workflow.py b/apps/api/src/app/db/models/workflow.py
+index 3a20c2b..b6e10b8 100644
+--- a/apps/api/src/app/db/models/workflow.py
++++ b/apps/api/src/app/db/models/workflow.py
+@@ -270,6 +270,11 @@ class RiskAssessment(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
+             ["workflow_runs.organization_id", "workflow_runs.id"],
+             name="fk_risk_assessments_organization_workflow_run",
+         ),
++        UniqueConstraint(
++            "organization_id",
++            "workflow_run_id",
++            name="uq_risk_assessments_organization_workflow_run",
++        ),
+     )
+ 
+     organization_id: Mapped[UUID] = mapped_column(
+@@ -318,6 +323,40 @@ class Approval(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
+             ["users.organization_id", "users.id"],
+             name="fk_approvals_organization_reviewer_user",
+         ),
++        ForeignKeyConstraint(
++            ["organization_id", "assigned_user_id"],
++            ["users.organization_id", "users.id"],
++            name="fk_approvals_organization_assigned_user",
++        ),
++        ForeignKeyConstraint(
++            ["organization_id", "drafting_workflow_run_id"],
++            ["workflow_runs.organization_id", "workflow_runs.id"],
++            name="fk_approvals_organization_drafting_workflow_run",
++        ),
++        ForeignKeyConstraint(
++            ["risk_assessment_id"],
++            ["risk_assessments.id"],
++            name="fk_approvals_risk_assessment_id",
++        ),
++        UniqueConstraint(
++            "organization_id", "workflow_run_id", name="uq_approvals_organization_workflow_run"
++        ),
++        CheckConstraint(
++            "status IN ('pending', 'assigned', 'approved', 'rejected', 'needs_more_evidence')",
++            name="approval_status_valid",
++        ),
++        CheckConstraint(
++            "decision IS NULL OR decision IN "
++            "('approve', 'edit_and_approve', 'reject', 'request_more_evidence')",
++            name="approval_decision_valid",
++        ),
++        Index(
++            "ix_approvals_organization_status_assigned_inserted",
++            "organization_id",
++            "status",
++            "assigned_user_id",
++            "inserted_at",
++        ),
+     )
+ 
+     organization_id: Mapped[UUID] = mapped_column(
+@@ -325,9 +364,17 @@ class Approval(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
+     )
+     case_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
+     workflow_run_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
+-    reviewer_user_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
+-    decision: Mapped[str] = mapped_column(String(50), nullable=False)
++    reviewer_user_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
++    assigned_user_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
++    drafting_workflow_run_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
++    risk_assessment_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
++    status: Mapped[str] = mapped_column(
++        String(50), nullable=False, server_default=text("'pending'")
++    )
++    decision: Mapped[str | None] = mapped_column(String(50))
+     reviewer_comment: Mapped[str | None] = mapped_column(Text)
+     ai_draft: Mapped[str | None] = mapped_column(Text)
+     final_text: Mapped[str | None] = mapped_column(Text)
+-    decision_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
++    decision_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
++    interrupted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
++    resumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+diff --git a/apps/api/src/app/db/repositories/workflow.py b/apps/api/src/app/db/repositories/workflow.py
+index bcd2351..b48bacb 100644
+--- a/apps/api/src/app/db/repositories/workflow.py
++++ b/apps/api/src/app/db/repositories/workflow.py
+@@ -6,11 +6,11 @@ from datetime import datetime
+ from typing import cast
+ from uuid import UUID
+ 
+-from sqlalchemy import select
++from sqlalchemy import asc, select
+ from sqlalchemy.ext.asyncio import AsyncSession
+ from sqlalchemy.sql.elements import ColumnElement
+ 
+-from app.db.models.workflow import WorkflowNodeRun, WorkflowRun
++from app.db.models.workflow import Approval, WorkflowNodeRun, WorkflowRun
+ from app.db.repositories.base import TenantScopedRepository
+ from app.services.common.pagination import Page, Pagination
+ from app.services.common.querying import SortSpec, resolve_sort
+@@ -111,3 +111,69 @@ class WorkflowNodeRunRepository:
+         node_run.retry_count = retry_count
+         node_run.error_summary = error_summary
+         return node_run
++
++
++class ApprovalRepository:
++    """Tenant-scoped review persistence; authorization remains in the service layer."""
++
++    def __init__(self, session: AsyncSession) -> None:
++        self.session = session
++
++    async def create(self, approval: Approval) -> Approval:
++        self.session.add(approval)
++        return approval
++
++    async def get(self, organization_id: UUID, approval_id: UUID) -> Approval | None:
++        statement = select(Approval).where(
++            Approval.organization_id == organization_id,
++            Approval.id == approval_id,
++        )
++        return cast(Approval | None, await self.session.scalar(statement))
++
++    async def get_for_update(self, organization_id: UUID, approval_id: UUID) -> Approval | None:
++        statement = (
++            select(Approval)
++            .where(
++                Approval.organization_id == organization_id,
++                Approval.id == approval_id,
++            )
++            .with_for_update()
++        )
++        return cast(Approval | None, await self.session.scalar(statement))
++
++    async def get_for_workflow(
++        self, organization_id: UUID, workflow_run_id: UUID, *, lock: bool = False
++    ) -> Approval | None:
++        statement = select(Approval).where(
++            Approval.organization_id == organization_id,
++            Approval.workflow_run_id == workflow_run_id,
++        )
++        if lock:
++            statement = statement.with_for_update()
++        return cast(Approval | None, await self.session.scalar(statement))
++
++    async def list_queue(
++        self, organization_id: UUID, *, limit: int, offset: int
++    ) -> tuple[tuple[Approval, ...], int]:
++        """Return only undecided active records in a stable oldest-first reviewer queue."""
++
++        from sqlalchemy import func
++
++        predicates = (
++            Approval.organization_id == organization_id,
++            Approval.status.in_(("pending", "assigned")),
++            Approval.decision.is_(None),
++        )
++        total = await self.session.scalar(select(func.count(Approval.id)).where(*predicates))
++        items = tuple(
++            (
++                await self.session.scalars(
++                    select(Approval)
++                    .where(*predicates)
++                    .order_by(asc(Approval.inserted_at), asc(Approval.id))
++                    .limit(limit)
++                    .offset(offset)
++                )
++            ).all()
++        )
++        return items, int(total or 0)
+diff --git a/apps/api/src/app/services/auth/policy.py b/apps/api/src/app/services/auth/policy.py
+index b58bbe9..d759256 100644
+--- a/apps/api/src/app/services/auth/policy.py
++++ b/apps/api/src/app/services/auth/policy.py
+@@ -149,7 +149,7 @@ def authorize_approval(principal: Principal, approval: ApprovalAuthorizationInpu
+     """
+ 
+     guard_tenant_resource(principal, approval.organization_id)
+-    ensure_roles(principal, RoleName.COMPLIANCE_REVIEWER)
++    ensure_roles(principal, RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER)
+     if (
+         approval.requires_approval or approval.risk_level.casefold() == "high"
+     ) and approval.submitted_by_user_id == principal.user_id:
+diff --git a/apps/api/src/app/services/cases/policy.py b/apps/api/src/app/services/cases/policy.py
+index 3567026..b1d97b4 100644
+--- a/apps/api/src/app/services/cases/policy.py
++++ b/apps/api/src/app/services/cases/policy.py
+@@ -18,7 +18,9 @@ _TRANSITIONS: dict[str, frozenset[str]] = {
+     "archived": frozenset(),
+ }
+ 
+-_APPROVAL_STATUSES = frozenset({"approved", "rejected"})
++_APPROVAL_STATUSES = frozenset(
++    {"waiting_for_human_review", "approved", "rejected", "needs_more_evidence"}
++)
+ 
+ 
+ def validate_case_transition(current_status: str, target_status: str) -> None:
+diff --git a/apps/api/src/app/services/cases/service.py b/apps/api/src/app/services/cases/service.py
+index c6d50fb..8777b1d 100644
+--- a/apps/api/src/app/services/cases/service.py
++++ b/apps/api/src/app/services/cases/service.py
+@@ -172,12 +172,11 @@ class CaseService:
+         old_assignee = case.assigned_user_id
+         if not isinstance(command.status, Unset):
+             validate_case_transition(case.status, command.status)
+-            authorize_case_action(
+-                principal,
+-                CaseAction.APPROVE_OR_REJECT
+-                if is_approval_status(command.status)
+-                else CaseAction.EDIT,
+-            )
++            if case.status == "waiting_for_human_review" or is_approval_status(command.status):
++                raise InvalidCommandError(
++                    "Approval workflow transitions are reserved for the approval service."
++                )
++            authorize_case_action(principal, CaseAction.EDIT)
+         if not isinstance(command.assigned_user_id, Unset) and command.assigned_user_id is not None:
+             await self._require_active_user(principal.organization_id, command.assigned_user_id)
+         if not isinstance(command.due_date, Unset):
+diff --git a/apps/api/src/app/services/workflows/dispatch.py b/apps/api/src/app/services/workflows/dispatch.py
+index c38665f..b9413af 100644
+--- a/apps/api/src/app/services/workflows/dispatch.py
++++ b/apps/api/src/app/services/workflows/dispatch.py
+@@ -16,6 +16,10 @@ class WorkflowTaskDispatcher(Protocol):
+     def dispatch_extraction(self, workflow_run_id: UUID) -> None: ...
+     def dispatch_drafting(self, workflow_run_id: UUID) -> None: ...
+ 
++    def dispatch_risk_compliance(self, workflow_run_id: UUID) -> None: ...
++
++    def dispatch_human_approval(self, workflow_run_id: UUID) -> None: ...
++
+ 
+ class CeleryWorkflowTaskDispatcher:
+     """Production dispatcher for exactly one Phase-17 workflow task."""
+@@ -39,3 +43,13 @@ class CeleryWorkflowTaskDispatcher:
+         from app.workers.tasks import run_drafting_workflow_task
+ 
+         run_drafting_workflow_task.apply_async(args=[str(workflow_run_id)])
++
++    def dispatch_risk_compliance(self, workflow_run_id: UUID) -> None:
++        from app.workers.tasks import run_risk_compliance_workflow_task
++
++        run_risk_compliance_workflow_task.apply_async(args=[str(workflow_run_id)])
++
++    def dispatch_human_approval(self, workflow_run_id: UUID) -> None:
++        from app.workers.tasks import run_human_approval_workflow_task
++
++        run_human_approval_workflow_task.apply_async(args=[str(workflow_run_id)])
+diff --git a/apps/api/src/app/services/workflows/orchestrator.py b/apps/api/src/app/services/workflows/orchestrator.py
+index d1da0e1..4e46d6c 100644
+--- a/apps/api/src/app/services/workflows/orchestrator.py
++++ b/apps/api/src/app/services/workflows/orchestrator.py
+@@ -96,6 +96,20 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
+         )
+         return True
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool:
++        """Resume a claimed review interruption without permitting generic resume routes."""
++
++        run = await self._workflows.claim_waiting_for_human_review(
++            context.organization_id, context.workflow_run_id
++        )
++        return not (
++            run is None
++            or run.case_id != context.case_id
++            or run.started_by_user_id != context.initiated_by_user_id
++            or run.workflow_name != context.workflow_name
++            or run.workflow_version != context.workflow_version
++        )
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+@@ -177,6 +191,39 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
+             )
+         )
+ 
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None:
++        paused = await self._workflows.pause(
++            WorkflowRunFinalize(
++                organization_id=context.organization_id,
++                workflow_run_id=context.workflow_run_id,
++                status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW.value,
++                finished_at=datetime.now(UTC),
++                duration_ms=duration_ms,
++                state_snapshot=state_snapshot,
++            )
++        )
++        if paused is None:
++            return
++        await self._audit.record_event(
++            AuditEventCreate(
++                organization_id=context.organization_id,
++                actor_user_id=context.initiated_by_user_id,
++                event_type=f"workflow.{context.workflow_name}_interrupted",
++                resource_type="workflow_run",
++                resource_id=context.workflow_run_id,
++                case_id=context.case_id,
++                event_data=_audit_workflow_data(
++                    state_snapshot, status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW.value
++                ),
++            )
++        )
++
+     async def fail_run(
+         self,
+         context: WorkflowContext,
+@@ -300,6 +347,13 @@ def _audit_workflow_data(snapshot: dict[str, object], *, status: str) -> dict[st
+         "permitted_source_count",
+         "approved_source_count",
+         "reason_codes",
++        "final_risk_level",
++        "safe_next_state",
++        "sensitive_domain",
++        "weak_evidence",
++        "missing_required_source",
++        "high_impact_action",
++        "policy_conflict",
+     }
+     data = cast(
+         dict[str, JSONValue], {key: value for key, value in snapshot.items() if key in allowed}
+diff --git a/apps/api/src/app/services/workflows/service.py b/apps/api/src/app/services/workflows/service.py
+index 4898397..51c02ad 100644
+--- a/apps/api/src/app/services/workflows/service.py
++++ b/apps/api/src/app/services/workflows/service.py
+@@ -142,6 +142,38 @@ class WorkflowRunService:
+             await self.session.flush()
+             return run
+ 
++    async def claim_waiting_for_human_review(
++        self, organization_id: UUID, workflow_run_id: UUID
++    ) -> WorkflowRun | None:
++        """Claim one persisted approval interruption exactly once for resumption."""
++
++        async with self.session.begin_nested():
++            run = await self.repository.get_for_update(organization_id, workflow_run_id)
++            if run is None or run.status != "waiting_for_human_review":
++                return None
++            run.status = "running"
++            await self.session.flush()
++            return run
++
++    async def pause(self, command: WorkflowRunFinalize) -> WorkflowRun | None:
++        """Persist a non-terminal human-review checkpoint from a running graph run."""
++
++        async with self.session.begin_nested():
++            run = await self.repository.get_for_update(
++                command.organization_id, command.workflow_run_id
++            )
++            if run is None or run.status != "running":
++                return None
++            if command.duration_ms < 0:
++                raise ValueError("Workflow timing is invalid")
++            run.status = "waiting_for_human_review"
++            run.finished_at = None
++            run.duration_ms = command.duration_ms
++            run.state_snapshot = command.state_snapshot
++            run.error_summary = None
++            await self.session.flush()
++            return run
++
+     async def start_node(self, command: WorkflowNodeStart) -> WorkflowNodeRun:
+         """Create one trace row after validating the tenant-owned parent run."""
+ 
+diff --git a/apps/api/src/app/workers/celery_app.py b/apps/api/src/app/workers/celery_app.py
+index a52400f..b600204 100644
+--- a/apps/api/src/app/workers/celery_app.py
++++ b/apps/api/src/app/workers/celery_app.py
+@@ -25,6 +25,8 @@ celery_app.conf.update(
+         "app.workers.tasks.run_evidence_workflow_task": {"queue": "agent-orchestrator"},
+         "app.workers.tasks.run_extraction_workflow_task": {"queue": "agent-orchestrator"},
+         "app.workers.tasks.run_drafting_workflow_task": {"queue": "agent-orchestrator"},
++        "app.workers.tasks.run_risk_compliance_workflow_task": {"queue": "agent-orchestrator"},
++        "app.workers.tasks.run_human_approval_workflow_task": {"queue": "agent-orchestrator"},
+     },
+     task_serializer="json",
+     accept_content=["json"],
+diff --git a/apps/api/src/app/workers/tasks.py b/apps/api/src/app/workers/tasks.py
+index d04e58f..1106a42 100644
+--- a/apps/api/src/app/workers/tasks.py
++++ b/apps/api/src/app/workers/tasks.py
+@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
+ from uuid import UUID
+ 
+ from agent_orchestrator.config import AgentSettings
++from agent_orchestrator.graphs.approval_graph import ApprovalGraph, ApprovalGraphDependencies
++from agent_orchestrator.graphs.approval_types import ApprovalWorkflowState
+ from agent_orchestrator.graphs.drafting_graph import (
+     DraftingCaseInput,
+     DraftingEvidenceSource,
+@@ -41,6 +43,8 @@ from agent_orchestrator.graphs.intake_types import (
+     IntakeWorkflowState,
+     LanguageDetectionResult,
+ )
++from agent_orchestrator.graphs.risk_graph import RiskGraph, RiskGraphDependencies
++from agent_orchestrator.graphs.risk_types import RiskWorkflowState
+ from agent_orchestrator.model_providers.factory import build_model_provider
+ from agent_orchestrator.types import RetryPolicy, RuntimeStatus, WorkflowContext
+ from celery import Task  # type: ignore[import-untyped]
+@@ -54,6 +58,7 @@ from app.db.repositories.case import CaseRepository
+ from app.db.repositories.document import DocumentRepository
+ from app.db.repositories.identity import UserRepository, UserRoleRepository
+ from app.db.session import dispose_database_engines, get_sessionmaker
++from app.services.approvals.service import ApprovalWorkflowService
+ from app.services.auth.principal import Principal, RoleName
+ from app.services.documents.chunking import CanonicalTextChunker, ChunkingConfig, TiktokenTokenizer
+ from app.services.documents.dispatch import CeleryDocumentTaskDispatcher
+@@ -69,6 +74,7 @@ from app.services.documents.parsing import DocumentParseCoordinator, ParseProces
+ from app.services.documents.storage import AzureBlobObjectStorage
+ from app.services.retrieval.service import RetrievalService
+ from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
++from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
+ from app.services.workflows.drafting import DRAFTING_WORKFLOW_NAME, persist_draft
+ from app.services.workflows.evidence import (
+     EVIDENCE_WORKFLOW_NAME,
+@@ -85,6 +91,11 @@ from app.services.workflows.orchestrator import (
+     SqlAlchemyWorkflowPersistence,
+     persist_intake_case_result,
+ )
++from app.services.workflows.risk import (
++    RISK_WORKFLOW_NAME,
++    load_risk_prerequisites,
++    persist_risk_assessment,
++)
+ from app.workers.celery_app import celery_app
+ 
+ _logger = get_logger("workers.document_tasks")
+@@ -544,11 +555,13 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
+                 language = OutputLanguage(
+                     requested_language if isinstance(requested_language, str) else case.language
+                 )
++                first_source = evidence.sources[0]
+                 fixture = {
+                     "drafting_response": {
+-                        "draft": "Syntetisk dokumenttekst for lokal nettlesertest [S1]"
+-                        if language is OutputLanguage.NB
+-                        else "Synthetic local browser-test document text [S1]",
++                        # The deterministic fixture must satisfy the same citation-support
++                        # guard as a provider response, even when local browser runs retain
++                        # prior synthetic source documents in the database.
++                        "draft": f"{first_source.excerpt.strip()} [{first_source.citation_label}]",
+                         "language": language.value,
+                     }
+                 }
+@@ -606,6 +619,163 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
+         await dispose_database_engines()
+ 
+ 
++async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
++    """Reload one queued risk run and assess only revalidated persisted signals."""
++
++    try:
++        async with get_sessionmaker(settings)() as session:
++            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
++            if run is None or run.workflow_name != RISK_WORKFLOW_NAME or run.status != "queued":
++                return "noop"
++            context = WorkflowContext(
++                workflow_run_id=run.id,
++                organization_id=run.organization_id,
++                case_id=run.case_id,
++                initiated_by_user_id=run.started_by_user_id,
++                workflow_name=run.workflow_name,
++                workflow_version=run.workflow_version,
++            )
++            case = await CaseRepository(session).get(context.organization_id, context.case_id)
++            user = await UserRepository(session).get(
++                context.organization_id, context.initiated_by_user_id
++            )
++            persistence = SqlAlchemyWorkflowPersistence(session)
++            if case is None or user is None or not user.is_active:
++                if await persistence.claim_run(context):
++                    await persistence.fail_run(
++                        context,
++                        state_snapshot={
++                            "workflow_name": context.workflow_name,
++                            "workflow_version": context.workflow_version,
++                            "state_schema_version": "v1",
++                            "status": "failed",
++                        },
++                        duration_ms=0,
++                        error_code="case_not_available",
++                    )
++                    await session.commit()
++                return "failed"
++            prerequisites = await load_risk_prerequisites(
++                session, context.organization_id, context.case_id
++            )
++            if prerequisites is None:
++                if await persistence.claim_run(context):
++                    await persistence.complete_run(
++                        context,
++                        status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
++                        state_snapshot={
++                            "workflow_name": context.workflow_name,
++                            "workflow_version": context.workflow_version,
++                            "state_schema_version": "v1",
++                            "status": "needs_more_evidence",
++                        },
++                        duration_ms=0,
++                    )
++                    await session.commit()
++                return "needs_more_evidence"
++            try:
++                agent_settings = AgentSettings()
++                graph = RiskGraph(
++                    RiskGraphDependencies(
++                        signals=prerequisites.signals,
++                        persistence=persistence,
++                        persist_assessment=lambda graph_context, state, result: (
++                            persist_risk_assessment(session, graph_context, state, result)
++                        ),
++                        retry_policy=RetryPolicy(
++                            maximum_retries=agent_settings.node_maximum_retries
++                        ),
++                    )
++                )
++                result = await graph.run(context, RiskWorkflowState(context=context))
++                approval_run = None
++                if (
++                    result.outcome.status is RuntimeStatus.COMPLETED
++                    and result.state.approval_required
++                ):
++                    approval_run = await ApprovalWorkflowService(session).create_required_run(
++                        context
++                    )
++                await session.commit()
++                if approval_run is not None:
++                    try:
++                        CeleryWorkflowTaskDispatcher().dispatch_human_approval(approval_run.id)
++                    except Exception:
++                        _logger.warning("approval.workflow_dispatch_unavailable")
++                return result.outcome.status.value
++            except Exception:
++                if await persistence.claim_run(context):
++                    await persistence.fail_run(
++                        context,
++                        state_snapshot={
++                            "workflow_name": context.workflow_name,
++                            "workflow_version": context.workflow_version,
++                            "state_schema_version": "v1",
++                            "status": "failed",
++                        },
++                        duration_ms=0,
++                        error_code="workflow_configuration_unavailable",
++                    )
++                    await session.commit()
++                return "failed"
++    finally:
++        await dispose_database_engines()
++
++
++async def _process_human_approval_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
++    """Run the initial approval interruption or one UUID-only persisted reviewer resume."""
++
++    try:
++        async with get_sessionmaker(settings)() as session:
++            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
++            if (
++                run is None
++                or run.workflow_name != "human_approval"
++                or run.status not in {"queued", "waiting_for_human_review"}
++            ):
++                return "noop"
++            context = WorkflowContext(
++                workflow_run_id=run.id,
++                organization_id=run.organization_id,
++                case_id=run.case_id,
++                initiated_by_user_id=run.started_by_user_id,
++                workflow_name=run.workflow_name,
++                workflow_version=run.workflow_version,
++            )
++            persistence = SqlAlchemyWorkflowPersistence(session)
++            service = ApprovalWorkflowService(session)
++            graph = ApprovalGraph(
++                ApprovalGraphDependencies(
++                    persistence=persistence,
++                    prepare_review_packet=service.prepare_review_packet,
++                    mark_interrupted=service.mark_interrupted,
++                    load_decision=service.load_decision,
++                    resolve_decision=service.resolve_decision,
++                    retry_policy=RetryPolicy(maximum_retries=AgentSettings().node_maximum_retries),
++                )
++            )
++            if run.status == "queued":
++                result = await graph.run_initial(context, ApprovalWorkflowState(context=context))
++            else:
++                approval = await service.approval_for_workflow(
++                    context.organization_id, context.workflow_run_id
++                )
++                if approval is None:
++                    return "noop"
++                result = await graph.run_resume(
++                    context,
++                    ApprovalWorkflowState(
++                        context=context,
++                        status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW,
++                        approval_id=approval.id,
++                    ),
++                )
++            await session.commit()
++            return result.outcome.status.value
++    finally:
++        await dispose_database_engines()
++
++
+ def _retry_delay(retries: int) -> int:
+     """Small finite exponential backoff suitable for local and production-like queues."""
+ 
+@@ -891,6 +1061,60 @@ def run_drafting_workflow_task(task: Task, workflow_run_id: str) -> str:
+     return outcome
+ 
+ 
++@celery_app.task(  # type: ignore[untyped-decorator]
++    bind=True,
++    name="app.workers.tasks.run_risk_compliance_workflow_task",
++    acks_late=True,
++    ignore_result=True,
++)
++def run_risk_compliance_workflow_task(task: Task, workflow_run_id: str) -> str:
++    """Execute one UUID-only risk task with the established bounded retry boundary."""
++
++    try:
++        parsed_id = UUID(workflow_run_id)
++    except ValueError:
++        _logger.warning("workflow.risk_compliance_task_invalid_identifier")
++        return "noop"
++    settings = get_settings()
++    try:
++        outcome = asyncio.run(_process_risk_compliance_workflow(parsed_id, settings))
++    except Exception as error:
++        _logger.warning(
++            "workflow.risk_compliance_task_runtime_unavailable", error_type=type(error).__name__
++        )
++        if task.request.retries >= settings.document_parser_task_max_retries:
++            return "failed"
++        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
++    return outcome
++
++
++@celery_app.task(  # type: ignore[untyped-decorator]
++    bind=True,
++    name="app.workers.tasks.run_human_approval_workflow_task",
++    acks_late=True,
++    ignore_result=True,
++)
++def run_human_approval_workflow_task(task: Task, workflow_run_id: str) -> str:
++    """Execute one UUID-only approval interruption/resume task with finite retries."""
++
++    try:
++        parsed_id = UUID(workflow_run_id)
++    except ValueError:
++        _logger.warning("approval.workflow_task_invalid_identifier")
++        return "noop"
++    settings = get_settings()
++    try:
++        outcome = asyncio.run(_process_human_approval_workflow(parsed_id, settings))
++    except Exception as error:
++        _logger.warning(
++            "approval.workflow_task_runtime_unavailable", error_type=type(error).__name__
++        )
++        if task.request.retries >= settings.document_parser_task_max_retries:
++            return "failed"
++        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
++    return outcome
++
++
+ async def _reconcile(settings: AppSettings) -> tuple[tuple[UUID, ...], tuple[UUID, ...]]:
+     try:
+         async with get_sessionmaker(settings)() as session:
+diff --git a/apps/api/tests/api/test_openapi.py b/apps/api/tests/api/test_openapi.py
+index 50a1427..885e31b 100644
+--- a/apps/api/tests/api/test_openapi.py
++++ b/apps/api/tests/api/test_openapi.py
+@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
+     assert "/health/ready" in schema["paths"]
+ 
+ 
+-def test_openapi_declares_the_phase_twenty_product_endpoints() -> None:
++def test_openapi_declares_the_phase_twenty_one_product_endpoints() -> None:
+     with _client() as client:
+         schema = client.get("/openapi.json").json()
+ 
+@@ -49,6 +49,7 @@ def test_openapi_declares_the_phase_twenty_product_endpoints() -> None:
+         "/api/cases/{case_id}/extraction/fields",
+         "/api/cases/{case_id}/extraction/fields/{field_id}",
+         "/api/cases/{case_id}/draft",
++        "/api/cases/{case_id}/risk-assessment",
+         "/api/documents",
+         "/api/documents/upload",
+         "/api/documents/{document_id}",
+@@ -60,6 +61,13 @@ def test_openapi_declares_the_phase_twenty_product_endpoints() -> None:
+         "/api/retrieval/answer",
+         "/api/workflows/{workflow_run_id}",
+         "/api/workflows/{workflow_run_id}/intake/correction",
++        "/api/approvals",
++        "/api/approvals/{approval_id}",
++        "/api/approvals/{approval_id}/approve",
++        "/api/approvals/{approval_id}/edit-and-approve",
++        "/api/approvals/{approval_id}/reject",
++        "/api/approvals/{approval_id}/request-more-evidence",
++        "/api/approvals/{approval_id}/reassign",
+     }
+ 
+ 
+@@ -105,6 +113,9 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
+     assert schema["paths"]["/api/cases/{case_id}/draft"]["get"]["security"] == [
+         {"SessionCookie": []}
+     ]
++    assert schema["paths"]["/api/cases/{case_id}/risk-assessment"]["get"]["security"] == [
++        {"SessionCookie": []}
++    ]
+     assert schema["paths"]["/api/workflows/{workflow_run_id}"]["get"]["security"] == [
+         {"SessionCookie": []}
+     ]
+diff --git a/apps/api/tests/api/test_router_registry.py b/apps/api/tests/api/test_router_registry.py
+index 9a3b490..f24af8a 100644
+--- a/apps/api/tests/api/test_router_registry.py
++++ b/apps/api/tests/api/test_router_registry.py
+@@ -41,13 +41,21 @@ def test_prefixes_are_rooted_paths() -> None:
+ def test_only_implemented_route_modules_define_operations() -> None:
+     for group in ROUTE_GROUPS:
+         assert isinstance(group.router, APIRouter)
+-        if group.name in {"auth", "users", "cases", "documents", "retrieval", "workflows"}:
++        if group.name in {
++            "auth",
++            "users",
++            "cases",
++            "documents",
++            "retrieval",
++            "workflows",
++            "approvals",
++        }:
+             assert group.router.routes
+         else:
+             assert group.router.routes == []
+ 
+ 
+-def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
++def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> None:
+     api_router = create_api_router("/api")
+     assert isinstance(api_router, APIRouter)
+ 
+@@ -70,6 +78,7 @@ def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
+         "/api/cases/{case_id}/extraction/fields",
+         "/api/cases/{case_id}/extraction/fields/{field_id}",
+         "/api/cases/{case_id}/draft",
++        "/api/cases/{case_id}/risk-assessment",
+         "/api/documents",
+         "/api/documents/upload",
+         "/api/documents/{document_id}",
+@@ -81,6 +90,13 @@ def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
+         "/api/retrieval/answer",
+         "/api/workflows/{workflow_run_id}",
+         "/api/workflows/{workflow_run_id}/intake/correction",
++        "/api/approvals",
++        "/api/approvals/{approval_id}",
++        "/api/approvals/{approval_id}/approve",
++        "/api/approvals/{approval_id}/edit-and-approve",
++        "/api/approvals/{approval_id}/reject",
++        "/api/approvals/{approval_id}/request-more-evidence",
++        "/api/approvals/{approval_id}/reassign",
+     }
+ 
+ 
+diff --git a/apps/api/tests/integration/test_database_foundation.py b/apps/api/tests/integration/test_database_foundation.py
+index f1eaf0f..a6dde4c 100644
+--- a/apps/api/tests/integration/test_database_foundation.py
++++ b/apps/api/tests/integration/test_database_foundation.py
+@@ -6,6 +6,8 @@ import asyncio
+ from datetime import UTC, datetime
+ from decimal import Decimal
+ from pathlib import Path
++from typing import cast
++from uuid import UUID, uuid4
+ 
+ import pytest
+ from alembic import command
+@@ -153,6 +155,130 @@ def test_baseline_migration_creates_postgresql_contract(
+         engine.dispose()
+ 
+ 
++def test_human_approval_migration_normalizes_legacy_decisions(
++    database_settings: AppSettings,
++) -> None:
++    """Upgrade legacy placeholder rows without violating the closed Phase 22 decision domain."""
++
++    config = _alembic_config()
++    command.downgrade(config, "7a21c9e5b406")
++    organization_id, user_id, case_id = uuid4(), uuid4(), uuid4()
++    approved_run_id, unknown_run_id = uuid4(), uuid4()
++    approved_id, unknown_id = uuid4(), uuid4()
++    now = datetime.now(UTC)
++    engine = create_engine(database_settings.database_sync_url())
++    try:
++        with engine.begin() as connection:
++            connection.execute(
++                text(
++                    """
++                    INSERT INTO organizations (id, name, slug, default_language)
++                    VALUES (:id, 'Legacy approval tenant', 'legacy-approval-tenant', 'nb')
++                    """
++                ),
++                {"id": organization_id},
++            )
++            connection.execute(
++                text(
++                    """
++                    INSERT INTO users (id, organization_id, email, display_name, preferred_language)
++                    VALUES (:id, :organization_id, 'legacy.approver@demo.invalid',
++                            'Legacy Approver', 'nb')
++                    """
++                ),
++                {"id": user_id, "organization_id": organization_id},
++            )
++            connection.execute(
++                text(
++                    """
++                    INSERT INTO cases (
++                        id, organization_id, case_number, title, description, language, domain,
++                        priority, status, submitted_by_user_id
++                    )
++                    VALUES (
++                        :id, :organization_id, 'LEGACY-APPROVAL-1', 'Legacy approval case',
++                        'Synthetic migration record.', 'nb', 'testing', 'normal', 'new', :user_id
++                    )
++                    """
++                ),
++                {"id": case_id, "organization_id": organization_id, "user_id": user_id},
++            )
++            for workflow_run_id in (approved_run_id, unknown_run_id):
++                connection.execute(
++                    text(
++                        """
++                        INSERT INTO workflow_runs (
++                            id, organization_id, case_id, workflow_name, workflow_version, status,
++                            started_by_user_id, started_at
++                        )
++                        VALUES (
++                            :id, :organization_id, :case_id, 'legacy-approval', 'v1', 'completed',
++                            :user_id, :started_at
++                        )
++                        """
++                    ),
++                    {
++                        "id": workflow_run_id,
++                        "organization_id": organization_id,
++                        "case_id": case_id,
++                        "user_id": user_id,
++                        "started_at": now,
++                    },
++                )
++            for approval_id, workflow_run_id, decision in (
++                (approved_id, approved_run_id, "approved"),
++                (unknown_id, unknown_run_id, "legacy-custom-decision"),
++            ):
++                connection.execute(
++                    text(
++                        """
++                        INSERT INTO approvals (
++                            id, organization_id, case_id, workflow_run_id, reviewer_user_id,
++                            decision, decision_at
++                        )
++                        VALUES (
++                            :id, :organization_id, :case_id, :workflow_run_id, :user_id, :decision,
++                            :decision_at
++                        )
++                        """
++                    ),
++                    {
++                        "id": approval_id,
++                        "organization_id": organization_id,
++                        "case_id": case_id,
++                        "workflow_run_id": workflow_run_id,
++                        "user_id": user_id,
++                        "decision": decision,
++                        "decision_at": now,
++                    },
++                )
++    finally:
++        engine.dispose()
++
++    command.upgrade(config, "head")
++    engine = create_engine(database_settings.database_sync_url())
++    try:
++        with engine.connect() as connection:
++            rows: dict[UUID, str] = {
++                cast(UUID, row["id"]): cast(str, row["lifecycle"])
++                for row in connection.execute(
++                    text(
++                        """
++                        SELECT id, status || ':' || decision AS lifecycle
++                        FROM approvals
++                        WHERE id IN (:approved_id, :unknown_id)
++                        """
++                    ).bindparams(approved_id=approved_id, unknown_id=unknown_id)
++                ).mappings()
++            }
++        assert rows == {
++            approved_id: "approved:approve",
++            unknown_id: "needs_more_evidence:request_more_evidence",
++        }
++    finally:
++        engine.dispose()
++
++
+ def test_representative_records_enforce_tenant_and_schema_invariants(
+     database_settings: AppSettings,
+ ) -> None:
+@@ -368,7 +494,9 @@ async def _exercise_records(settings: AppSettings) -> None:
+                         case_id=case.id,
+                         workflow_run_id=workflow.id,
+                         reviewer_user_id=user.id,
+-                        decision="approved",
++                        assigned_user_id=user.id,
++                        status="approved",
++                        decision="edit_and_approve",
+                         decision_at=now,
+                         ai_draft="Syntetisk utkast",
+                         final_text="Syntetisk endelig tekst",
+diff --git a/apps/api/tests/unit/test_auth_policy.py b/apps/api/tests/unit/test_auth_policy.py
+index 56b7c95..ccfa921 100644
+--- a/apps/api/tests/unit/test_auth_policy.py
++++ b/apps/api/tests/unit/test_auth_policy.py
+@@ -66,6 +66,19 @@ def test_reviewer_can_approve_other_same_tenant_high_risk_case() -> None:
+     )
+ 
+ 
++def test_admin_can_approve_other_same_tenant_high_risk_case() -> None:
++    principal = _principal(RoleName.ADMIN)
++    authorize_approval(
++        principal,
++        ApprovalAuthorizationInput(
++            organization_id=principal.organization_id,
++            submitted_by_user_id=uuid4(),
++            risk_level="high",
++            requires_approval=True,
++        ),
++    )
++
++
+ def test_case_action_policy_keeps_read_only_auditors_read_only() -> None:
+     auditor = _principal(RoleName.READ_ONLY_AUDITOR)
+     authorize_case_action(auditor, CaseAction.READ)
+diff --git a/apps/web/e2e/case-management.spec.ts b/apps/web/e2e/case-management.spec.ts
+index 7679eee..53173cc 100644
+--- a/apps/web/e2e/case-management.spec.ts
++++ b/apps/web/e2e/case-management.spec.ts
+@@ -11,7 +11,10 @@ test.beforeEach(() => {
+   }
+ });
+ 
+-test('case worker can inspect indexed synthetic document evidence in Bokmål', async ({ page }) => {
++test('case worker and reviewer complete a synthetic human approval in Bokmål', async ({
++  browser,
++  page,
++}) => {
+   test.setTimeout(90_000);
+   const title = `E2E syntetisk sak ${Date.now()}`;
+   await page.goto('/nb/login');
+@@ -28,12 +31,17 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
+   const caseId = new URL(page.url()).pathname.split('/').at(-1);
+   if (!caseId) throw new Error('The synthetic case identifier was unavailable.');
+ 
++  await page.getByRole('button', { name: 'Start inntak' }).click();
++  await expect(page.getByText('Saksstøtte')).toBeVisible({ timeout: 60_000 });
++
+   const documentId = await page.evaluate(async (currentCaseId) => {
+     const form = new FormData();
+     form.set('case_id', currentCaseId);
+     form.set(
+       'email_text',
+-      'From: sender@example.invalid\n\nSyntetisk dokumenttekst for lokal nettlesertest. ' +
++      'Subject: Syntetisk dokumenttekst for lokal nettlesertest.\n' +
++        'From: sender@example.invalid\n\n' +
++        'Syntetisk dokumenttekst for lokal nettlesertest. ' +
+         'Kilden beskriver et syntetisk kontrollforhold og skal bare brukes i lokal validering. ' +
+         'Det finnes ingen persondata eller produksjonsinnhold i denne teksten. ' +
+         'Kildepakken trenger nok innhold til at den kontrollerte Evidence-flyten kan fullføres. '.repeat(
+@@ -107,17 +115,57 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
+   await expect(page.getByText('Utkastet er klart for menneskelig kontroll.')).toBeVisible({
+     timeout: 60_000,
+   });
+-  await expect(
+-    page.getByText('Syntetisk dokumenttekst for lokal nettlesertest [S1]'),
+-  ).toBeVisible();
+   await expect(page.getByText('KI-utkast — krever senere menneskelig kontroll.')).toBeVisible();
+   await page.getByRole('button', { name: 'S1' }).last().click();
+   const draftContext = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
+   await expect(draftContext).toBeVisible();
+   await draftContext.getByRole('button', { name: 'Lukk' }).click();
+ 
+-  await page.getByRole('button', { name: 'Be om reindeksering' }).click();
+-  await expect(page.getByText('Reindeksering er forespurt.')).toBeVisible();
++  await page.getByRole('button', { name: 'Start risikovurdering' }).click();
++  await expect(page.getByText('Høy risiko')).toBeVisible({ timeout: 60_000 });
++  await page.reload();
++  await expect(
++    page.getByText(
++      'Denne saken er pauset for påkrevd menneskelig vurdering. Den kan ikke få et endelig utfall ennå.',
++    ),
++  ).toBeVisible({ timeout: 60_000 });
++
++  const reviewerContext = await browser.newContext();
++  const reviewerPage = await reviewerContext.newPage();
++  await reviewerPage.goto('/nb/login');
++  await reviewerPage.getByLabel('E-postadresse').fill('ole.eksempel+reviewer@demo.invalid');
++  await reviewerPage.getByLabel('Passord').fill(password!);
++  await reviewerPage.getByRole('button', { name: 'Logg inn' }).click();
++  await reviewerPage.goto('/nb/approvals');
++  await expect(reviewerPage.getByRole('heading', { name: 'Godkjenningskø' })).toBeVisible({
++    timeout: 15_000,
++  });
++  await expect(reviewerPage.getByText(title)).toBeVisible({ timeout: 60_000 });
++  await reviewerPage
++    .locator('li')
++    .filter({ hasText: title })
++    .getByRole('link', { name: 'Åpne vurderingspakke' })
++    .click();
++  await expect(
++    reviewerPage.getByText('Dette uforanderlige KI-utkastet er ikke endelig.'),
++  ).toBeVisible();
++  await reviewerPage
++    .getByLabel('Endelig mennesketekst (kun ved rediger og godkjenn)')
++    .fill('Syntetisk menneskegodkjent slutttekst [S1]');
++  await reviewerPage.getByRole('button', { name: 'Rediger og godkjenn' }).click();
++  const confirmation = reviewerPage.getByRole('alertdialog', {
++    name: 'Bekreft vurdererbeslutning',
++  });
++  await expect(confirmation).toBeVisible();
++  await confirmation.getByRole('button', { name: 'Bekreft' }).click();
++  await expect(reviewerPage.getByText('Godkjent av menneske')).toBeVisible({ timeout: 60_000 });
++  await expect(reviewerPage.getByText('Syntetisk menneskegodkjent slutttekst [S1]')).toBeVisible();
++  await reviewerContext.close();
++
++  await page.reload();
++  await expect(page.getByText('Denne saken har et menneskegodkjent utfall.')).toBeVisible({
++    timeout: 60_000,
++  });
+ 
+   await page.getByRole('link', { name: 'Tilbake til saksinnboksen' }).click();
+   await page.getByLabel('Søk i saker').fill(title);
+diff --git a/apps/web/messages/en.json b/apps/web/messages/en.json
+index fdb684e..9101a4f 100644
+--- a/apps/web/messages/en.json
++++ b/apps/web/messages/en.json
+@@ -283,6 +283,7 @@
+     "status": {
+       "queued": "The evidence package is queued.",
+       "running": "The evidence package is running.",
++      "waiting_for_human_review": "This workflow is paused for human review.",
+       "completed": "The evidence package is ready for later review.",
+       "needs_more_evidence": "More source evidence is needed before later work.",
+       "failed": "The evidence package could not be completed safely."
+@@ -309,6 +310,7 @@
+     "status": {
+       "queued": "Extraction is queued.",
+       "running": "Extraction is running.",
++      "waiting_for_human_review": "This workflow is paused for human review.",
+       "completed": "Extraction is ready for human review.",
+       "needs_more_evidence": "More eligible source evidence is needed before extraction.",
+       "failed": "Extraction could not be completed safely."
+@@ -399,6 +401,93 @@
+       "manual_review": "Manual review"
+     }
+   },
++  "approvals": {
++    "title": "Approval queue",
++    "description": "Review packets that require an authorized human decision. AI output is not final until this workflow resolves.",
++    "unavailableForRole": "Your role cannot view or decide approval work.",
++    "loading": "Loading approval queue …",
++    "unavailable": "The approval queue is temporarily unavailable.",
++    "empty": "There are no pending approvals.",
++    "queueLabel": "Pending approvals",
++    "openPacket": "Open review packet",
++    "backToQueue": "Back to approval queue",
++    "invalidLink": "This approval link is not valid.",
++    "loadingPacket": "Loading protected review packet …",
++    "packetUnavailable": "The review packet is unavailable.",
++    "assigned": "Assigned reviewer",
++    "unassigned": "Unassigned",
++    "assignedToAnother": "This review is assigned to another reviewer. Only that reviewer can decide it.",
++    "status": {
++      "pending": "Pending human review",
++      "assigned": "Decision submitted; waiting for controlled workflow resolution",
++      "approved": "Human approved",
++      "rejected": "Rejected",
++      "needs_more_evidence": "More evidence requested"
++    },
++    "risk": { "low": "Low risk", "medium": "Medium risk", "high": "High risk" },
++    "riskReasons": "Risk reasons",
++    "noReasons": "No risk reasons were recorded.",
++    "reason": {
++      "pii_detected": "Personal data detected",
++      "sensitive_domain": "Sensitive case domain",
++      "weak_evidence": "Weak evidence",
++      "contradictory_evidence": "Contradictory evidence",
++      "missing_required_source": "Missing required source",
++      "low_confidence": "Low-confidence result",
++      "high_impact_action": "High-impact action",
++      "policy_conflict": "Policy conflict",
++      "prompt_injection_detected": "Prompt-injection signal"
++    },
++    "originalDraft": "Original AI draft",
++    "originalDraftNotice": "This immutable AI draft is not final. A reviewer must make an explicit decision.",
++    "finalText": "Final human-approved text",
++    "sources": "Sources",
++    "noSources": "No source references are available.",
++    "openContext": "Open source context",
++    "contextTitle": "Bounded source context",
++    "contextLoading": "Loading bounded source context …",
++    "contextUnavailable": "Source context is unavailable.",
++    "close": "Close",
++    "extractedFields": "Extracted fields",
++    "noExtractedFields": "No extracted fields are available for this packet.",
++    "decisionTitle": "Reviewer decision",
++    "decisionDescription": "Choose one controlled outcome. The workflow remains paused until the server confirms resolution.",
++    "commentLabel": "Reviewer comment (optional)",
++    "finalTextLabel": "Final human text (only for edit and approve)",
++    "finalTextHint": "This does not alter the original AI draft or its source provenance.",
++    "approve": "Approve unchanged draft",
++    "editAndApprove": "Edit and approve",
++    "reject": "Reject",
++    "requestMoreEvidence": "Request more evidence",
++    "reassignLabel": "Reassign to reviewer UUID",
++    "reassignPlaceholder": "Active Admin or Compliance Reviewer UUID",
++    "reassign": "Reassign",
++    "assigneeInvalid": "Enter a valid reviewer UUID.",
++    "reassigned": "The pending review was reassigned.",
++    "actionsUnavailable": "No decision action is currently available for this review.",
++    "confirmTitle": "Confirm reviewer decision",
++    "confirmation": {
++      "approve": "Approve the immutable AI draft without a human rewrite?",
++      "edit_and_approve": "Store the separate human text and approve this review?",
++      "reject": "Reject this review packet?",
++      "request_more_evidence": "Request more evidence without automatically starting another workflow?"
++    },
++    "confirm": "Confirm",
++    "cancel": "Cancel",
++    "submitting": "Submitting …",
++    "decisionSubmitted": "Decision submitted. The controlled workflow is resolving it.",
++    "actionUnavailable": "The reviewer action could not be submitted safely."
++  },
++  "approvalPanel": {
++    "title": "Human approval",
++    "openQueue": "Open approval queue",
++    "status": {
++      "waiting_for_human_review": "This case is paused for required human review. It cannot produce a final outcome yet.",
++      "approved": "This case has a human-approved outcome.",
++      "rejected": "This case was rejected by a human reviewer.",
++      "needs_more_evidence": "A reviewer requested more evidence. No new workflow started automatically."
++    }
++  },
+   "placeholder": {
+     "cases": {
+       "title": "Case inbox",
+@@ -435,6 +524,7 @@
+     "status": {
+       "queued": "Drafting is queued.",
+       "running": "Drafting is running.",
++      "waiting_for_human_review": "This workflow is paused for human review.",
+       "completed": "The draft is ready for human review.",
+       "needs_more_evidence": "More eligible source evidence is needed before a draft can be shown.",
+       "failed": "Drafting could not be completed safely."
+@@ -447,5 +537,49 @@
+     "contextLoading": "Loading bounded source context …",
+     "contextUnavailable": "Source context is unavailable.",
+     "close": "Close"
++  },
++  "riskCompliance": {
++    "title": "Risk and compliance",
++    "description": "Assesses a completed AI draft against fixed server-owned safety rules. This assessment is not an approval or decision.",
++    "start": "Start risk assessment",
++    "starting": "Starting risk assessment …",
++    "notStarted": "Risk assessment has not been started for this view.",
++    "unavailableForRole": "Your role cannot start the risk assessment.",
++    "unavailable": "Risk assessment is temporarily unavailable.",
++    "loading": "Loading risk assessment …",
++    "riskLevel": "Final risk level",
++    "nextState": "Safe next state",
++    "reasons": "Risk reasons",
++    "noReasons": "No risk reasons were recorded.",
++    "reviewRequired": "Human review will be required in a later workflow.",
++    "status": {
++      "queued": "Risk assessment is queued.",
++      "running": "Risk assessment is running.",
++      "waiting_for_human_review": "This workflow is paused for human review.",
++      "completed": "Risk assessment is ready.",
++      "needs_more_evidence": "More eligible source evidence is needed before final risk assessment can complete.",
++      "failed": "Risk assessment could not be completed safely."
++    },
++    "level": {
++      "low": "Low risk",
++      "medium": "Medium risk",
++      "high": "High risk"
++    },
++    "next": {
++      "assessment_complete": "Assessment complete",
++      "human_review_required": "Human review required",
++      "needs_more_evidence": "More evidence required"
++    },
++    "reason": {
++      "pii_detected": "Personal data is detected",
++      "sensitive_domain": "The case domain is sensitive",
++      "weak_evidence": "The evidence is weak",
++      "contradictory_evidence": "The evidence is contradictory",
++      "missing_required_source": "A required source is missing",
++      "low_confidence": "The basis has low confidence",
++      "high_impact_action": "The case may have high business impact",
++      "policy_conflict": "Fixed policy classifications conflict",
++      "prompt_injection_detected": "An instruction-influence indicator is detected"
++    }
+   }
+ }
+diff --git a/apps/web/messages/nb.json b/apps/web/messages/nb.json
+index 453165c..76a126b 100644
+--- a/apps/web/messages/nb.json
++++ b/apps/web/messages/nb.json
+@@ -283,6 +283,7 @@
+     "status": {
+       "queued": "Kildepakken står i kø.",
+       "running": "Kildepakken bygges.",
++      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
+       "completed": "Kildepakken er klar for videre vurdering.",
+       "needs_more_evidence": "Det trengs mer kildegrunnlag før videre arbeid.",
+       "failed": "Kildepakken kunne ikke fullføres på en trygg måte."
+@@ -309,6 +310,7 @@
+     "status": {
+       "queued": "Ekstraksjon står i kø.",
+       "running": "Ekstraksjon kjører.",
++      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
+       "completed": "Ekstraksjon er klar for menneskelig kontroll.",
+       "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før ekstraksjon.",
+       "failed": "Ekstraksjon kunne ikke fullføres på en trygg måte."
+@@ -399,6 +401,93 @@
+       "manual_review": "Manuell vurdering"
+     }
+   },
++  "approvals": {
++    "title": "Godkjenningskø",
++    "description": "Vurderingspakker som krever en autorisert menneskelig beslutning. KI-resultatet er ikke endelig før arbeidsflyten er ferdig.",
++    "unavailableForRole": "Rollen din kan ikke se eller avgjøre godkjenningsarbeid.",
++    "loading": "Laster godkjenningskø …",
++    "unavailable": "Godkjenningskøen er midlertidig utilgjengelig.",
++    "empty": "Det finnes ingen ventende godkjenninger.",
++    "queueLabel": "Ventende godkjenninger",
++    "openPacket": "Åpne vurderingspakke",
++    "backToQueue": "Tilbake til godkjenningskøen",
++    "invalidLink": "Denne godkjenningslenken er ugyldig.",
++    "loadingPacket": "Laster beskyttet vurderingspakke …",
++    "packetUnavailable": "Vurderingspakken er ikke tilgjengelig.",
++    "assigned": "Tildelt vurderer",
++    "unassigned": "Ikke tildelt",
++    "assignedToAnother": "Denne vurderingen er tildelt en annen vurderer. Bare den vurdereren kan avgjøre den.",
++    "status": {
++      "pending": "Venter på manuell vurdering",
++      "assigned": "Beslutning sendt inn; venter på kontrollert arbeidsflyt",
++      "approved": "Godkjent av menneske",
++      "rejected": "Avvist",
++      "needs_more_evidence": "Mer grunnlag er etterspurt"
++    },
++    "risk": { "low": "Lav risiko", "medium": "Middels risiko", "high": "Høy risiko" },
++    "riskReasons": "Risikoårsaker",
++    "noReasons": "Ingen risikoårsaker ble registrert.",
++    "reason": {
++      "pii_detected": "Personopplysninger ble oppdaget",
++      "sensitive_domain": "Sensitivt saksområde",
++      "weak_evidence": "Svakt grunnlag",
++      "contradictory_evidence": "Motstridende grunnlag",
++      "missing_required_source": "Påkrevd kilde mangler",
++      "low_confidence": "Resultat med lav sikkerhet",
++      "high_impact_action": "Handling med høy påvirkning",
++      "policy_conflict": "Konflikt med policy",
++      "prompt_injection_detected": "Signal om prompt-injeksjon"
++    },
++    "originalDraft": "Opprinnelig KI-utkast",
++    "originalDraftNotice": "Dette uforanderlige KI-utkastet er ikke endelig. En vurderer må ta en uttrykkelig beslutning.",
++    "finalText": "Endelig menneskegodkjent tekst",
++    "sources": "Kilder",
++    "noSources": "Ingen kildehenvisninger er tilgjengelige.",
++    "openContext": "Åpne kildekontekst",
++    "contextTitle": "Avgrenset kildekontekst",
++    "contextLoading": "Laster avgrenset kildekontekst …",
++    "contextUnavailable": "Kildekontekst er ikke tilgjengelig.",
++    "close": "Lukk",
++    "extractedFields": "Ekstraherte felt",
++    "noExtractedFields": "Ingen ekstraherte felt er tilgjengelige for denne pakken.",
++    "decisionTitle": "Vurdererbeslutning",
++    "decisionDescription": "Velg ett kontrollert utfall. Arbeidsflyten forblir pauset til tjeneren bekrefter løsningen.",
++    "commentLabel": "Vurdererkommentar (valgfritt)",
++    "finalTextLabel": "Endelig mennesketekst (kun ved rediger og godkjenn)",
++    "finalTextHint": "Dette endrer ikke det opprinnelige KI-utkastet eller kildegrunnlaget.",
++    "approve": "Godkjenn uendret utkast",
++    "editAndApprove": "Rediger og godkjenn",
++    "reject": "Avvis",
++    "requestMoreEvidence": "Be om mer grunnlag",
++    "reassignLabel": "Tilordne på nytt med vurderer-UUID",
++    "reassignPlaceholder": "UUID for aktiv Administrator eller Compliance Reviewer",
++    "reassign": "Tilordne på nytt",
++    "assigneeInvalid": "Skriv inn en gyldig vurderer-UUID.",
++    "reassigned": "Den ventende vurderingen ble tilordnet på nytt.",
++    "actionsUnavailable": "Ingen beslutningshandling er tilgjengelig for denne vurderingen nå.",
++    "confirmTitle": "Bekreft vurdererbeslutning",
++    "confirmation": {
++      "approve": "Godkjenne det uforanderlige KI-utkastet uten menneskelig omskriving?",
++      "edit_and_approve": "Lagre den separate mennesketeksten og godkjenne vurderingen?",
++      "reject": "Avvise denne vurderingspakken?",
++      "request_more_evidence": "Be om mer grunnlag uten å starte en ny arbeidsflyt automatisk?"
++    },
++    "confirm": "Bekreft",
++    "cancel": "Avbryt",
++    "submitting": "Sender inn …",
++    "decisionSubmitted": "Beslutningen er sendt inn. Den kontrollerte arbeidsflyten løser den nå.",
++    "actionUnavailable": "Vurdererhandlingen kunne ikke sendes inn på en trygg måte."
++  },
++  "approvalPanel": {
++    "title": "Menneskelig godkjenning",
++    "openQueue": "Åpne godkjenningskø",
++    "status": {
++      "waiting_for_human_review": "Denne saken er pauset for påkrevd menneskelig vurdering. Den kan ikke få et endelig utfall ennå.",
++      "approved": "Denne saken har et menneskegodkjent utfall.",
++      "rejected": "Denne saken ble avvist av en menneskelig vurderer.",
++      "needs_more_evidence": "En vurderer ba om mer grunnlag. Ingen ny arbeidsflyt startet automatisk."
++    }
++  },
+   "placeholder": {
+     "cases": {
+       "title": "Saksinnboks",
+@@ -435,6 +524,7 @@
+     "status": {
+       "queued": "Utkast står i kø.",
+       "running": "Utkast blir laget.",
++      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
+       "completed": "Utkastet er klart for menneskelig kontroll.",
+       "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før et utkast kan vises.",
+       "failed": "Utkastet kunne ikke fullføres på en trygg måte."
+@@ -447,5 +537,49 @@
+     "contextLoading": "Laster avgrenset kildekontekst …",
+     "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
+     "close": "Lukk"
++  },
++  "riskCompliance": {
++    "title": "Risiko og etterlevelse",
++    "description": "Vurderer ferdig KI-utkast mot faste, serverstyrte sikkerhetsregler. Vurderingen er ikke en godkjenning eller et vedtak.",
++    "start": "Start risikovurdering",
++    "starting": "Starter risikovurdering …",
++    "notStarted": "Risikovurdering er ikke startet i denne visningen.",
++    "unavailableForRole": "Rollen din kan ikke starte risikovurderingen.",
++    "unavailable": "Risikovurderingen er midlertidig utilgjengelig.",
++    "loading": "Laster risikovurdering …",
++    "riskLevel": "Endelig risikonivå",
++    "nextState": "Neste sikre tilstand",
++    "reasons": "Risikoårsaker",
++    "noReasons": "Ingen risikoårsaker ble registrert.",
++    "reviewRequired": "Menneskelig kontroll vil være påkrevd i en senere arbeidsflyt.",
++    "status": {
++      "queued": "Risikovurderingen står i kø.",
++      "running": "Risikovurderingen kjører.",
++      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
++      "completed": "Risikovurderingen er klar.",
++      "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før en endelig risikovurdering kan fullføres.",
++      "failed": "Risikovurderingen kunne ikke fullføres på en trygg måte."
++    },
++    "level": {
++      "low": "Lav risiko",
++      "medium": "Middels risiko",
++      "high": "Høy risiko"
++    },
++    "next": {
++      "assessment_complete": "Vurderingen er fullført",
++      "human_review_required": "Menneskelig kontroll kreves",
++      "needs_more_evidence": "Mer kildegrunnlag kreves"
++    },
++    "reason": {
++      "pii_detected": "Personopplysninger er registrert",
++      "sensitive_domain": "Saksområdet er sensitivt",
++      "weak_evidence": "Kildegrunnlaget er svakt",
++      "contradictory_evidence": "Kildene er motstridende",
++      "missing_required_source": "En påkrevd kilde mangler",
++      "low_confidence": "Grunnlaget har lav sikkerhet",
++      "high_impact_action": "Saken kan ha høy virksomhetspåvirkning",
++      "policy_conflict": "Faste policyklassifiseringer er i konflikt",
++      "prompt_injection_detected": "Indikator for instruksjonspåvirkning er registrert"
++    }
+   }
+ }
+diff --git a/apps/web/src/app/[locale]/approvals/page.tsx b/apps/web/src/app/[locale]/approvals/page.tsx
+index d8fe695..c2b4a33 100644
+--- a/apps/web/src/app/[locale]/approvals/page.tsx
++++ b/apps/web/src/app/[locale]/approvals/page.tsx
+@@ -1,5 +1,5 @@
+-import { PlaceholderPage } from '@/components/layout/placeholder-page';
++import { ApprovalQueue } from '@/components/approval/approval-queue';
+ 
+ export default function ApprovalsPage() {
+-  return <PlaceholderPage area="approvals" />;
++  return <ApprovalQueue />;
+ }
+diff --git a/apps/web/src/components/cases/case-detail.tsx b/apps/web/src/components/cases/case-detail.tsx
+index 31018d6..479573c 100644
+--- a/apps/web/src/components/cases/case-detail.tsx
++++ b/apps/web/src/components/cases/case-detail.tsx
+@@ -14,6 +14,8 @@ import { EvidenceGraphPanel } from '@/components/evidence/evidence-graph-panel';
+ import { IntakePanel } from '@/components/cases/intake-panel';
+ import { ExtractionPanel } from '@/components/cases/extraction-panel';
+ import { DraftingPanel } from '@/components/cases/drafting-panel';
++import { RiskCompliancePanel } from '@/components/cases/risk-compliance-panel';
++import { ApprovalStatusPanel } from '@/components/cases/approval-status-panel';
+ import { Alert } from '@/components/ui/alert';
+ import type { AppLocale } from '@/i18n/routing';
+ import { type CaseDetail as CaseDetailData } from '@/lib/api/contracts';
+@@ -116,7 +118,7 @@ function DetailContent({
+       <time dateTime={caseData.updated_at}>{formatTimestamp(caseData.updated_at, locale)}</time>,
+     ],
+   ];
+-  const futureKeys = ['fields', 'risk', 'approval', 'audit'] as const;
++  const futureKeys = ['fields', 'risk', 'audit'] as const;
+   return (
+     <section aria-labelledby="case-detail-title" className="space-y-6">
+       <div>
+@@ -146,6 +148,8 @@ function DetailContent({
+       <IntakePanel caseId={caseData.case_id} />
+       <ExtractionPanel caseId={caseData.case_id} />
+       <DraftingPanel caseId={caseData.case_id} />
++      <RiskCompliancePanel caseId={caseData.case_id} />
++      <ApprovalStatusPanel status={caseData.status} />
+       <div className="grid gap-4 md:grid-cols-2">
+         {futureKeys.map((key) => (
+           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" key={key}>
+diff --git a/apps/web/src/lib/api/contracts.ts b/apps/web/src/lib/api/contracts.ts
+index d6cf3e5..b00bdfc 100644
+--- a/apps/web/src/lib/api/contracts.ts
++++ b/apps/web/src/lib/api/contracts.ts
+@@ -64,6 +64,7 @@ export const intakeCaseTypeSchema = z.enum([
+ export const workflowRunStatusSchema = z.enum([
+   'queued',
+   'running',
++  'waiting_for_human_review',
+   'completed',
+   'needs_more_evidence',
+   'failed',
+@@ -247,6 +248,9 @@ export const extractionStartInputSchema = z.object({ workflow: z.literal('extrac
+ export const draftingStartInputSchema = z
+   .object({ workflow: z.literal('drafting'), output_language: caseLanguageSchema.optional() })
+   .strict();
++export const riskComplianceStartInputSchema = z
++  .object({ workflow: z.literal('risk_compliance') })
++  .strict();
+ export const intakeCorrectionInputSchema = z
+   .object({
+     case_type: intakeCaseTypeSchema,
+@@ -350,6 +354,35 @@ export const draftingResultSchema = z.object({
+   draft_kind: z.enum(['response', 'internal_recommendation', 'summary', 'action_plan']).nullable(),
+   reason_codes: z.array(z.string()),
+ });
++export const riskReasonCodeSchema = z.enum([
++  'pii_detected',
++  'sensitive_domain',
++  'weak_evidence',
++  'contradictory_evidence',
++  'missing_required_source',
++  'low_confidence',
++  'high_impact_action',
++  'policy_conflict',
++  'prompt_injection_detected',
++]);
++export const riskSafeNextStateSchema = z.enum([
++  'assessment_complete',
++  'human_review_required',
++  'needs_more_evidence',
++]);
++export const riskResultSchema = z.object({
++  final_risk_level: z.enum(['low', 'medium', 'high']).nullable(),
++  risk_reasons: z.array(riskReasonCodeSchema),
++  requires_approval: z.boolean().nullable(),
++  safe_next_state: riskSafeNextStateSchema.nullable(),
++});
++export const riskAssessmentSchema = z.object({
++  workflow_run_id: z.string().uuid(),
++  risk_level: z.enum(['low', 'medium', 'high']),
++  risk_reasons: z.array(riskReasonCodeSchema),
++  requires_approval: z.boolean(),
++  safe_next_state: riskSafeNextStateSchema,
++});
+ export const draftCitationSchema = z.object({
+   citation_label: z.string().regex(/^S[1-9][0-9]*$/),
+   document_id: z.string().uuid(),
+@@ -380,7 +413,14 @@ export const extractedFieldEditInputSchema = z
+ 
+ export const workflowRunSchema = z.object({
+   workflow_run_id: z.string().uuid(),
+-  workflow: z.enum(['intake', 'evidence', 'extraction', 'drafting']),
++  workflow: z.enum([
++    'intake',
++    'evidence',
++    'extraction',
++    'drafting',
++    'risk_compliance',
++    'human_approval',
++  ]),
+   status: workflowRunStatusSchema,
+   started_at: isoTimestampSchema,
+   finished_at: isoTimestampSchema.nullable(),
+@@ -388,7 +428,113 @@ export const workflowRunSchema = z.object({
+   evidence: evidenceResultSchema.nullable().optional(),
+   extraction: extractionResultSchema.nullable().optional(),
+   drafting: draftingResultSchema.nullable().optional(),
++  risk_compliance: riskResultSchema.nullable().optional(),
++});
++
++export const approvalLifecycleSchema = z.enum([
++  'pending',
++  'assigned',
++  'approved',
++  'rejected',
++  'needs_more_evidence',
++]);
++export const reviewerDecisionSchema = z.enum([
++  'approve',
++  'edit_and_approve',
++  'reject',
++  'request_more_evidence',
++]);
++export const approvalSourceSchema = z
++  .object({
++    citation_label: z.string().regex(/^S[1-9][0-9]*$/),
++    document_id: z.string().uuid(),
++    chunk_id: z.string().uuid(),
++  })
++  .strict();
++export const approvalExtractedFieldSchema = z
++  .object({
++    field_id: z.string().uuid(),
++    field_kind: z.string(),
++    field_value: z.record(z.string(), z.unknown()),
++    source_document_id: z.string().uuid().nullable(),
++    source_chunk_id: z.string().uuid().nullable(),
++    human_edited: z.boolean(),
++  })
++  .strict();
++export const approvalQueueItemSchema = z
++  .object({
++    approval_id: z.string().uuid(),
++    case_id: z.string().uuid(),
++    case_number: z.string(),
++    case_title: z.string(),
++    case_status: caseStatusSchema,
++    risk_level: z.enum(['low', 'medium', 'high']),
++    approval_status: approvalLifecycleSchema,
++    assigned_user_id: z.string().uuid().nullable(),
++    inserted_at: isoTimestampSchema,
++  })
++  .strict();
++export const approvalQueueSchema = z
++  .object({
++    items: z.array(approvalQueueItemSchema),
++    limit: z.number().int().min(1).max(100),
++    offset: z.number().int().min(0),
++    total: z.number().int().min(0),
++    has_more: z.boolean(),
++  })
++  .strict();
++export const approvalReviewPacketSchema = z
++  .object({
++    approval_id: z.string().uuid(),
++    case_id: z.string().uuid(),
++    case_number: z.string(),
++    case_title: z.string(),
++    case_status: caseStatusSchema,
++    risk_level: z.enum(['low', 'medium', 'high']),
++    risk_reasons: z.array(riskReasonCodeSchema),
++    approval_status: approvalLifecycleSchema,
++    workflow_status: z.enum([
++      'queued',
++      'running',
++      'waiting_for_human_review',
++      'completed',
++      'failed',
++    ]),
++    assigned_user_id: z.string().uuid().nullable(),
++    reviewer_user_id: z.string().uuid().nullable(),
++    reviewer_comment: z.string().nullable(),
++    decision: reviewerDecisionSchema.nullable(),
++    decision_at: isoTimestampSchema.nullable(),
++    ai_draft: z.string().min(1),
++    final_text: z.string().nullable(),
++    sources: z.array(approvalSourceSchema),
++    extracted_fields: z.array(approvalExtractedFieldSchema),
++  })
++  .strict();
++export const approvalActionResultSchema = z
++  .object({
++    approval_id: z.string().uuid(),
++    approval_status: approvalLifecycleSchema,
++    decision: reviewerDecisionSchema.nullable(),
++    case_id: z.string().uuid(),
++    workflow_status: z.enum([
++      'queued',
++      'running',
++      'waiting_for_human_review',
++      'completed',
++      'failed',
++    ]),
++  })
++  .strict();
++export const approvalCommentInputSchema = z
++  .object({ reviewer_comment: z.string().trim().min(1).max(2_000).optional() })
++  .strict();
++export const editAndApproveInputSchema = approvalCommentInputSchema.extend({
++  final_text: z.string().trim().min(1).max(20_000),
+ });
++export const approvalReassignInputSchema = z
++  .object({ assigned_user_id: z.string().uuid() })
++  .strict();
+ 
+ export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
+   return z.object({
+@@ -423,11 +569,20 @@ export type ExtractionFieldKind = z.infer<typeof extractionFieldKindSchema>;
+ export type ExtractionValue = z.infer<typeof extractionValueSchema>;
+ export type ExtractedField = z.infer<typeof extractedFieldSchema>;
+ export type Draft = z.infer<typeof draftSchema>;
++export type RiskReasonCode = z.infer<typeof riskReasonCodeSchema>;
++export type RiskAssessment = z.infer<typeof riskAssessmentSchema>;
+ export type WorkflowRun = z.infer<typeof workflowRunSchema>;
++export type ApprovalQueue = z.infer<typeof approvalQueueSchema>;
++export type ApprovalReviewPacket = z.infer<typeof approvalReviewPacketSchema>;
++export type ApprovalActionResult = z.infer<typeof approvalActionResultSchema>;
++export type ApprovalCommentInput = z.infer<typeof approvalCommentInputSchema>;
++export type EditAndApproveInput = z.infer<typeof editAndApproveInputSchema>;
++export type ApprovalReassignInput = z.infer<typeof approvalReassignInputSchema>;
+ export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
+ export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
+ export type ExtractionStartInput = z.infer<typeof extractionStartInputSchema>;
+ export type DraftingStartInput = z.infer<typeof draftingStartInputSchema>;
++export type RiskComplianceStartInput = z.infer<typeof riskComplianceStartInputSchema>;
+ export type ExtractedFieldEditInput = z.infer<typeof extractedFieldEditInputSchema>;
+ export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
+ export type DocumentData = z.infer<typeof documentDataSchema>;
+diff --git a/apps/web/src/lib/api/workflows.ts b/apps/web/src/lib/api/workflows.ts
+index 2fab611..b8bba16 100644
+--- a/apps/web/src/lib/api/workflows.ts
++++ b/apps/web/src/lib/api/workflows.ts
+@@ -7,6 +7,7 @@ import {
+   extractionStartInputSchema,
+   intakeCorrectionInputSchema,
+   intakeStartInputSchema,
++  riskComplianceStartInputSchema,
+   workflowRunSchema,
+   type IntakeCorrectionInput,
+   type WorkflowRun,
+@@ -54,6 +55,14 @@ export const workflowsApi = {
+     });
+   },
+ 
++  startRiskCompliance(caseId: string): Promise<WorkflowRun> {
++    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
++      body: JSON.stringify(riskComplianceStartInputSchema.parse({ workflow: 'risk_compliance' })),
++      headers: { 'Content-Type': 'application/json' },
++      method: 'POST',
++    });
++  },
++
+   get(runId: string): Promise<WorkflowRun> {
+     return apiRequest(runPath(runId), workflowRunSchema);
+   },
+diff --git a/docs/development.md b/docs/development.md
+index 3d5e4c6..5cce6bc 100644
+--- a/docs/development.md
++++ b/docs/development.md
+@@ -265,6 +265,49 @@ source identifiers for the existing bounded context route. Case Detail labels it
+ requiring later human review. There is intentionally no draft edit, approval, finalization, export,
+ risk decision, or trace UI in this phase.
+ 
++### Risk and Compliance workflow
++
++`{"workflow":"risk_compliance"}` accepts no browser-owned risk facts, policy text, source ids, model
++settings, or override. It runs only after a completed protected Draft, a currently eligible Evidence
++package and provenance, and a completed Intake result are revalidated in a fresh worker session.
++Missing, stale, contradictory, or insufficient prerequisites produce a controlled
++`needs_more_evidence` terminal result and never create an assessment.
++
++The policy is fixed and deterministic: PII, sensitive-domain, high-impact-action, policy-conflict,
++or prompt-injection signals yield high risk and require later human approval; low confidence yields
++medium risk and also requires later human review; no active signal yields low risk. The assessment
++stores only the closed reason codes, final level, approval requirement, and safe next state. It
++updates `cases.risk_level` atomically with its one `risk_assessments` record.
++`GET /api/cases/{case_id}/risk-assessment` is a read-only, tenant/RBAC-protected presentation
++contract. It exposes no trace, draft text, source excerpt, score, policy rationale, reviewer action,
++or approval record. Phase 22 remains the owner of approval packets and human decisions.
++
++### Human approval workflow
++
++When a completed Phase 21 assessment has server-owned `requires_approval=true`, the worker creates a
++separate `human_approval` run. Its UUID-only worker task pins the current required risk assessment,
++the immutable protected Drafting message, and approved source references into one tenant-scoped
++review packet, then pauses at `waiting_for_human_review`. The case also moves to that state. A
++browser cannot start, bypass, or resume this workflow directly.
++
++Only active Admins and Compliance Reviewers can use `/api/approvals`. They may view the
++deterministic pending queue and its bounded review packet, assign/reassign a pending item, or submit
++one explicit approve, edit-and-approve, reject, or request-more-evidence decision. The service
++enforces tenant scope, role, current assignment, and high-risk separation of duties: the original
++Case Worker cannot approve their own required-review case even if they have an additional reviewer
++role. A decision writes only protected persistence and queues the approval workflow UUID; the worker
++later resolves it exactly once. An unchanged approval never alters the immutable AI draft.
++Edit-and-approve stores a separate human final text. Reject and request-more-evidence store no final
++approved text; neither automatically starts another Evidence or Drafting run.
++
++For a synthetic local demonstration, first run the documented Intake, Evidence, Extraction,
++Drafting, and Risk sequence for a synthetic case in `processing` state. Open
++`http://127.0.0.1:3000/nb/approvals` in a distinct active reviewer session once the case is waiting
++for review. Inspect only bounded risk reasons, original draft, extracted fields, and authorized
++source context; then exercise one controlled outcome. Repeat in English at
++`http://127.0.0.1:3000/en/approvals`. This phase does not send/export a result, expose a trace
++browser, or use real personal data or model credentials in automated validation.
++
+ With the Compose stack running, this opt-in host-side adapter test provides live Azurite
+ write/delete evidence without a cloud account (it creates and removes one synthetic object):
+ 
+@@ -347,8 +390,8 @@ operational facts—never case descriptions, filenames, titles, document content
+ keys, credentials, authorization tokens, cookies, password data, raw request bodies, or raw
+ exception text. Authentication dependencies derive organization only from a persisted principal. The
+ tenant guard and repository predicates together hide cross-organization resources; role checks are
+-backend policy, not frontend or OpenAPI-only behavior. The high-risk approval policy is a pure
+-service rule for the future approval phase, but no approval route exists.
++backend policy, not frontend or OpenAPI-only behavior. Required high-risk review is enforced by the
++dedicated Phase 22 approval workflow; there is no generic case-status shortcut around it.
+ 
+ ### Troubleshooting
+ 
+diff --git a/services/agent_orchestrator/src/agent_orchestrator/graphs/runtime.py b/services/agent_orchestrator/src/agent_orchestrator/graphs/runtime.py
+index 5f6147e..9b703a9 100644
+--- a/services/agent_orchestrator/src/agent_orchestrator/graphs/runtime.py
++++ b/services/agent_orchestrator/src/agent_orchestrator/graphs/runtime.py
+@@ -54,11 +54,18 @@ class GraphRuntime[StateModel: BaseModel]:
+         context: WorkflowContext,
+         initial_state: StateModel,
+         nodes: tuple[GraphNode[StateModel], ...],
++        *,
++        claim_mode: Literal["queued", "paused"] = "queued",
+     ) -> GraphRunResult[StateModel]:
+-        """Claim one queued run, execute explicit node edges, and persist its outcome."""
++        """Claim one queued/paused run, execute explicit edges, and persist its outcome."""
+ 
+         started = time.monotonic()
+-        if not await self._persistence.claim_run(context):
++        claimed = (
++            await self._persistence.claim_run(context)
++            if claim_mode == "queued"
++            else await self._persistence.claim_paused_run(context)
++        )
++        if not claimed:
+             return GraphRunResult(
+                 state=initial_state,
+                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="run_not_claimed"),
+@@ -115,6 +122,17 @@ class GraphRuntime[StateModel: BaseModel]:
+                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="runtime_failure"),
+             )
+         final_status = getattr(final_state, "status", RuntimeStatus.COMPLETED)
++        if final_status is RuntimeStatus.WAITING_FOR_HUMAN_REVIEW:
++            paused_state = final_state.model_copy(update={"status": final_status})
++            await self._persistence.pause_run(
++                context,
++                state_snapshot=_snapshot(context, paused_state),
++                duration_ms=_duration_ms(started),
++            )
++            return GraphRunResult(
++                state=paused_state,
++                outcome=TerminalOutcome(status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW),
++            )
+         terminal_status = (
+             RuntimeStatus.NEEDS_MORE_EVIDENCE
+             if final_status is RuntimeStatus.NEEDS_MORE_EVIDENCE
+diff --git a/services/agent_orchestrator/src/agent_orchestrator/persistence/ports.py b/services/agent_orchestrator/src/agent_orchestrator/persistence/ports.py
+index 15fd1be..8156e77 100644
+--- a/services/agent_orchestrator/src/agent_orchestrator/persistence/ports.py
++++ b/services/agent_orchestrator/src/agent_orchestrator/persistence/ports.py
+@@ -13,6 +13,8 @@ class WorkflowPersistence(Protocol):
+ 
+     async def claim_run(self, context: WorkflowContext) -> bool: ...
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool: ...
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+@@ -43,6 +45,14 @@ class WorkflowPersistence(Protocol):
+         duration_ms: int,
+     ) -> None: ...
+ 
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None: ...
++
+     async def fail_run(
+         self,
+         context: WorkflowContext,
+diff --git a/services/agent_orchestrator/src/agent_orchestrator/state/snapshots.py b/services/agent_orchestrator/src/agent_orchestrator/state/snapshots.py
+index 888acd7..7978143 100644
+--- a/services/agent_orchestrator/src/agent_orchestrator/state/snapshots.py
++++ b/services/agent_orchestrator/src/agent_orchestrator/state/snapshots.py
+@@ -23,6 +23,8 @@ _SCALAR_KEYS = frozenset(
+         "evidence_outcome",
+         "extraction_schema",
+         "draft_kind",
++        "final_risk_level",
++        "safe_next_state",
+         "node_count",
+         "vector_candidate_count",
+         "keyword_candidate_count",
+@@ -34,6 +36,9 @@ _SCALAR_KEYS = frozenset(
+         "extracted_field_count",
+         "low_confidence_field_count",
+         "citation_count",
++        "approval_id",
++        "approval_lifecycle",
++        "approval_decision",
+     }
+ )
+ _BOOLEAN_KEYS = frozenset(
+@@ -49,6 +54,12 @@ _BOOLEAN_KEYS = frozenset(
+         "evidence_available",
+         "draft_available",
+         "unsupported_claims_detected",
++        "sensitive_domain",
++        "weak_evidence",
++        "missing_required_source",
++        "high_impact_action",
++        "policy_conflict",
++        "requires_approval",
+     }
+ )
+ _CODE_LIST_KEYS = frozenset(
+diff --git a/services/agent_orchestrator/src/agent_orchestrator/types.py b/services/agent_orchestrator/src/agent_orchestrator/types.py
+index 4137a34..d4d45b6 100644
+--- a/services/agent_orchestrator/src/agent_orchestrator/types.py
++++ b/services/agent_orchestrator/src/agent_orchestrator/types.py
+@@ -14,6 +14,7 @@ class RuntimeStatus(StrEnum):
+ 
+     QUEUED = "queued"
+     RUNNING = "running"
++    WAITING_FOR_HUMAN_REVIEW = "waiting_for_human_review"
+     COMPLETED = "completed"
+     NEEDS_MORE_EVIDENCE = "needs_more_evidence"
+     FAILED = "failed"
+@@ -51,12 +52,15 @@ class NodeTiming(BaseModel):
+ 
+ 
+ class TerminalOutcome(BaseModel):
+-    """The only terminal result the generic runtime exposes to its caller."""
++    """A controlled graph outcome, including a durable human-review interruption."""
+ 
+     model_config = ConfigDict(frozen=True, extra="forbid")
+ 
+     status: Literal[
+-        RuntimeStatus.COMPLETED, RuntimeStatus.NEEDS_MORE_EVIDENCE, RuntimeStatus.FAILED
++        RuntimeStatus.WAITING_FOR_HUMAN_REVIEW,
++        RuntimeStatus.COMPLETED,
++        RuntimeStatus.NEEDS_MORE_EVIDENCE,
++        RuntimeStatus.FAILED,
+     ]
+     error_code: str | None = None
+ 
+diff --git a/services/agent_orchestrator/tests/test_drafting_graph.py b/services/agent_orchestrator/tests/test_drafting_graph.py
+index 5024f7b..2dd9678 100644
+--- a/services/agent_orchestrator/tests/test_drafting_graph.py
++++ b/services/agent_orchestrator/tests/test_drafting_graph.py
+@@ -27,6 +27,18 @@ class MemoryPersistence:
+     async def claim_run(self, context: WorkflowContext) -> bool:
+         return True
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool:
++        return True
++
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None:
++        self.snapshot = state_snapshot
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+diff --git a/services/agent_orchestrator/tests/test_evidence_graph.py b/services/agent_orchestrator/tests/test_evidence_graph.py
+index 84e6713..51f27e0 100644
+--- a/services/agent_orchestrator/tests/test_evidence_graph.py
++++ b/services/agent_orchestrator/tests/test_evidence_graph.py
+@@ -31,6 +31,18 @@ class MemoryPersistence:
+     async def claim_run(self, context: WorkflowContext) -> bool:
+         return True
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool:
++        return True
++
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None:
++        self.snapshot = state_snapshot
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+diff --git a/services/agent_orchestrator/tests/test_extraction_graph.py b/services/agent_orchestrator/tests/test_extraction_graph.py
+index e3da42d..926c3b2 100644
+--- a/services/agent_orchestrator/tests/test_extraction_graph.py
++++ b/services/agent_orchestrator/tests/test_extraction_graph.py
+@@ -34,6 +34,18 @@ class MemoryPersistence:
+     async def claim_run(self, context: WorkflowContext) -> bool:
+         return True
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool:
++        return True
++
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None:
++        self.snapshot = state_snapshot
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+diff --git a/services/agent_orchestrator/tests/test_intake_graph.py b/services/agent_orchestrator/tests/test_intake_graph.py
+index 1cf7141..90508a1 100644
+--- a/services/agent_orchestrator/tests/test_intake_graph.py
++++ b/services/agent_orchestrator/tests/test_intake_graph.py
+@@ -43,6 +43,18 @@ class MemoryPersistence:
+     async def claim_run(self, context: WorkflowContext) -> bool:
+         return True
+ 
++    async def claim_paused_run(self, context: WorkflowContext) -> bool:
++        return True
++
++    async def pause_run(
++        self,
++        context: WorkflowContext,
++        *,
++        state_snapshot: dict[str, object],
++        duration_ms: int,
++    ) -> None:
++        self.snapshot = state_snapshot
++
+     async def start_node(
+         self,
+         context: WorkflowContext,
+diff --git a/specs/progress.md b/specs/progress.md
+index dcb6501..20237cc 100644
+--- a/specs/progress.md
++++ b/specs/progress.md
+@@ -25,6 +25,32 @@ implementation, tests, and validation checks pass within its defined scope.
+ | 18    | Evidence Graph                        | DONE   |
+ | 19    | Extraction Graph                      | DONE   |
+ | 20    | Drafting Graph                        | DONE   |
++| 21    | Risk and Compliance Graph              | DONE   |
++
++## Phase 21 — Risk and Compliance Graph (DONE)
++
++Completed on 2026-06-21.
++
++Delivered the closed, deterministic final-risk assessment slice:
++
++- A fixed seven-node LangGraph workflow that rechecks completed Intake, Evidence, and Draft results
++  before evaluating PII, evidence sufficiency, high-impact actions, policy conflict, and
++  prompt-injection indicators. It emits only the closed low/medium/high level, reason codes,
++  next-state, and approval-required flag; it has no model call or browser-owned risk facts.
++- Tenant/RBAC-protected start, status, and latest-assessment reads, UUID-only dedicated Celery
++  dispatch, active-run protection, and atomic persistence of one RiskAssessment together with the
++  case risk level. High risk always requires later human review, while this phase deliberately
++  creates no approval or action.
++- A localized, read-only Case Detail panel that starts and polls the closed workflow, displays the
++  final level/reasons/next state, and makes the future human-review requirement explicit without
++  offering approval controls.
++
++Validation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm check:workspace` passed;
++the focused graph suite passed (20 tests), the API suite passed (255 passed, 1 intentional Azurite
++skip), and the web unit suite passed (22 tests). A clean deterministic Compose stack migrated to
++Alembic head, passed `pnpm verify:local-stack`, and passed the complete Playwright Case-to-Intake-to-
++Evidence-to-Extraction-to-Drafting-to-Risk browser flow, returning a persisted high-risk result with
++no approval action exposed.
+ 
+ ## Phase 18 — Evidence Graph (DONE)
+ 
+diff --git a/specs/roadmap.md b/specs/roadmap.md
+index 2bc71b8..d30b7f2 100755
+--- a/specs/roadmap.md
++++ b/specs/roadmap.md
+@@ -146,7 +146,7 @@ Every phase must include at least one validation method. A phase is not complete
+ - Ensure drafts use user interface language unless otherwise requested.
+ - Validation: Drafting tests verify citation coverage, unsupported-claim flags, Norwegian language output, and stored draft metadata.
+ 
+-## Phase 21 — Risk and Compliance Graph
++## Phase 21 — Risk and Compliance Graph (DONE)
+ 
+ - Implement final risk checks for PII, weak evidence, contradictory evidence, prompt-injection indicators, high-impact actions, missing required sources, low confidence, and policy conflicts.
+ - Assign final risk level and approval requirement.

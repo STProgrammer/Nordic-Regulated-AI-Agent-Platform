@@ -16,6 +16,10 @@ class WorkflowTaskDispatcher(Protocol):
     def dispatch_extraction(self, workflow_run_id: UUID) -> None: ...
     def dispatch_drafting(self, workflow_run_id: UUID) -> None: ...
 
+    def dispatch_risk_compliance(self, workflow_run_id: UUID) -> None: ...
+
+    def dispatch_human_approval(self, workflow_run_id: UUID) -> None: ...
+
 
 class CeleryWorkflowTaskDispatcher:
     """Production dispatcher for exactly one Phase-17 workflow task."""
@@ -39,3 +43,13 @@ class CeleryWorkflowTaskDispatcher:
         from app.workers.tasks import run_drafting_workflow_task
 
         run_drafting_workflow_task.apply_async(args=[str(workflow_run_id)])
+
+    def dispatch_risk_compliance(self, workflow_run_id: UUID) -> None:
+        from app.workers.tasks import run_risk_compliance_workflow_task
+
+        run_risk_compliance_workflow_task.apply_async(args=[str(workflow_run_id)])
+
+    def dispatch_human_approval(self, workflow_run_id: UUID) -> None:
+        from app.workers.tasks import run_human_approval_workflow_task
+
+        run_human_approval_workflow_task.apply_async(args=[str(workflow_run_id)])

@@ -13,6 +13,8 @@ class WorkflowPersistence(Protocol):
 
     async def claim_run(self, context: WorkflowContext) -> bool: ...
 
+    async def claim_paused_run(self, context: WorkflowContext) -> bool: ...
+
     async def start_node(
         self,
         context: WorkflowContext,
@@ -39,6 +41,14 @@ class WorkflowPersistence(Protocol):
         context: WorkflowContext,
         *,
         status: RuntimeStatus,
+        state_snapshot: dict[str, object],
+        duration_ms: int,
+    ) -> None: ...
+
+    async def pause_run(
+        self,
+        context: WorkflowContext,
+        *,
         state_snapshot: dict[str, object],
         duration_ms: int,
     ) -> None: ...

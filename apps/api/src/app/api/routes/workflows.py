@@ -26,6 +26,7 @@ from app.api.schemas.workflows import (
     ExtractionResultData,
     IntakeCorrectionRequest,
     IntakeResultData,
+    RiskResultData,
     WorkflowRunData,
     WorkflowRunStatus,
 )
@@ -98,7 +99,14 @@ def workflow_run_data(run: object) -> WorkflowRunData:
 
     workflow_run = cast(WorkflowRun, run)
     snapshot = workflow_run.state_snapshot
-    if workflow_run.workflow_name not in {"intake", "evidence", "extraction", "drafting"}:
+    if workflow_run.workflow_name not in {
+        "intake",
+        "evidence",
+        "extraction",
+        "drafting",
+        "risk_compliance",
+        "human_approval",
+    }:
         raise NotFoundError("Workflow run")
     intake = (
         _intake_data(snapshot)
@@ -123,10 +131,19 @@ def workflow_run_data(run: object) -> WorkflowRunData:
         and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
         else None
     )
+    risk_compliance = (
+        _risk_data(snapshot)
+        if workflow_run.workflow_name == "risk_compliance"
+        and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
+        else None
+    )
     return WorkflowRunData(
         workflow_run_id=workflow_run.id,
         workflow=cast(
-            Literal["intake", "evidence", "extraction", "drafting"], workflow_run.workflow_name
+            Literal[
+                "intake", "evidence", "extraction", "drafting", "risk_compliance", "human_approval"
+            ],
+            workflow_run.workflow_name,
         ),
         status=WorkflowRunStatus(workflow_run.status),
         started_at=workflow_run.started_at,
@@ -135,6 +152,7 @@ def workflow_run_data(run: object) -> WorkflowRunData:
         evidence=evidence,
         extraction=extraction,
         drafting=drafting,
+        risk_compliance=risk_compliance,
     )
 
 
@@ -224,6 +242,25 @@ def _drafting_data(snapshot: dict[str, object]) -> DraftingResultData | None:
         if value is not None:
             data[target] = value
     return DraftingResultData.model_validate(data) if data else None
+
+
+def _risk_data(snapshot: dict[str, object]) -> RiskResultData | None:
+    """Select only closed final-risk labels and booleans from the safe snapshot."""
+
+    if not snapshot:
+        return None
+    data: dict[str, object] = {}
+    mapping = {
+        "final_risk_level": "final_risk_level",
+        "reason_codes": "risk_reasons",
+        "approval_required": "requires_approval",
+        "safe_next_state": "safe_next_state",
+    }
+    for source, target in mapping.items():
+        value = snapshot.get(source)
+        if value is not None:
+            data[target] = value
+    return RiskResultData.model_validate(data) if data else None
 
 
 def _meta(request: Request) -> ResponseMeta:

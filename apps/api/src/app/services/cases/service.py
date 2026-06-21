@@ -172,12 +172,11 @@ class CaseService:
         old_assignee = case.assigned_user_id
         if not isinstance(command.status, Unset):
             validate_case_transition(case.status, command.status)
-            authorize_case_action(
-                principal,
-                CaseAction.APPROVE_OR_REJECT
-                if is_approval_status(command.status)
-                else CaseAction.EDIT,
-            )
+            if case.status == "waiting_for_human_review" or is_approval_status(command.status):
+                raise InvalidCommandError(
+                    "Approval workflow transitions are reserved for the approval service."
+                )
+            authorize_case_action(principal, CaseAction.EDIT)
         if not isinstance(command.assigned_user_id, Unset) and command.assigned_user_id is not None:
             await self._require_active_user(principal.organization_id, command.assigned_user_id)
         if not isinstance(command.due_date, Unset):

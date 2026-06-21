@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from agent_orchestrator.config import AgentSettings
+from agent_orchestrator.graphs.approval_graph import ApprovalGraph, ApprovalGraphDependencies
+from agent_orchestrator.graphs.approval_types import ApprovalWorkflowState
 from agent_orchestrator.graphs.drafting_graph import (
     DraftingCaseInput,
     DraftingEvidenceSource,
@@ -41,6 +43,8 @@ from agent_orchestrator.graphs.intake_types import (
     IntakeWorkflowState,
     LanguageDetectionResult,
 )
+from agent_orchestrator.graphs.risk_graph import RiskGraph, RiskGraphDependencies
+from agent_orchestrator.graphs.risk_types import RiskWorkflowState
 from agent_orchestrator.model_providers.factory import build_model_provider
 from agent_orchestrator.types import RetryPolicy, RuntimeStatus, WorkflowContext
 from celery import Task  # type: ignore[import-untyped]
@@ -54,6 +58,7 @@ from app.db.repositories.case import CaseRepository
 from app.db.repositories.document import DocumentRepository
 from app.db.repositories.identity import UserRepository, UserRoleRepository
 from app.db.session import dispose_database_engines, get_sessionmaker
+from app.services.approvals.service import ApprovalWorkflowService
 from app.services.auth.principal import Principal, RoleName
 from app.services.documents.chunking import CanonicalTextChunker, ChunkingConfig, TiktokenTokenizer
 from app.services.documents.dispatch import CeleryDocumentTaskDispatcher
@@ -69,6 +74,7 @@ from app.services.documents.parsing import DocumentParseCoordinator, ParseProces
 from app.services.documents.storage import AzureBlobObjectStorage
 from app.services.retrieval.service import RetrievalService
 from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
+from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
 from app.services.workflows.drafting import DRAFTING_WORKFLOW_NAME, persist_draft
 from app.services.workflows.evidence import (
     EVIDENCE_WORKFLOW_NAME,
@@ -84,6 +90,11 @@ from app.services.workflows.orchestrator import (
     SqlAlchemyPromptLoader,
     SqlAlchemyWorkflowPersistence,
     persist_intake_case_result,
+)
+from app.services.workflows.risk import (
+    RISK_WORKFLOW_NAME,
+    load_risk_prerequisites,
+    persist_risk_assessment,
 )
 from app.workers.celery_app import celery_app
 
@@ -544,11 +555,13 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                 language = OutputLanguage(
                     requested_language if isinstance(requested_language, str) else case.language
                 )
+                first_source = evidence.sources[0]
                 fixture = {
                     "drafting_response": {
-                        "draft": "Syntetisk dokumenttekst for lokal nettlesertest [S1]"
-                        if language is OutputLanguage.NB
-                        else "Synthetic local browser-test document text [S1]",
+                        # The deterministic fixture must satisfy the same citation-support
+                        # guard as a provider response, even when local browser runs retain
+                        # prior synthetic source documents in the database.
+                        "draft": f"{first_source.excerpt.strip()} [{first_source.citation_label}]",
                         "language": language.value,
                     }
                 }
@@ -602,6 +615,163 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                     )
                     await session.commit()
                 return "failed"
+    finally:
+        await dispose_database_engines()
+
+
+async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Reload one queued risk run and assess only revalidated persisted signals."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if run is None or run.workflow_name != RISK_WORKFLOW_NAME or run.status != "queued":
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            case = await CaseRepository(session).get(context.organization_id, context.case_id)
+            user = await UserRepository(session).get(
+                context.organization_id, context.initiated_by_user_id
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            if case is None or user is None or not user.is_active:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="case_not_available",
+                    )
+                    await session.commit()
+                return "failed"
+            prerequisites = await load_risk_prerequisites(
+                session, context.organization_id, context.case_id
+            )
+            if prerequisites is None:
+                if await persistence.claim_run(context):
+                    await persistence.complete_run(
+                        context,
+                        status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "needs_more_evidence",
+                        },
+                        duration_ms=0,
+                    )
+                    await session.commit()
+                return "needs_more_evidence"
+            try:
+                agent_settings = AgentSettings()
+                graph = RiskGraph(
+                    RiskGraphDependencies(
+                        signals=prerequisites.signals,
+                        persistence=persistence,
+                        persist_assessment=lambda graph_context, state, result: (
+                            persist_risk_assessment(session, graph_context, state, result)
+                        ),
+                        retry_policy=RetryPolicy(
+                            maximum_retries=agent_settings.node_maximum_retries
+                        ),
+                    )
+                )
+                result = await graph.run(context, RiskWorkflowState(context=context))
+                approval_run = None
+                if (
+                    result.outcome.status is RuntimeStatus.COMPLETED
+                    and result.state.approval_required
+                ):
+                    approval_run = await ApprovalWorkflowService(session).create_required_run(
+                        context
+                    )
+                await session.commit()
+                if approval_run is not None:
+                    try:
+                        CeleryWorkflowTaskDispatcher().dispatch_human_approval(approval_run.id)
+                    except Exception:
+                        _logger.warning("approval.workflow_dispatch_unavailable")
+                return result.outcome.status.value
+            except Exception:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                        },
+                        duration_ms=0,
+                        error_code="workflow_configuration_unavailable",
+                    )
+                    await session.commit()
+                return "failed"
+    finally:
+        await dispose_database_engines()
+
+
+async def _process_human_approval_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Run the initial approval interruption or one UUID-only persisted reviewer resume."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if (
+                run is None
+                or run.workflow_name != "human_approval"
+                or run.status not in {"queued", "waiting_for_human_review"}
+            ):
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            service = ApprovalWorkflowService(session)
+            graph = ApprovalGraph(
+                ApprovalGraphDependencies(
+                    persistence=persistence,
+                    prepare_review_packet=service.prepare_review_packet,
+                    mark_interrupted=service.mark_interrupted,
+                    load_decision=service.load_decision,
+                    resolve_decision=service.resolve_decision,
+                    retry_policy=RetryPolicy(maximum_retries=AgentSettings().node_maximum_retries),
+                )
+            )
+            if run.status == "queued":
+                result = await graph.run_initial(context, ApprovalWorkflowState(context=context))
+            else:
+                approval = await service.approval_for_workflow(
+                    context.organization_id, context.workflow_run_id
+                )
+                if approval is None:
+                    return "noop"
+                result = await graph.run_resume(
+                    context,
+                    ApprovalWorkflowState(
+                        context=context,
+                        status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW,
+                        approval_id=approval.id,
+                    ),
+                )
+            await session.commit()
+            return result.outcome.status.value
     finally:
         await dispose_database_engines()
 
@@ -884,6 +1054,60 @@ def run_drafting_workflow_task(task: Task, workflow_run_id: str) -> str:
     except Exception as error:
         _logger.warning(
             "workflow.drafting_task_runtime_unavailable", error_type=type(error).__name__
+        )
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_risk_compliance_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_risk_compliance_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only risk task with the established bounded retry boundary."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("workflow.risk_compliance_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_risk_compliance_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning(
+            "workflow.risk_compliance_task_runtime_unavailable", error_type=type(error).__name__
+        )
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_human_approval_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_human_approval_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only approval interruption/resume task with finite retries."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("approval.workflow_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_human_approval_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning(
+            "approval.workflow_task_runtime_unavailable", error_type=type(error).__name__
         )
         if task.request.retries >= settings.document_parser_task_max_retries:
             return "failed"

@@ -21,6 +21,7 @@ from app.core.session_store import (
     get_redis_client,
 )
 from app.db.session import get_db_session
+from app.services.approvals.service import ApprovalWorkflowService
 from app.services.auth.policy import ensure_roles, guard_tenant_resource
 from app.services.auth.principal import Principal, RoleName
 from app.services.auth.service import AuthenticationService, UserAdministrationService
@@ -38,6 +39,7 @@ from app.services.workflows.drafting import DraftingWorkflowService
 from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
+from app.services.workflows.risk import RiskWorkflowService
 
 # The runtime setting defaults to this name. The dependency itself reads the
 # configured cookie name, while this object documents cookie authentication in
@@ -233,6 +235,22 @@ def get_drafting_workflow_service(
     return DraftingWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
+def get_risk_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RiskWorkflowService:
+    """Construct the closed Risk and Compliance service with UUID-only dispatch."""
+
+    return RiskWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
+
+
+def get_approval_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ApprovalWorkflowService:
+    """Construct the protected Phase-22 approval coordinator with UUID-only dispatch."""
+
+    return ApprovalWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -309,6 +327,10 @@ EvidenceWorkflowServiceDependency = Annotated[
 ]
 ExtractionWorkflowServiceDependency = Annotated[
     ExtractionWorkflowService, Depends(get_extraction_workflow_service)
+]
+RiskWorkflowServiceDependency = Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)]
+ApprovalWorkflowServiceDependency = Annotated[
+    ApprovalWorkflowService, Depends(get_approval_workflow_service)
 ]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

@@ -6,11 +6,11 @@ from datetime import datetime
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.db.models.workflow import WorkflowNodeRun, WorkflowRun
+from app.db.models.workflow import Approval, WorkflowNodeRun, WorkflowRun
 from app.db.repositories.base import TenantScopedRepository
 from app.services.common.pagination import Page, Pagination
 from app.services.common.querying import SortSpec, resolve_sort
@@ -111,3 +111,69 @@ class WorkflowNodeRunRepository:
         node_run.retry_count = retry_count
         node_run.error_summary = error_summary
         return node_run
+
+
+class ApprovalRepository:
+    """Tenant-scoped review persistence; authorization remains in the service layer."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, approval: Approval) -> Approval:
+        self.session.add(approval)
+        return approval
+
+    async def get(self, organization_id: UUID, approval_id: UUID) -> Approval | None:
+        statement = select(Approval).where(
+            Approval.organization_id == organization_id,
+            Approval.id == approval_id,
+        )
+        return cast(Approval | None, await self.session.scalar(statement))
+
+    async def get_for_update(self, organization_id: UUID, approval_id: UUID) -> Approval | None:
+        statement = (
+            select(Approval)
+            .where(
+                Approval.organization_id == organization_id,
+                Approval.id == approval_id,
+            )
+            .with_for_update()
+        )
+        return cast(Approval | None, await self.session.scalar(statement))
+
+    async def get_for_workflow(
+        self, organization_id: UUID, workflow_run_id: UUID, *, lock: bool = False
+    ) -> Approval | None:
+        statement = select(Approval).where(
+            Approval.organization_id == organization_id,
+            Approval.workflow_run_id == workflow_run_id,
+        )
+        if lock:
+            statement = statement.with_for_update()
+        return cast(Approval | None, await self.session.scalar(statement))
+
+    async def list_queue(
+        self, organization_id: UUID, *, limit: int, offset: int
+    ) -> tuple[tuple[Approval, ...], int]:
+        """Return only undecided active records in a stable oldest-first reviewer queue."""
+
+        from sqlalchemy import func
+
+        predicates = (
+            Approval.organization_id == organization_id,
+            Approval.status.in_(("pending", "assigned")),
+            Approval.decision.is_(None),
+        )
+        total = await self.session.scalar(select(func.count(Approval.id)).where(*predicates))
+        items = tuple(
+            (
+                await self.session.scalars(
+                    select(Approval)
+                    .where(*predicates)
+                    .order_by(asc(Approval.inserted_at), asc(Approval.id))
+                    .limit(limit)
+                    .offset(offset)
+                )
+            ).all()
+        )
+        return items, int(total or 0)

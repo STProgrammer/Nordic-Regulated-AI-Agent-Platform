@@ -23,6 +23,8 @@ _SCALAR_KEYS = frozenset(
         "evidence_outcome",
         "extraction_schema",
         "draft_kind",
+        "final_risk_level",
+        "safe_next_state",
         "node_count",
         "vector_candidate_count",
         "keyword_candidate_count",
@@ -34,6 +36,9 @@ _SCALAR_KEYS = frozenset(
         "extracted_field_count",
         "low_confidence_field_count",
         "citation_count",
+        "approval_id",
+        "approval_lifecycle",
+        "approval_decision",
     }
 )
 _BOOLEAN_KEYS = frozenset(
@@ -49,6 +54,12 @@ _BOOLEAN_KEYS = frozenset(
         "evidence_available",
         "draft_available",
         "unsupported_claims_detected",
+        "sensitive_domain",
+        "weak_evidence",
+        "missing_required_source",
+        "high_impact_action",
+        "policy_conflict",
+        "requires_approval",
     }
 )
 _CODE_LIST_KEYS = frozenset(

@@ -265,6 +265,49 @@ source identifiers for the existing bounded context route. Case Detail labels it
 requiring later human review. There is intentionally no draft edit, approval, finalization, export,
 risk decision, or trace UI in this phase.
 
+### Risk and Compliance workflow
+
+`{"workflow":"risk_compliance"}` accepts no browser-owned risk facts, policy text, source ids, model
+settings, or override. It runs only after a completed protected Draft, a currently eligible Evidence
+package and provenance, and a completed Intake result are revalidated in a fresh worker session.
+Missing, stale, contradictory, or insufficient prerequisites produce a controlled
+`needs_more_evidence` terminal result and never create an assessment.
+
+The policy is fixed and deterministic: PII, sensitive-domain, high-impact-action, policy-conflict,
+or prompt-injection signals yield high risk and require later human approval; low confidence yields
+medium risk and also requires later human review; no active signal yields low risk. The assessment
+stores only the closed reason codes, final level, approval requirement, and safe next state. It
+updates `cases.risk_level` atomically with its one `risk_assessments` record.
+`GET /api/cases/{case_id}/risk-assessment` is a read-only, tenant/RBAC-protected presentation
+contract. It exposes no trace, draft text, source excerpt, score, policy rationale, reviewer action,
+or approval record. Phase 22 remains the owner of approval packets and human decisions.
+
+### Human approval workflow
+
+When a completed Phase 21 assessment has server-owned `requires_approval=true`, the worker creates a
+separate `human_approval` run. Its UUID-only worker task pins the current required risk assessment,
+the immutable protected Drafting message, and approved source references into one tenant-scoped
+review packet, then pauses at `waiting_for_human_review`. The case also moves to that state. A
+browser cannot start, bypass, or resume this workflow directly.
+
+Only active Admins and Compliance Reviewers can use `/api/approvals`. They may view the
+deterministic pending queue and its bounded review packet, assign/reassign a pending item, or submit
+one explicit approve, edit-and-approve, reject, or request-more-evidence decision. The service
+enforces tenant scope, role, current assignment, and high-risk separation of duties: the original
+Case Worker cannot approve their own required-review case even if they have an additional reviewer
+role. A decision writes only protected persistence and queues the approval workflow UUID; the worker
+later resolves it exactly once. An unchanged approval never alters the immutable AI draft.
+Edit-and-approve stores a separate human final text. Reject and request-more-evidence store no final
+approved text; neither automatically starts another Evidence or Drafting run.
+
+For a synthetic local demonstration, first run the documented Intake, Evidence, Extraction,
+Drafting, and Risk sequence for a synthetic case in `processing` state. Open
+`http://127.0.0.1:3000/nb/approvals` in a distinct active reviewer session once the case is waiting
+for review. Inspect only bounded risk reasons, original draft, extracted fields, and authorized
+source context; then exercise one controlled outcome. Repeat in English at
+`http://127.0.0.1:3000/en/approvals`. This phase does not send/export a result, expose a trace
+browser, or use real personal data or model credentials in automated validation.
+
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
 write/delete evidence without a cloud account (it creates and removes one synthetic object):
 
@@ -347,8 +390,8 @@ operational facts—never case descriptions, filenames, titles, document content
 keys, credentials, authorization tokens, cookies, password data, raw request bodies, or raw
 exception text. Authentication dependencies derive organization only from a persisted principal. The
 tenant guard and repository predicates together hide cross-organization resources; role checks are
-backend policy, not frontend or OpenAPI-only behavior. The high-risk approval policy is a pure
-service rule for the future approval phase, but no approval route exists.
+backend policy, not frontend or OpenAPI-only behavior. Required high-risk review is enforced by the
+dedicated Phase 22 approval workflow; there is no generic case-status shortcut around it.
 
 ### Troubleshooting
 

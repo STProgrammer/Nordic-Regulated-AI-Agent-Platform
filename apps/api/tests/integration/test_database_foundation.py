@@ -6,6 +6,8 @@ import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import cast
+from uuid import UUID, uuid4
 
 import pytest
 from alembic import command
@@ -149,6 +151,130 @@ def test_baseline_migration_creates_postgresql_contract(
             )
             assert "ix_document_chunks_content_fts" in full_text_plan
             assert "ix_document_chunks_embedding_hnsw" in vector_plan
+    finally:
+        engine.dispose()
+
+
+def test_human_approval_migration_normalizes_legacy_decisions(
+    database_settings: AppSettings,
+) -> None:
+    """Upgrade legacy placeholder rows without violating the closed Phase 22 decision domain."""
+
+    config = _alembic_config()
+    command.downgrade(config, "7a21c9e5b406")
+    organization_id, user_id, case_id = uuid4(), uuid4(), uuid4()
+    approved_run_id, unknown_run_id = uuid4(), uuid4()
+    approved_id, unknown_id = uuid4(), uuid4()
+    now = datetime.now(UTC)
+    engine = create_engine(database_settings.database_sync_url())
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO organizations (id, name, slug, default_language)
+                    VALUES (:id, 'Legacy approval tenant', 'legacy-approval-tenant', 'nb')
+                    """
+                ),
+                {"id": organization_id},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO users (id, organization_id, email, display_name, preferred_language)
+                    VALUES (:id, :organization_id, 'legacy.approver@demo.invalid',
+                            'Legacy Approver', 'nb')
+                    """
+                ),
+                {"id": user_id, "organization_id": organization_id},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO cases (
+                        id, organization_id, case_number, title, description, language, domain,
+                        priority, status, submitted_by_user_id
+                    )
+                    VALUES (
+                        :id, :organization_id, 'LEGACY-APPROVAL-1', 'Legacy approval case',
+                        'Synthetic migration record.', 'nb', 'testing', 'normal', 'new', :user_id
+                    )
+                    """
+                ),
+                {"id": case_id, "organization_id": organization_id, "user_id": user_id},
+            )
+            for workflow_run_id in (approved_run_id, unknown_run_id):
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO workflow_runs (
+                            id, organization_id, case_id, workflow_name, workflow_version, status,
+                            started_by_user_id, started_at
+                        )
+                        VALUES (
+                            :id, :organization_id, :case_id, 'legacy-approval', 'v1', 'completed',
+                            :user_id, :started_at
+                        )
+                        """
+                    ),
+                    {
+                        "id": workflow_run_id,
+                        "organization_id": organization_id,
+                        "case_id": case_id,
+                        "user_id": user_id,
+                        "started_at": now,
+                    },
+                )
+            for approval_id, workflow_run_id, decision in (
+                (approved_id, approved_run_id, "approved"),
+                (unknown_id, unknown_run_id, "legacy-custom-decision"),
+            ):
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO approvals (
+                            id, organization_id, case_id, workflow_run_id, reviewer_user_id,
+                            decision, decision_at
+                        )
+                        VALUES (
+                            :id, :organization_id, :case_id, :workflow_run_id, :user_id, :decision,
+                            :decision_at
+                        )
+                        """
+                    ),
+                    {
+                        "id": approval_id,
+                        "organization_id": organization_id,
+                        "case_id": case_id,
+                        "workflow_run_id": workflow_run_id,
+                        "user_id": user_id,
+                        "decision": decision,
+                        "decision_at": now,
+                    },
+                )
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_settings.database_sync_url())
+    try:
+        with engine.connect() as connection:
+            rows: dict[UUID, str] = {
+                cast(UUID, row["id"]): cast(str, row["lifecycle"])
+                for row in connection.execute(
+                    text(
+                        """
+                        SELECT id, status || ':' || decision AS lifecycle
+                        FROM approvals
+                        WHERE id IN (:approved_id, :unknown_id)
+                        """
+                    ).bindparams(approved_id=approved_id, unknown_id=unknown_id)
+                ).mappings()
+            }
+        assert rows == {
+            approved_id: "approved:approve",
+            unknown_id: "needs_more_evidence:request_more_evidence",
+        }
     finally:
         engine.dispose()
 
@@ -368,7 +494,9 @@ async def _exercise_records(settings: AppSettings) -> None:
                         case_id=case.id,
                         workflow_run_id=workflow.id,
                         reviewer_user_id=user.id,
-                        decision="approved",
+                        assigned_user_id=user.id,
+                        status="approved",
+                        decision="edit_and_approve",
                         decision_at=now,
                         ai_draft="Syntetisk utkast",
                         final_text="Syntetisk endelig tekst",

@@ -41,13 +41,21 @@ def test_prefixes_are_rooted_paths() -> None:
 def test_only_implemented_route_modules_define_operations() -> None:
     for group in ROUTE_GROUPS:
         assert isinstance(group.router, APIRouter)
-        if group.name in {"auth", "users", "cases", "documents", "retrieval", "workflows"}:
+        if group.name in {
+            "auth",
+            "users",
+            "cases",
+            "documents",
+            "retrieval",
+            "workflows",
+            "approvals",
+        }:
             assert group.router.routes
         else:
             assert group.router.routes == []
 
 
-def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
+def test_aggregate_router_mounts_the_phase_twenty_one_business_operations() -> None:
     api_router = create_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
@@ -70,6 +78,7 @@ def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
         "/api/cases/{case_id}/extraction/fields",
         "/api/cases/{case_id}/extraction/fields/{field_id}",
         "/api/cases/{case_id}/draft",
+        "/api/cases/{case_id}/risk-assessment",
         "/api/documents",
         "/api/documents/upload",
         "/api/documents/{document_id}",
@@ -81,6 +90,13 @@ def test_aggregate_router_mounts_the_phase_twenty_business_operations() -> None:
         "/api/retrieval/answer",
         "/api/workflows/{workflow_run_id}",
         "/api/workflows/{workflow_run_id}/intake/correction",
+        "/api/approvals",
+        "/api/approvals/{approval_id}",
+        "/api/approvals/{approval_id}/approve",
+        "/api/approvals/{approval_id}/edit-and-approve",
+        "/api/approvals/{approval_id}/reject",
+        "/api/approvals/{approval_id}/request-more-evidence",
+        "/api/approvals/{approval_id}/reassign",
     }
 
 

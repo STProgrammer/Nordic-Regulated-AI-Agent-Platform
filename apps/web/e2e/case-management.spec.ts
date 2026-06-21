@@ -1,130 +1,96 @@
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+
 import { expect, test } from '@playwright/test';
 
-const email = process.env.NORDIC_E2E_CASE_WORKER_EMAIL;
+const caseWorkerEmail = process.env.NORDIC_E2E_CASE_WORKER_EMAIL;
 const password = process.env.NORDIC_LOCAL_SEED_PASSWORD;
+const reviewerEmail = 'ole.eksempel+reviewer@demo.invalid';
+const fixtureTitle = `E2E Phase 22 human approval ${Date.now()}`;
 
-test.beforeEach(() => {
-  if (!email || !password) {
+function requireE2eCredentials() {
+  if (!caseWorkerEmail || !password) {
     throw new Error(
       'NORDIC_E2E_CASE_WORKER_EMAIL and NORDIC_LOCAL_SEED_PASSWORD must be set for the local browser smoke test.',
     );
   }
+}
+
+test.beforeAll(() => {
+  requireE2eCredentials();
+  execFileSync(
+    'docker',
+    [
+      'compose',
+      '--env-file',
+      '.env.example',
+      'exec',
+      '-T',
+      '-e',
+      'NORDIC_LOCAL_SEED_PASSWORD',
+      '-e',
+      `NORDIC_E2E_APPROVAL_CASE_TITLE=${fixtureTitle}`,
+      'api',
+      'python',
+      'scripts/seed_phase22_e2e.py',
+      '--password-env',
+      'NORDIC_LOCAL_SEED_PASSWORD',
+    ],
+    { cwd: resolve(process.cwd(), '../..'), env: process.env, stdio: 'inherit' },
+  );
 });
 
-test('case worker can inspect indexed synthetic document evidence in Bokmål', async ({ page }) => {
-  test.setTimeout(90_000);
-  const title = `E2E syntetisk sak ${Date.now()}`;
+test('reviewer resolves a pre-seeded human approval and the case worker sees approval', async ({
+  browser,
+  page,
+}) => {
+  test.setTimeout(60_000);
   await page.goto('/nb/login');
-  await page.getByLabel('E-postadresse').fill(email!);
+  await page.getByLabel('E-postadresse').fill(reviewerEmail);
   await page.getByLabel('Passord').fill(password!);
   await page.getByRole('button', { name: 'Logg inn' }).click();
-  await expect(page.getByRole('heading', { name: 'Saksinnboks' })).toBeVisible({ timeout: 15_000 });
-
-  await page.getByRole('link', { name: 'Ny sak' }).click();
-  await page.getByLabel('Tittel').fill(title);
-  await page.getByLabel('Beskrivelse').fill('Syntetisk kontrollsak for lokal nettlesertest.');
-  await page.getByRole('button', { name: 'Opprett sak' }).click();
-  await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  const caseId = new URL(page.url()).pathname.split('/').at(-1);
-  if (!caseId) throw new Error('The synthetic case identifier was unavailable.');
-
-  const documentId = await page.evaluate(async (currentCaseId) => {
-    const form = new FormData();
-    form.set('case_id', currentCaseId);
-    form.set(
-      'email_text',
-      'From: sender@example.invalid\n\nSyntetisk dokumenttekst for lokal nettlesertest. ' +
-        'Kilden beskriver et syntetisk kontrollforhold og skal bare brukes i lokal validering. ' +
-        'Det finnes ingen persondata eller produksjonsinnhold i denne teksten. ' +
-        'Kildepakken trenger nok innhold til at den kontrollerte Evidence-flyten kan fullføres. '.repeat(
-          12,
-        ),
-    );
-    form.set('title', 'E2E syntetisk dokument');
-    form.set('source_status', 'approved');
-    form.set('confidentiality_level', 'internal');
-    const response = await fetch('/api/documents/upload', {
-      body: form,
-      credentials: 'include',
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Synthetic document setup failed.');
-    return ((await response.json()) as { data: { document_id: string } }).data.document_id;
-  }, caseId);
-  await expect
-    .poll(
-      () =>
-        page.evaluate(async (currentDocumentId) => {
-          const response = await fetch(`/api/documents/${currentDocumentId}`, {
-            credentials: 'include',
-          });
-          if (!response.ok) return 'unavailable';
-          return ((await response.json()) as { data: { indexing_status: string } }).data
-            .indexing_status;
-        }, documentId),
-      { timeout: 60_000 },
-    )
-    .toBe('indexed');
-  await page.reload();
-  await expect(page.getByRole('heading', { name: 'Dokumenter' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'E2E syntetisk dokument' })).toBeVisible();
-  await page.getByRole('button', { name: 'Se metadata' }).click();
-  await expect(page.getByRole('button', { name: 'Be om reindeksering' })).toBeVisible();
-
-  await page.getByLabel('Hva vil du finne i kildene?').fill('Syntetisk dokumenttekst');
-  await page.getByLabel('Avgrens til dokument (valgfritt)').selectOption(documentId);
-  await page.getByRole('button', { name: 'Søk i kilder' }).click();
-  await expect(page.getByRole('heading', { name: 'Kilder' })).toBeVisible();
-  await page.getByRole('button', { name: 'Åpne kildekontekst' }).first().click();
-  const contextDialog = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
-  await expect(contextDialog).toBeVisible();
-  await expect(
-    contextDialog.getByText(/Syntetisk dokumenttekst for lokal nettlesertest\./),
-  ).toBeVisible();
-  await contextDialog.getByRole('button', { name: 'Lukk' }).click();
-
-  await page.getByRole('button', { name: 'Bygg kildepakke' }).click();
-  await expect(
-    page.getByText(
-      /Kildepakken er klar for videre vurdering\.|Det trengs mer kildegrunnlag før videre arbeid\./,
-    ),
-  ).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText('S1')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Start ekstraksjon' }).click();
-  await expect(page.getByText('Ekstraksjon er klar for menneskelig kontroll.')).toBeVisible({
-    timeout: 60_000,
+  await page.goto('/nb/approvals');
+  await expect(page.getByRole('heading', { name: 'Godkjenningskø' })).toBeVisible({
+    timeout: 15_000,
   });
-  await expect(page.getByText('SYNTHETIC-1')).toBeVisible();
-  await page.getByRole('button', { name: 'Rediger opplysning' }).click();
-  const extractionEditor = page.getByLabel('Verdi (én opplysning per linje)');
-  await extractionEditor.fill('SYNTHETIC-2');
-  await page.getByRole('button', { name: 'Lagre endring' }).click();
-  await expect(page.getByText('Redigert av menneske.')).toBeVisible();
-  await expect(page.getByText('SYNTHETIC-2')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Start utkast' }).click();
-  await expect(page.getByText('Utkastet er klart for menneskelig kontroll.')).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect(page.getByText(fixtureTitle)).toBeVisible();
+  await page
+    .locator('li')
+    .filter({ hasText: fixtureTitle })
+    .getByRole('link', { name: 'Åpne vurderingspakke' })
+    .click();
+  await expect(page.getByText('Dette uforanderlige KI-utkastet er ikke endelig.')).toBeVisible();
   await expect(
-    page.getByText('Syntetisk dokumenttekst for lokal nettlesertest [S1]'),
+    page.getByText('Syntetisk uforanderlig KI-utkast for lokal Phase 22-validering.'),
   ).toBeVisible();
-  await expect(page.getByText('KI-utkast — krever senere menneskelig kontroll.')).toBeVisible();
-  await page.getByRole('button', { name: 'S1' }).last().click();
-  const draftContext = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
-  await expect(draftContext).toBeVisible();
-  await draftContext.getByRole('button', { name: 'Lukk' }).click();
+  await page
+    .getByLabel('Endelig mennesketekst (kun ved rediger og godkjenn)')
+    .fill('Syntetisk menneskegodkjent slutttekst.');
+  await page.getByRole('button', { name: 'Rediger og godkjenn' }).click();
+  const confirmation = page.getByRole('alertdialog', {
+    name: 'Bekreft vurdererbeslutning',
+  });
+  await expect(confirmation).toBeVisible();
+  await confirmation.getByRole('button', { name: 'Bekreft' }).click();
+  await expect(page.getByText('Godkjent av menneske')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Syntetisk menneskegodkjent slutttekst.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Be om reindeksering' }).click();
-  await expect(page.getByText('Reindeksering er forespurt.')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Tilbake til saksinnboksen' }).click();
-  await page.getByLabel('Søk i saker').fill(title);
-  await page.getByRole('button', { name: 'Bruk filtre' }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(title);
-  const result = page.getByRole('row', { name: new RegExp(title) });
+  const workerContext = await browser.newContext();
+  const workerPage = await workerContext.newPage();
+  await workerPage.goto('/nb/login');
+  await workerPage.getByLabel('E-postadresse').fill(caseWorkerEmail!);
+  await workerPage.getByLabel('Passord').fill(password!);
+  await workerPage.getByRole('button', { name: 'Logg inn' }).click();
+  await expect(workerPage.getByRole('heading', { name: 'Saksinnboks' })).toBeVisible({
+    timeout: 15_000,
+  });
+  await workerPage.getByLabel('Søk i saker').fill(fixtureTitle);
+  await workerPage.getByRole('button', { name: 'Bruk filtre' }).click();
+  const result = workerPage.getByRole('row', { name: new RegExp(fixtureTitle) });
   await expect(result).toBeVisible();
   await result.getByRole('link', { name: /^CASE-/ }).click();
-  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await expect(workerPage.getByText('Denne saken har et menneskegodkjent utfall.')).toBeVisible({
+    timeout: 30_000,
+  });
+  await workerContext.close();
 });

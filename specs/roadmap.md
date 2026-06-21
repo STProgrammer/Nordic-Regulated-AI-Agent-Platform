@@ -146,14 +146,14 @@ Every phase must include at least one validation method. A phase is not complete
 - Ensure drafts use user interface language unless otherwise requested.
 - Validation: Drafting tests verify citation coverage, unsupported-claim flags, Norwegian language output, and stored draft metadata.
 
-## Phase 21 — Risk and Compliance Graph
+## Phase 21 — Risk and Compliance Graph (DONE)
 
 - Implement final risk checks for PII, weak evidence, contradictory evidence, prompt-injection indicators, high-impact actions, missing required sources, low confidence, and policy conflicts.
 - Assign final risk level and approval requirement.
 - Persist risk assessments and display risk reasons in the UI.
 - Validation: Risk graph tests verify high-risk routing, approval requirements, risk reason display, and audit log entries.
 
-## Phase 22 — Human Approval Workflow
+## Phase 22 — Human Approval Workflow (DONE)
 
 - Implement approval queue, review packet, workflow interruption, workflow resume, approve, edit-and-approve, reject, request-more-evidence, and reassign actions.
 - Ensure high-risk and low-confidence outputs cannot bypass required approval.

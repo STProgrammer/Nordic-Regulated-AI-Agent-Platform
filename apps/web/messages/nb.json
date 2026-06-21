@@ -283,6 +283,7 @@
     "status": {
       "queued": "Kildepakken står i kø.",
       "running": "Kildepakken bygges.",
+      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
       "completed": "Kildepakken er klar for videre vurdering.",
       "needs_more_evidence": "Det trengs mer kildegrunnlag før videre arbeid.",
       "failed": "Kildepakken kunne ikke fullføres på en trygg måte."
@@ -309,6 +310,7 @@
     "status": {
       "queued": "Ekstraksjon står i kø.",
       "running": "Ekstraksjon kjører.",
+      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
       "completed": "Ekstraksjon er klar for menneskelig kontroll.",
       "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før ekstraksjon.",
       "failed": "Ekstraksjon kunne ikke fullføres på en trygg måte."
@@ -399,6 +401,93 @@
       "manual_review": "Manuell vurdering"
     }
   },
+  "approvals": {
+    "title": "Godkjenningskø",
+    "description": "Vurderingspakker som krever en autorisert menneskelig beslutning. KI-resultatet er ikke endelig før arbeidsflyten er ferdig.",
+    "unavailableForRole": "Rollen din kan ikke se eller avgjøre godkjenningsarbeid.",
+    "loading": "Laster godkjenningskø …",
+    "unavailable": "Godkjenningskøen er midlertidig utilgjengelig.",
+    "empty": "Det finnes ingen ventende godkjenninger.",
+    "queueLabel": "Ventende godkjenninger",
+    "openPacket": "Åpne vurderingspakke",
+    "backToQueue": "Tilbake til godkjenningskøen",
+    "invalidLink": "Denne godkjenningslenken er ugyldig.",
+    "loadingPacket": "Laster beskyttet vurderingspakke …",
+    "packetUnavailable": "Vurderingspakken er ikke tilgjengelig.",
+    "assigned": "Tildelt vurderer",
+    "unassigned": "Ikke tildelt",
+    "assignedToAnother": "Denne vurderingen er tildelt en annen vurderer. Bare den vurdereren kan avgjøre den.",
+    "status": {
+      "pending": "Venter på manuell vurdering",
+      "assigned": "Beslutning sendt inn; venter på kontrollert arbeidsflyt",
+      "approved": "Godkjent av menneske",
+      "rejected": "Avvist",
+      "needs_more_evidence": "Mer grunnlag er etterspurt"
+    },
+    "risk": { "low": "Lav risiko", "medium": "Middels risiko", "high": "Høy risiko" },
+    "riskReasons": "Risikoårsaker",
+    "noReasons": "Ingen risikoårsaker ble registrert.",
+    "reason": {
+      "pii_detected": "Personopplysninger ble oppdaget",
+      "sensitive_domain": "Sensitivt saksområde",
+      "weak_evidence": "Svakt grunnlag",
+      "contradictory_evidence": "Motstridende grunnlag",
+      "missing_required_source": "Påkrevd kilde mangler",
+      "low_confidence": "Resultat med lav sikkerhet",
+      "high_impact_action": "Handling med høy påvirkning",
+      "policy_conflict": "Konflikt med policy",
+      "prompt_injection_detected": "Signal om prompt-injeksjon"
+    },
+    "originalDraft": "Opprinnelig KI-utkast",
+    "originalDraftNotice": "Dette uforanderlige KI-utkastet er ikke endelig. En vurderer må ta en uttrykkelig beslutning.",
+    "finalText": "Endelig menneskegodkjent tekst",
+    "sources": "Kilder",
+    "noSources": "Ingen kildehenvisninger er tilgjengelige.",
+    "openContext": "Åpne kildekontekst",
+    "contextTitle": "Avgrenset kildekontekst",
+    "contextLoading": "Laster avgrenset kildekontekst …",
+    "contextUnavailable": "Kildekontekst er ikke tilgjengelig.",
+    "close": "Lukk",
+    "extractedFields": "Ekstraherte felt",
+    "noExtractedFields": "Ingen ekstraherte felt er tilgjengelige for denne pakken.",
+    "decisionTitle": "Vurdererbeslutning",
+    "decisionDescription": "Velg ett kontrollert utfall. Arbeidsflyten forblir pauset til tjeneren bekrefter løsningen.",
+    "commentLabel": "Vurdererkommentar (valgfritt)",
+    "finalTextLabel": "Endelig mennesketekst (kun ved rediger og godkjenn)",
+    "finalTextHint": "Dette endrer ikke det opprinnelige KI-utkastet eller kildegrunnlaget.",
+    "approve": "Godkjenn uendret utkast",
+    "editAndApprove": "Rediger og godkjenn",
+    "reject": "Avvis",
+    "requestMoreEvidence": "Be om mer grunnlag",
+    "reassignLabel": "Tilordne på nytt med vurderer-UUID",
+    "reassignPlaceholder": "UUID for aktiv Administrator eller Compliance Reviewer",
+    "reassign": "Tilordne på nytt",
+    "assigneeInvalid": "Skriv inn en gyldig vurderer-UUID.",
+    "reassigned": "Den ventende vurderingen ble tilordnet på nytt.",
+    "actionsUnavailable": "Ingen beslutningshandling er tilgjengelig for denne vurderingen nå.",
+    "confirmTitle": "Bekreft vurdererbeslutning",
+    "confirmation": {
+      "approve": "Godkjenne det uforanderlige KI-utkastet uten menneskelig omskriving?",
+      "edit_and_approve": "Lagre den separate mennesketeksten og godkjenne vurderingen?",
+      "reject": "Avvise denne vurderingspakken?",
+      "request_more_evidence": "Be om mer grunnlag uten å starte en ny arbeidsflyt automatisk?"
+    },
+    "confirm": "Bekreft",
+    "cancel": "Avbryt",
+    "submitting": "Sender inn …",
+    "decisionSubmitted": "Beslutningen er sendt inn. Den kontrollerte arbeidsflyten løser den nå.",
+    "actionUnavailable": "Vurdererhandlingen kunne ikke sendes inn på en trygg måte."
+  },
+  "approvalPanel": {
+    "title": "Menneskelig godkjenning",
+    "openQueue": "Åpne godkjenningskø",
+    "status": {
+      "waiting_for_human_review": "Denne saken er pauset for påkrevd menneskelig vurdering. Den kan ikke få et endelig utfall ennå.",
+      "approved": "Denne saken har et menneskegodkjent utfall.",
+      "rejected": "Denne saken ble avvist av en menneskelig vurderer.",
+      "needs_more_evidence": "En vurderer ba om mer grunnlag. Ingen ny arbeidsflyt startet automatisk."
+    }
+  },
   "placeholder": {
     "cases": {
       "title": "Saksinnboks",
@@ -435,6 +524,7 @@
     "status": {
       "queued": "Utkast står i kø.",
       "running": "Utkast blir laget.",
+      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
       "completed": "Utkastet er klart for menneskelig kontroll.",
       "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før et utkast kan vises.",
       "failed": "Utkastet kunne ikke fullføres på en trygg måte."
@@ -447,5 +537,49 @@
     "contextLoading": "Laster avgrenset kildekontekst …",
     "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
     "close": "Lukk"
+  },
+  "riskCompliance": {
+    "title": "Risiko og etterlevelse",
+    "description": "Vurderer ferdig KI-utkast mot faste, serverstyrte sikkerhetsregler. Vurderingen er ikke en godkjenning eller et vedtak.",
+    "start": "Start risikovurdering",
+    "starting": "Starter risikovurdering …",
+    "notStarted": "Risikovurdering er ikke startet i denne visningen.",
+    "unavailableForRole": "Rollen din kan ikke starte risikovurderingen.",
+    "unavailable": "Risikovurderingen er midlertidig utilgjengelig.",
+    "loading": "Laster risikovurdering …",
+    "riskLevel": "Endelig risikonivå",
+    "nextState": "Neste sikre tilstand",
+    "reasons": "Risikoårsaker",
+    "noReasons": "Ingen risikoårsaker ble registrert.",
+    "reviewRequired": "Menneskelig kontroll vil være påkrevd i en senere arbeidsflyt.",
+    "status": {
+      "queued": "Risikovurderingen står i kø.",
+      "running": "Risikovurderingen kjører.",
+      "waiting_for_human_review": "Denne arbeidsflyten er pauset for menneskelig vurdering.",
+      "completed": "Risikovurderingen er klar.",
+      "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før en endelig risikovurdering kan fullføres.",
+      "failed": "Risikovurderingen kunne ikke fullføres på en trygg måte."
+    },
+    "level": {
+      "low": "Lav risiko",
+      "medium": "Middels risiko",
+      "high": "Høy risiko"
+    },
+    "next": {
+      "assessment_complete": "Vurderingen er fullført",
+      "human_review_required": "Menneskelig kontroll kreves",
+      "needs_more_evidence": "Mer kildegrunnlag kreves"
+    },
+    "reason": {
+      "pii_detected": "Personopplysninger er registrert",
+      "sensitive_domain": "Saksområdet er sensitivt",
+      "weak_evidence": "Kildegrunnlaget er svakt",
+      "contradictory_evidence": "Kildene er motstridende",
+      "missing_required_source": "En påkrevd kilde mangler",
+      "low_confidence": "Grunnlaget har lav sikkerhet",
+      "high_impact_action": "Saken kan ha høy virksomhetspåvirkning",
+      "policy_conflict": "Faste policyklassifiseringer er i konflikt",
+      "prompt_injection_detected": "Indikator for instruksjonspåvirkning er registrert"
+    }
   }
 }

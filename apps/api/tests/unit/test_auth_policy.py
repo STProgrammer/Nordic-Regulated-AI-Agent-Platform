@@ -66,6 +66,19 @@ def test_reviewer_can_approve_other_same_tenant_high_risk_case() -> None:
     )
 
 
+def test_admin_can_approve_other_same_tenant_high_risk_case() -> None:
+    principal = _principal(RoleName.ADMIN)
+    authorize_approval(
+        principal,
+        ApprovalAuthorizationInput(
+            organization_id=principal.organization_id,
+            submitted_by_user_id=uuid4(),
+            risk_level="high",
+            requires_approval=True,
+        ),
+    )
+
+
 def test_case_action_policy_keeps_read_only_auditors_read_only() -> None:
     auditor = _principal(RoleName.READ_ONLY_AUDITOR)
     authorize_case_action(auditor, CaseAction.READ)

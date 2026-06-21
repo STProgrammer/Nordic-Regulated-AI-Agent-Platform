@@ -1,5 +1,5 @@
-import { PlaceholderPage } from '@/components/layout/placeholder-page';
+import { ApprovalQueue } from '@/components/approval/approval-queue';
 
 export default function ApprovalsPage() {
-  return <PlaceholderPage area="approvals" />;
+  return <ApprovalQueue />;
 }

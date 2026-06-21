@@ -270,6 +270,11 @@ class RiskAssessment(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
             ["workflow_runs.organization_id", "workflow_runs.id"],
             name="fk_risk_assessments_organization_workflow_run",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "workflow_run_id",
+            name="uq_risk_assessments_organization_workflow_run",
+        ),
     )
 
     organization_id: Mapped[UUID] = mapped_column(
@@ -318,6 +323,40 @@ class Approval(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
             ["users.organization_id", "users.id"],
             name="fk_approvals_organization_reviewer_user",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "assigned_user_id"],
+            ["users.organization_id", "users.id"],
+            name="fk_approvals_organization_assigned_user",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "drafting_workflow_run_id"],
+            ["workflow_runs.organization_id", "workflow_runs.id"],
+            name="fk_approvals_organization_drafting_workflow_run",
+        ),
+        ForeignKeyConstraint(
+            ["risk_assessment_id"],
+            ["risk_assessments.id"],
+            name="fk_approvals_risk_assessment_id",
+        ),
+        UniqueConstraint(
+            "organization_id", "workflow_run_id", name="uq_approvals_organization_workflow_run"
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'assigned', 'approved', 'rejected', 'needs_more_evidence')",
+            name="approval_status_valid",
+        ),
+        CheckConstraint(
+            "decision IS NULL OR decision IN "
+            "('approve', 'edit_and_approve', 'reject', 'request_more_evidence')",
+            name="approval_decision_valid",
+        ),
+        Index(
+            "ix_approvals_organization_status_assigned_inserted",
+            "organization_id",
+            "status",
+            "assigned_user_id",
+            "inserted_at",
+        ),
     )
 
     organization_id: Mapped[UUID] = mapped_column(
@@ -325,9 +364,17 @@ class Approval(UUIDPrimaryKeyMixin, InsertedAtMixin, Base):
     )
     case_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
     workflow_run_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
-    reviewer_user_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
-    decision: Mapped[str] = mapped_column(String(50), nullable=False)
+    reviewer_user_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
+    assigned_user_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
+    drafting_workflow_run_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
+    risk_assessment_id: Mapped[UUID | None] = mapped_column(PostgreSQLUUID(as_uuid=True))
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default=text("'pending'")
+    )
+    decision: Mapped[str | None] = mapped_column(String(50))
     reviewer_comment: Mapped[str | None] = mapped_column(Text)
     ai_draft: Mapped[str | None] = mapped_column(Text)
     final_text: Mapped[str | None] = mapped_column(Text)
-    decision_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decision_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    interrupted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -149,7 +149,7 @@ def authorize_approval(principal: Principal, approval: ApprovalAuthorizationInpu
     """
 
     guard_tenant_resource(principal, approval.organization_id)
-    ensure_roles(principal, RoleName.COMPLIANCE_REVIEWER)
+    ensure_roles(principal, RoleName.ADMIN, RoleName.COMPLIANCE_REVIEWER)
     if (
         approval.requires_approval or approval.risk_level.casefold() == "high"
     ) and approval.submitted_by_user_id == principal.user_id:

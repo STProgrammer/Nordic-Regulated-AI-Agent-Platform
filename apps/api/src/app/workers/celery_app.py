@@ -25,6 +25,8 @@ celery_app.conf.update(
         "app.workers.tasks.run_evidence_workflow_task": {"queue": "agent-orchestrator"},
         "app.workers.tasks.run_extraction_workflow_task": {"queue": "agent-orchestrator"},
         "app.workers.tasks.run_drafting_workflow_task": {"queue": "agent-orchestrator"},
+        "app.workers.tasks.run_risk_compliance_workflow_task": {"queue": "agent-orchestrator"},
+        "app.workers.tasks.run_human_approval_workflow_task": {"queue": "agent-orchestrator"},
     },
     task_serializer="json",
     accept_content=["json"],

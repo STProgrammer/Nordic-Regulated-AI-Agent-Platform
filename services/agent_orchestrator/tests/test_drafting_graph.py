@@ -27,6 +27,18 @@ class MemoryPersistence:
     async def claim_run(self, context: WorkflowContext) -> bool:
         return True
 
+    async def claim_paused_run(self, context: WorkflowContext) -> bool:
+        return True
+
+    async def pause_run(
+        self,
+        context: WorkflowContext,
+        *,
+        state_snapshot: dict[str, object],
+        duration_ms: int,
+    ) -> None:
+        self.snapshot = state_snapshot
+
     async def start_node(
         self,
         context: WorkflowContext,

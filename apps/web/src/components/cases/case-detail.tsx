@@ -14,6 +14,8 @@ import { EvidenceGraphPanel } from '@/components/evidence/evidence-graph-panel';
 import { IntakePanel } from '@/components/cases/intake-panel';
 import { ExtractionPanel } from '@/components/cases/extraction-panel';
 import { DraftingPanel } from '@/components/cases/drafting-panel';
+import { RiskCompliancePanel } from '@/components/cases/risk-compliance-panel';
+import { ApprovalStatusPanel } from '@/components/cases/approval-status-panel';
 import { Alert } from '@/components/ui/alert';
 import type { AppLocale } from '@/i18n/routing';
 import { type CaseDetail as CaseDetailData } from '@/lib/api/contracts';
@@ -116,7 +118,7 @@ function DetailContent({
       <time dateTime={caseData.updated_at}>{formatTimestamp(caseData.updated_at, locale)}</time>,
     ],
   ];
-  const futureKeys = ['fields', 'risk', 'approval', 'audit'] as const;
+  const futureKeys = ['fields', 'risk', 'audit'] as const;
   return (
     <section aria-labelledby="case-detail-title" className="space-y-6">
       <div>
@@ -146,6 +148,8 @@ function DetailContent({
       <IntakePanel caseId={caseData.case_id} />
       <ExtractionPanel caseId={caseData.case_id} />
       <DraftingPanel caseId={caseData.case_id} />
+      <RiskCompliancePanel caseId={caseData.case_id} />
+      <ApprovalStatusPanel status={caseData.status} />
       <div className="grid gap-4 md:grid-cols-2">
         {futureKeys.map((key) => (
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" key={key}>

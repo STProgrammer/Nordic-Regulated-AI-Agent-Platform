@@ -18,7 +18,9 @@ _TRANSITIONS: dict[str, frozenset[str]] = {
     "archived": frozenset(),
 }
 
-_APPROVAL_STATUSES = frozenset({"approved", "rejected"})
+_APPROVAL_STATUSES = frozenset(
+    {"waiting_for_human_review", "approved", "rejected", "needs_more_evidence"}
+)
 
 
 def validate_case_transition(current_status: str, target_status: str) -> None:

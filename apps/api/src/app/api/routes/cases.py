@@ -15,6 +15,7 @@ from app.api.dependencies import (
     get_evidence_workflow_service,
     get_extraction_workflow_service,
     get_intake_workflow_service,
+    get_risk_workflow_service,
 )
 from app.api.schemas.cases import (
     CaseAssigneeListData,
@@ -42,6 +43,7 @@ from app.api.schemas.workflows import (
     ExtractedFieldData,
     ExtractedFieldEditRequest,
     ExtractedFieldListData,
+    RiskAssessmentData,
     WorkflowRunData,
     WorkflowStartRequest,
 )
@@ -54,6 +56,7 @@ from app.services.workflows.drafting import DraftingWorkflowService
 from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
+from app.services.workflows.risk import RiskWorkflowService
 
 PREFIX = "/cases"
 TAG = "Cases"
@@ -280,6 +283,7 @@ async def start_case_workflow(
         ExtractionWorkflowService, Depends(get_extraction_workflow_service)
     ],
     drafting_workflows: Annotated[DraftingWorkflowService, Depends(get_drafting_workflow_service)],
+    risk_workflows: Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)],
 ) -> SuccessResponse[WorkflowRunData]:
     """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
 
@@ -292,7 +296,11 @@ async def start_case_workflow(
             else (
                 await extraction_workflows.start(principal, case_id)
                 if payload.workflow == "extraction"
-                else await drafting_workflows.start(principal, case_id, payload.output_language)
+                else (
+                    await drafting_workflows.start(principal, case_id, payload.output_language)
+                    if payload.workflow == "drafting"
+                    else await risk_workflows.start(principal, case_id)
+                )
             )
         )
     )
@@ -372,6 +380,33 @@ async def get_draft(
                 )
                 for source in record.sources
             ),
+        ),
+        meta=_meta(request),
+    )
+
+
+@router.get(
+    "/{case_id}/risk-assessment",
+    response_model=SuccessResponse[RiskAssessmentData],
+    responses=_CASE_ERROR_RESPONSES,
+    summary="Read the latest safe final risk assessment for one current-tenant case",
+)
+async def get_risk_assessment(
+    case_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    workflows: Annotated[RiskWorkflowService, Depends(get_risk_workflow_service)],
+) -> SuccessResponse[RiskAssessmentData]:
+    """This is read-only: Phase 22 owns approval decisions and review actions."""
+
+    assessment = await workflows.get_latest_assessment(principal, case_id)
+    return SuccessResponse(
+        data=RiskAssessmentData(
+            workflow_run_id=assessment.workflow_run_id,
+            risk_level=assessment.result.risk_level,
+            risk_reasons=assessment.result.risk_reasons,
+            requires_approval=assessment.result.requires_approval,
+            safe_next_state=assessment.result.safe_next_state,
         ),
         meta=_meta(request),
     )

@@ -25,6 +25,48 @@ implementation, tests, and validation checks pass within its defined scope.
 | 18    | Evidence Graph                        | DONE   |
 | 19    | Extraction Graph                      | DONE   |
 | 20    | Drafting Graph                        | DONE   |
+| 21    | Risk and Compliance Graph              | DONE   |
+| 22    | Human Approval Workflow                | DONE   |
+
+## Phase 22 — Human Approval Workflow (DONE)
+
+Completed on 2026-06-21.
+
+Delivered a durable, tenant-scoped human approval boundary: a paused approval workflow, review
+queue and packet, explicit reviewer decisions, role and separation-of-duties enforcement, and
+localized reviewer/case-worker views. The original AI draft remains immutable while an
+edit-and-approve result stores separate human final text.
+
+Validation: format, lint, type checks, workspace checks, orchestration tests (23), web tests (24),
+and API/integration tests (259 passed, one optional skip) passed. The Compose stack migrated to
+Alembic head and passed the local-stack verifier. A manual two-session reviewer/case-worker check
+confirmed the approved terminal case state. Completion is recorded with explicit user acceptance of
+that manual validation.
+
+## Phase 21 — Risk and Compliance Graph (DONE)
+
+Completed on 2026-06-21.
+
+Delivered the closed, deterministic final-risk assessment slice:
+
+- A fixed seven-node LangGraph workflow that rechecks completed Intake, Evidence, and Draft results
+  before evaluating PII, evidence sufficiency, high-impact actions, policy conflict, and
+  prompt-injection indicators. It emits only the closed low/medium/high level, reason codes,
+  next-state, and approval-required flag; it has no model call or browser-owned risk facts.
+- Tenant/RBAC-protected start, status, and latest-assessment reads, UUID-only dedicated Celery
+  dispatch, active-run protection, and atomic persistence of one RiskAssessment together with the
+  case risk level. High risk always requires later human review, while this phase deliberately
+  creates no approval or action.
+- A localized, read-only Case Detail panel that starts and polls the closed workflow, displays the
+  final level/reasons/next state, and makes the future human-review requirement explicit without
+  offering approval controls.
+
+Validation: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm check:workspace` passed;
+the focused graph suite passed (20 tests), the API suite passed (255 passed, 1 intentional Azurite
+skip), and the web unit suite passed (22 tests). A clean deterministic Compose stack migrated to
+Alembic head, passed `pnpm verify:local-stack`, and passed the complete Playwright Case-to-Intake-to-
+Evidence-to-Extraction-to-Drafting-to-Risk browser flow, returning a persisted high-risk result with
+no approval action exposed.
 
 ## Phase 18 — Evidence Graph (DONE)
 

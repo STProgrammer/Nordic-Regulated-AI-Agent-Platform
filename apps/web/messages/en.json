@@ -283,6 +283,7 @@
     "status": {
       "queued": "The evidence package is queued.",
       "running": "The evidence package is running.",
+      "waiting_for_human_review": "This workflow is paused for human review.",
       "completed": "The evidence package is ready for later review.",
       "needs_more_evidence": "More source evidence is needed before later work.",
       "failed": "The evidence package could not be completed safely."
@@ -309,6 +310,7 @@
     "status": {
       "queued": "Extraction is queued.",
       "running": "Extraction is running.",
+      "waiting_for_human_review": "This workflow is paused for human review.",
       "completed": "Extraction is ready for human review.",
       "needs_more_evidence": "More eligible source evidence is needed before extraction.",
       "failed": "Extraction could not be completed safely."
@@ -399,6 +401,93 @@
       "manual_review": "Manual review"
     }
   },
+  "approvals": {
+    "title": "Approval queue",
+    "description": "Review packets that require an authorized human decision. AI output is not final until this workflow resolves.",
+    "unavailableForRole": "Your role cannot view or decide approval work.",
+    "loading": "Loading approval queue …",
+    "unavailable": "The approval queue is temporarily unavailable.",
+    "empty": "There are no pending approvals.",
+    "queueLabel": "Pending approvals",
+    "openPacket": "Open review packet",
+    "backToQueue": "Back to approval queue",
+    "invalidLink": "This approval link is not valid.",
+    "loadingPacket": "Loading protected review packet …",
+    "packetUnavailable": "The review packet is unavailable.",
+    "assigned": "Assigned reviewer",
+    "unassigned": "Unassigned",
+    "assignedToAnother": "This review is assigned to another reviewer. Only that reviewer can decide it.",
+    "status": {
+      "pending": "Pending human review",
+      "assigned": "Decision submitted; waiting for controlled workflow resolution",
+      "approved": "Human approved",
+      "rejected": "Rejected",
+      "needs_more_evidence": "More evidence requested"
+    },
+    "risk": { "low": "Low risk", "medium": "Medium risk", "high": "High risk" },
+    "riskReasons": "Risk reasons",
+    "noReasons": "No risk reasons were recorded.",
+    "reason": {
+      "pii_detected": "Personal data detected",
+      "sensitive_domain": "Sensitive case domain",
+      "weak_evidence": "Weak evidence",
+      "contradictory_evidence": "Contradictory evidence",
+      "missing_required_source": "Missing required source",
+      "low_confidence": "Low-confidence result",
+      "high_impact_action": "High-impact action",
+      "policy_conflict": "Policy conflict",
+      "prompt_injection_detected": "Prompt-injection signal"
+    },
+    "originalDraft": "Original AI draft",
+    "originalDraftNotice": "This immutable AI draft is not final. A reviewer must make an explicit decision.",
+    "finalText": "Final human-approved text",
+    "sources": "Sources",
+    "noSources": "No source references are available.",
+    "openContext": "Open source context",
+    "contextTitle": "Bounded source context",
+    "contextLoading": "Loading bounded source context …",
+    "contextUnavailable": "Source context is unavailable.",
+    "close": "Close",
+    "extractedFields": "Extracted fields",
+    "noExtractedFields": "No extracted fields are available for this packet.",
+    "decisionTitle": "Reviewer decision",
+    "decisionDescription": "Choose one controlled outcome. The workflow remains paused until the server confirms resolution.",
+    "commentLabel": "Reviewer comment (optional)",
+    "finalTextLabel": "Final human text (only for edit and approve)",
+    "finalTextHint": "This does not alter the original AI draft or its source provenance.",
+    "approve": "Approve unchanged draft",
+    "editAndApprove": "Edit and approve",
+    "reject": "Reject",
+    "requestMoreEvidence": "Request more evidence",
+    "reassignLabel": "Reassign to reviewer UUID",
+    "reassignPlaceholder": "Active Admin or Compliance Reviewer UUID",
+    "reassign": "Reassign",
+    "assigneeInvalid": "Enter a valid reviewer UUID.",
+    "reassigned": "The pending review was reassigned.",
+    "actionsUnavailable": "No decision action is currently available for this review.",
+    "confirmTitle": "Confirm reviewer decision",
+    "confirmation": {
+      "approve": "Approve the immutable AI draft without a human rewrite?",
+      "edit_and_approve": "Store the separate human text and approve this review?",
+      "reject": "Reject this review packet?",
+      "request_more_evidence": "Request more evidence without automatically starting another workflow?"
+    },
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "submitting": "Submitting …",
+    "decisionSubmitted": "Decision submitted. The controlled workflow is resolving it.",
+    "actionUnavailable": "The reviewer action could not be submitted safely."
+  },
+  "approvalPanel": {
+    "title": "Human approval",
+    "openQueue": "Open approval queue",
+    "status": {
+      "waiting_for_human_review": "This case is paused for required human review. It cannot produce a final outcome yet.",
+      "approved": "This case has a human-approved outcome.",
+      "rejected": "This case was rejected by a human reviewer.",
+      "needs_more_evidence": "A reviewer requested more evidence. No new workflow started automatically."
+    }
+  },
   "placeholder": {
     "cases": {
       "title": "Case inbox",
@@ -435,6 +524,7 @@
     "status": {
       "queued": "Drafting is queued.",
       "running": "Drafting is running.",
+      "waiting_for_human_review": "This workflow is paused for human review.",
       "completed": "The draft is ready for human review.",
       "needs_more_evidence": "More eligible source evidence is needed before a draft can be shown.",
       "failed": "Drafting could not be completed safely."
@@ -447,5 +537,49 @@
     "contextLoading": "Loading bounded source context …",
     "contextUnavailable": "Source context is unavailable.",
     "close": "Close"
+  },
+  "riskCompliance": {
+    "title": "Risk and compliance",
+    "description": "Assesses a completed AI draft against fixed server-owned safety rules. This assessment is not an approval or decision.",
+    "start": "Start risk assessment",
+    "starting": "Starting risk assessment …",
+    "notStarted": "Risk assessment has not been started for this view.",
+    "unavailableForRole": "Your role cannot start the risk assessment.",
+    "unavailable": "Risk assessment is temporarily unavailable.",
+    "loading": "Loading risk assessment …",
+    "riskLevel": "Final risk level",
+    "nextState": "Safe next state",
+    "reasons": "Risk reasons",
+    "noReasons": "No risk reasons were recorded.",
+    "reviewRequired": "Human review will be required in a later workflow.",
+    "status": {
+      "queued": "Risk assessment is queued.",
+      "running": "Risk assessment is running.",
+      "waiting_for_human_review": "This workflow is paused for human review.",
+      "completed": "Risk assessment is ready.",
+      "needs_more_evidence": "More eligible source evidence is needed before final risk assessment can complete.",
+      "failed": "Risk assessment could not be completed safely."
+    },
+    "level": {
+      "low": "Low risk",
+      "medium": "Medium risk",
+      "high": "High risk"
+    },
+    "next": {
+      "assessment_complete": "Assessment complete",
+      "human_review_required": "Human review required",
+      "needs_more_evidence": "More evidence required"
+    },
+    "reason": {
+      "pii_detected": "Personal data is detected",
+      "sensitive_domain": "The case domain is sensitive",
+      "weak_evidence": "The evidence is weak",
+      "contradictory_evidence": "The evidence is contradictory",
+      "missing_required_source": "A required source is missing",
+      "low_confidence": "The basis has low confidence",
+      "high_impact_action": "The case may have high business impact",
+      "policy_conflict": "Fixed policy classifications conflict",
+      "prompt_injection_detected": "An instruction-influence indicator is detected"
+    }
   }
 }

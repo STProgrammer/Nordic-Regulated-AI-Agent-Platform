@@ -108,10 +108,10 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
 `GET /api/cases/{case_id}/draft`. Case dates use ISO calendar dates (`YYYY-MM-DD`); the frontend
 localizes them for display. User and role operations require the persisted **Admin** role in the
 current organization; Case actions use their documented server-enforced RBAC policy. The closed
-workflow selectors are `{"workflow":"intake"}` and `{"workflow":"evidence"}`; neither accepts
-browser-owned model, prompt, state, tool, queue, retry, query, or source controls. Evidence is a
-source-gathering workflow that persists a safe citation package or `needs_more_evidence`; it does
-not answer, draft, approve, or expose a trace.
+workflow selectors are closed and server-owned, including `{"workflow":"intake"}` and
+`{"workflow":"evidence"}`; none accepts browser-owned model, prompt, state, tool, queue, retry,
+query, or source controls. Evidence is a source-gathering workflow that persists a safe citation
+package or `needs_more_evidence`; it does not answer, draft, approve, or expose a trace.
 
 The closed `{"workflow":"extraction"}` operation uses only a completed eligible Evidence package for
 that case. It produces bounded source-linked structured observations and permits typed edits to the
@@ -123,6 +123,15 @@ only `output_language` as `nb` or `en`. It produces a protected, immutable origi
 when its `[S#]` citations validate against that run's approved sources; otherwise it returns a safe
 `needs_more_evidence` state. Draft display is read-only and explicitly awaits later human review;
 approval, final text, risk decisions, and edits remain out of scope.
+
+The closed `{"workflow":"risk_compliance"}` operation accepts no risk score, source, policy,
+provider, or override input. It revalidates the completed protected Draft, current approved Evidence
+provenance, and Intake signals in the worker. Its fixed policy matrix routes missing or stale
+prerequisites to `needs_more_evidence`; PII, sensitive-domain, high-impact, policy-conflict, and
+prompt-injection signals produce high risk; low confidence produces a review-required medium result.
+Every high-risk result requires later human approval, but this phase creates no approval, reviewer
+queue, interrupt, or final text. The safe assessment read is
+`GET /api/cases/{case_id}/risk-assessment`.
 
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`

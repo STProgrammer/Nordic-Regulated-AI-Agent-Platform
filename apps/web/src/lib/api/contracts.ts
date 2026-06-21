@@ -64,6 +64,7 @@ export const intakeCaseTypeSchema = z.enum([
 export const workflowRunStatusSchema = z.enum([
   'queued',
   'running',
+  'waiting_for_human_review',
   'completed',
   'needs_more_evidence',
   'failed',
@@ -247,6 +248,9 @@ export const extractionStartInputSchema = z.object({ workflow: z.literal('extrac
 export const draftingStartInputSchema = z
   .object({ workflow: z.literal('drafting'), output_language: caseLanguageSchema.optional() })
   .strict();
+export const riskComplianceStartInputSchema = z
+  .object({ workflow: z.literal('risk_compliance') })
+  .strict();
 export const intakeCorrectionInputSchema = z
   .object({
     case_type: intakeCaseTypeSchema,
@@ -350,6 +354,35 @@ export const draftingResultSchema = z.object({
   draft_kind: z.enum(['response', 'internal_recommendation', 'summary', 'action_plan']).nullable(),
   reason_codes: z.array(z.string()),
 });
+export const riskReasonCodeSchema = z.enum([
+  'pii_detected',
+  'sensitive_domain',
+  'weak_evidence',
+  'contradictory_evidence',
+  'missing_required_source',
+  'low_confidence',
+  'high_impact_action',
+  'policy_conflict',
+  'prompt_injection_detected',
+]);
+export const riskSafeNextStateSchema = z.enum([
+  'assessment_complete',
+  'human_review_required',
+  'needs_more_evidence',
+]);
+export const riskResultSchema = z.object({
+  final_risk_level: z.enum(['low', 'medium', 'high']).nullable(),
+  risk_reasons: z.array(riskReasonCodeSchema),
+  requires_approval: z.boolean().nullable(),
+  safe_next_state: riskSafeNextStateSchema.nullable(),
+});
+export const riskAssessmentSchema = z.object({
+  workflow_run_id: z.string().uuid(),
+  risk_level: z.enum(['low', 'medium', 'high']),
+  risk_reasons: z.array(riskReasonCodeSchema),
+  requires_approval: z.boolean(),
+  safe_next_state: riskSafeNextStateSchema,
+});
 export const draftCitationSchema = z.object({
   citation_label: z.string().regex(/^S[1-9][0-9]*$/),
   document_id: z.string().uuid(),
@@ -380,7 +413,14 @@ export const extractedFieldEditInputSchema = z
 
 export const workflowRunSchema = z.object({
   workflow_run_id: z.string().uuid(),
-  workflow: z.enum(['intake', 'evidence', 'extraction', 'drafting']),
+  workflow: z.enum([
+    'intake',
+    'evidence',
+    'extraction',
+    'drafting',
+    'risk_compliance',
+    'human_approval',
+  ]),
   status: workflowRunStatusSchema,
   started_at: isoTimestampSchema,
   finished_at: isoTimestampSchema.nullable(),
@@ -388,7 +428,113 @@ export const workflowRunSchema = z.object({
   evidence: evidenceResultSchema.nullable().optional(),
   extraction: extractionResultSchema.nullable().optional(),
   drafting: draftingResultSchema.nullable().optional(),
+  risk_compliance: riskResultSchema.nullable().optional(),
 });
+
+export const approvalLifecycleSchema = z.enum([
+  'pending',
+  'assigned',
+  'approved',
+  'rejected',
+  'needs_more_evidence',
+]);
+export const reviewerDecisionSchema = z.enum([
+  'approve',
+  'edit_and_approve',
+  'reject',
+  'request_more_evidence',
+]);
+export const approvalSourceSchema = z
+  .object({
+    citation_label: z.string().regex(/^S[1-9][0-9]*$/),
+    document_id: z.string().uuid(),
+    chunk_id: z.string().uuid(),
+  })
+  .strict();
+export const approvalExtractedFieldSchema = z
+  .object({
+    field_id: z.string().uuid(),
+    field_kind: z.string(),
+    field_value: z.record(z.string(), z.unknown()),
+    source_document_id: z.string().uuid().nullable(),
+    source_chunk_id: z.string().uuid().nullable(),
+    human_edited: z.boolean(),
+  })
+  .strict();
+export const approvalQueueItemSchema = z
+  .object({
+    approval_id: z.string().uuid(),
+    case_id: z.string().uuid(),
+    case_number: z.string(),
+    case_title: z.string(),
+    case_status: caseStatusSchema,
+    risk_level: z.enum(['low', 'medium', 'high']),
+    approval_status: approvalLifecycleSchema,
+    assigned_user_id: z.string().uuid().nullable(),
+    inserted_at: isoTimestampSchema,
+  })
+  .strict();
+export const approvalQueueSchema = z
+  .object({
+    items: z.array(approvalQueueItemSchema),
+    limit: z.number().int().min(1).max(100),
+    offset: z.number().int().min(0),
+    total: z.number().int().min(0),
+    has_more: z.boolean(),
+  })
+  .strict();
+export const approvalReviewPacketSchema = z
+  .object({
+    approval_id: z.string().uuid(),
+    case_id: z.string().uuid(),
+    case_number: z.string(),
+    case_title: z.string(),
+    case_status: caseStatusSchema,
+    risk_level: z.enum(['low', 'medium', 'high']),
+    risk_reasons: z.array(riskReasonCodeSchema),
+    approval_status: approvalLifecycleSchema,
+    workflow_status: z.enum([
+      'queued',
+      'running',
+      'waiting_for_human_review',
+      'completed',
+      'failed',
+    ]),
+    assigned_user_id: z.string().uuid().nullable(),
+    reviewer_user_id: z.string().uuid().nullable(),
+    reviewer_comment: z.string().nullable(),
+    decision: reviewerDecisionSchema.nullable(),
+    decision_at: isoTimestampSchema.nullable(),
+    ai_draft: z.string().min(1),
+    final_text: z.string().nullable(),
+    sources: z.array(approvalSourceSchema),
+    extracted_fields: z.array(approvalExtractedFieldSchema),
+  })
+  .strict();
+export const approvalActionResultSchema = z
+  .object({
+    approval_id: z.string().uuid(),
+    approval_status: approvalLifecycleSchema,
+    decision: reviewerDecisionSchema.nullable(),
+    case_id: z.string().uuid(),
+    workflow_status: z.enum([
+      'queued',
+      'running',
+      'waiting_for_human_review',
+      'completed',
+      'failed',
+    ]),
+  })
+  .strict();
+export const approvalCommentInputSchema = z
+  .object({ reviewer_comment: z.string().trim().min(1).max(2_000).optional() })
+  .strict();
+export const editAndApproveInputSchema = approvalCommentInputSchema.extend({
+  final_text: z.string().trim().min(1).max(20_000),
+});
+export const approvalReassignInputSchema = z
+  .object({ assigned_user_id: z.string().uuid() })
+  .strict();
 
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
   return z.object({
@@ -423,11 +569,20 @@ export type ExtractionFieldKind = z.infer<typeof extractionFieldKindSchema>;
 export type ExtractionValue = z.infer<typeof extractionValueSchema>;
 export type ExtractedField = z.infer<typeof extractedFieldSchema>;
 export type Draft = z.infer<typeof draftSchema>;
+export type RiskReasonCode = z.infer<typeof riskReasonCodeSchema>;
+export type RiskAssessment = z.infer<typeof riskAssessmentSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
+export type ApprovalQueue = z.infer<typeof approvalQueueSchema>;
+export type ApprovalReviewPacket = z.infer<typeof approvalReviewPacketSchema>;
+export type ApprovalActionResult = z.infer<typeof approvalActionResultSchema>;
+export type ApprovalCommentInput = z.infer<typeof approvalCommentInputSchema>;
+export type EditAndApproveInput = z.infer<typeof editAndApproveInputSchema>;
+export type ApprovalReassignInput = z.infer<typeof approvalReassignInputSchema>;
 export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
 export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
 export type ExtractionStartInput = z.infer<typeof extractionStartInputSchema>;
 export type DraftingStartInput = z.infer<typeof draftingStartInputSchema>;
+export type RiskComplianceStartInput = z.infer<typeof riskComplianceStartInputSchema>;
 export type ExtractedFieldEditInput = z.infer<typeof extractedFieldEditInputSchema>;
 export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
 export type DocumentData = z.infer<typeof documentDataSchema>;

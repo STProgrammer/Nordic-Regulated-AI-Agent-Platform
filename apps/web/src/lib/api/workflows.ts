@@ -7,6 +7,7 @@ import {
   extractionStartInputSchema,
   intakeCorrectionInputSchema,
   intakeStartInputSchema,
+  riskComplianceStartInputSchema,
   workflowRunSchema,
   type IntakeCorrectionInput,
   type WorkflowRun,
@@ -49,6 +50,14 @@ export const workflowsApi = {
           ...(outputLanguage ? { output_language: outputLanguage } : {}),
         }),
       ),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+    });
+  },
+
+  startRiskCompliance(caseId: string): Promise<WorkflowRun> {
+    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
+      body: JSON.stringify(riskComplianceStartInputSchema.parse({ workflow: 'risk_compliance' })),
       headers: { 'Content-Type': 'application/json' },
       method: 'POST',
     });

@@ -54,11 +54,18 @@ class GraphRuntime[StateModel: BaseModel]:
         context: WorkflowContext,
         initial_state: StateModel,
         nodes: tuple[GraphNode[StateModel], ...],
+        *,
+        claim_mode: Literal["queued", "paused"] = "queued",
     ) -> GraphRunResult[StateModel]:
-        """Claim one queued run, execute explicit node edges, and persist its outcome."""
+        """Claim one queued/paused run, execute explicit edges, and persist its outcome."""
 
         started = time.monotonic()
-        if not await self._persistence.claim_run(context):
+        claimed = (
+            await self._persistence.claim_run(context)
+            if claim_mode == "queued"
+            else await self._persistence.claim_paused_run(context)
+        )
+        if not claimed:
             return GraphRunResult(
                 state=initial_state,
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="run_not_claimed"),
@@ -115,6 +122,17 @@ class GraphRuntime[StateModel: BaseModel]:
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="runtime_failure"),
             )
         final_status = getattr(final_state, "status", RuntimeStatus.COMPLETED)
+        if final_status is RuntimeStatus.WAITING_FOR_HUMAN_REVIEW:
+            paused_state = final_state.model_copy(update={"status": final_status})
+            await self._persistence.pause_run(
+                context,
+                state_snapshot=_snapshot(context, paused_state),
+                duration_ms=_duration_ms(started),
+            )
+            return GraphRunResult(
+                state=paused_state,
+                outcome=TerminalOutcome(status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW),
+            )
         terminal_status = (
             RuntimeStatus.NEEDS_MORE_EVIDENCE
             if final_status is RuntimeStatus.NEEDS_MORE_EVIDENCE

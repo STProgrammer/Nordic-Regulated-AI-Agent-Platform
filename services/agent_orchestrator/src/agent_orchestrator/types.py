@@ -14,6 +14,7 @@ class RuntimeStatus(StrEnum):
 
     QUEUED = "queued"
     RUNNING = "running"
+    WAITING_FOR_HUMAN_REVIEW = "waiting_for_human_review"
     COMPLETED = "completed"
     NEEDS_MORE_EVIDENCE = "needs_more_evidence"
     FAILED = "failed"
@@ -51,12 +52,15 @@ class NodeTiming(BaseModel):
 
 
 class TerminalOutcome(BaseModel):
-    """The only terminal result the generic runtime exposes to its caller."""
+    """A controlled graph outcome, including a durable human-review interruption."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     status: Literal[
-        RuntimeStatus.COMPLETED, RuntimeStatus.NEEDS_MORE_EVIDENCE, RuntimeStatus.FAILED
+        RuntimeStatus.WAITING_FOR_HUMAN_REVIEW,
+        RuntimeStatus.COMPLETED,
+        RuntimeStatus.NEEDS_MORE_EVIDENCE,
+        RuntimeStatus.FAILED,
     ]
     error_code: str | None = None
 

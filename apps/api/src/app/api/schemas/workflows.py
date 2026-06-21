@@ -13,6 +13,7 @@ from agent_orchestrator.graphs.extraction_types import (
     ExtractionFieldKind,
     ExtractionValue,
 )
+from agent_orchestrator.graphs.risk_types import FinalRiskLevel, RiskReason, RiskSafeNextState
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.schemas.cases import CaseDomain, CaseRiskLevel
@@ -30,6 +31,7 @@ class IntakeCaseType(StrEnum):
 class WorkflowRunStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
+    WAITING_FOR_HUMAN_REVIEW = "waiting_for_human_review"
     COMPLETED = "completed"
     NEEDS_MORE_EVIDENCE = "needs_more_evidence"
     FAILED = "failed"
@@ -87,8 +89,20 @@ class DraftingStartRequest(BaseModel):
     output_language: OutputLanguage | None = None
 
 
+class RiskComplianceStartRequest(BaseModel):
+    """Closed final-risk selector; all policy inputs remain server owned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workflow: Literal["risk_compliance"]
+
+
 WorkflowStartRequest = Annotated[
-    IntakeStartRequest | EvidenceStartRequest | ExtractionStartRequest | DraftingStartRequest,
+    IntakeStartRequest
+    | EvidenceStartRequest
+    | ExtractionStartRequest
+    | DraftingStartRequest
+    | RiskComplianceStartRequest,
     Field(discriminator="workflow"),
 ]
 
@@ -201,6 +215,29 @@ class DraftData(BaseModel):
     citations: tuple[DraftCitationData, ...]
 
 
+class RiskResultData(BaseModel):
+    """Safe lifecycle summary for the closed Risk and Compliance workflow."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    final_risk_level: FinalRiskLevel | None = None
+    risk_reasons: tuple[RiskReason, ...] = ()
+    requires_approval: bool | None = None
+    safe_next_state: RiskSafeNextState | None = None
+
+
+class RiskAssessmentData(BaseModel):
+    """Read-only latest final assessment; policy internals stay private."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    workflow_run_id: UUID
+    risk_level: FinalRiskLevel
+    risk_reasons: tuple[RiskReason, ...]
+    requires_approval: bool
+    safe_next_state: RiskSafeNextState
+
+
 class ExtractedFieldData(BaseModel):
     """One source-linked typed business field from the latest completed extraction run."""
 
@@ -237,7 +274,9 @@ class WorkflowRunData(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     workflow_run_id: UUID
-    workflow: Literal["intake", "evidence", "extraction", "drafting"]
+    workflow: Literal[
+        "intake", "evidence", "extraction", "drafting", "risk_compliance", "human_approval"
+    ]
     status: WorkflowRunStatus
     started_at: datetime
     finished_at: datetime | None
@@ -245,3 +284,4 @@ class WorkflowRunData(BaseModel):
     evidence: EvidenceResultData | None = None
     extraction: ExtractionResultData | None = None
     drafting: DraftingResultData | None = None
+    risk_compliance: RiskResultData | None = None

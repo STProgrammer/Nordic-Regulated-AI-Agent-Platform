@@ -96,6 +96,20 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         )
         return True
 
+    async def claim_paused_run(self, context: WorkflowContext) -> bool:
+        """Resume a claimed review interruption without permitting generic resume routes."""
+
+        run = await self._workflows.claim_waiting_for_human_review(
+            context.organization_id, context.workflow_run_id
+        )
+        return not (
+            run is None
+            or run.case_id != context.case_id
+            or run.started_by_user_id != context.initiated_by_user_id
+            or run.workflow_name != context.workflow_name
+            or run.workflow_version != context.workflow_version
+        )
+
     async def start_node(
         self,
         context: WorkflowContext,
@@ -174,6 +188,39 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
                 resource_id=context.workflow_run_id,
                 case_id=context.case_id,
                 event_data=_audit_workflow_data(state_snapshot, status=status.value),
+            )
+        )
+
+    async def pause_run(
+        self,
+        context: WorkflowContext,
+        *,
+        state_snapshot: dict[str, object],
+        duration_ms: int,
+    ) -> None:
+        paused = await self._workflows.pause(
+            WorkflowRunFinalize(
+                organization_id=context.organization_id,
+                workflow_run_id=context.workflow_run_id,
+                status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW.value,
+                finished_at=datetime.now(UTC),
+                duration_ms=duration_ms,
+                state_snapshot=state_snapshot,
+            )
+        )
+        if paused is None:
+            return
+        await self._audit.record_event(
+            AuditEventCreate(
+                organization_id=context.organization_id,
+                actor_user_id=context.initiated_by_user_id,
+                event_type=f"workflow.{context.workflow_name}_interrupted",
+                resource_type="workflow_run",
+                resource_id=context.workflow_run_id,
+                case_id=context.case_id,
+                event_data=_audit_workflow_data(
+                    state_snapshot, status=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW.value
+                ),
             )
         )
 
@@ -300,6 +347,13 @@ def _audit_workflow_data(snapshot: dict[str, object], *, status: str) -> dict[st
         "permitted_source_count",
         "approved_source_count",
         "reason_codes",
+        "final_risk_level",
+        "safe_next_state",
+        "sensitive_domain",
+        "weak_evidence",
+        "missing_required_source",
+        "high_impact_action",
+        "policy_conflict",
     }
     data = cast(
         dict[str, JSONValue], {key: value for key, value in snapshot.items() if key in allowed}

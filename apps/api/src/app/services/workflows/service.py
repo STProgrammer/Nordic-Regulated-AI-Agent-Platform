@@ -142,6 +142,38 @@ class WorkflowRunService:
             await self.session.flush()
             return run
 
+    async def claim_waiting_for_human_review(
+        self, organization_id: UUID, workflow_run_id: UUID
+    ) -> WorkflowRun | None:
+        """Claim one persisted approval interruption exactly once for resumption."""
+
+        async with self.session.begin_nested():
+            run = await self.repository.get_for_update(organization_id, workflow_run_id)
+            if run is None or run.status != "waiting_for_human_review":
+                return None
+            run.status = "running"
+            await self.session.flush()
+            return run
+
+    async def pause(self, command: WorkflowRunFinalize) -> WorkflowRun | None:
+        """Persist a non-terminal human-review checkpoint from a running graph run."""
+
+        async with self.session.begin_nested():
+            run = await self.repository.get_for_update(
+                command.organization_id, command.workflow_run_id
+            )
+            if run is None or run.status != "running":
+                return None
+            if command.duration_ms < 0:
+                raise ValueError("Workflow timing is invalid")
+            run.status = "waiting_for_human_review"
+            run.finished_at = None
+            run.duration_ms = command.duration_ms
+            run.state_snapshot = command.state_snapshot
+            run.error_summary = None
+            await self.session.flush()
+            return run
+
     async def start_node(self, command: WorkflowNodeStart) -> WorkflowNodeRun:
         """Create one trace row after validating the tenant-owned parent run."""
 
