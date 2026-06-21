@@ -34,6 +34,7 @@ from app.services.retrieval.answering import RagAnswerService
 from app.services.retrieval.generator import build_rag_answer_generator
 from app.services.retrieval.service import RetrievalService
 from app.services.workflows.dispatch import CeleryWorkflowTaskDispatcher
+from app.services.workflows.drafting import DraftingWorkflowService
 from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
@@ -222,6 +223,14 @@ def get_extraction_workflow_service(
         confidence_threshold=AgentSettings().extraction_confidence_threshold,
         dispatcher=CeleryWorkflowTaskDispatcher(),
     )
+
+
+def get_drafting_workflow_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> DraftingWorkflowService:
+    """Construct the Evidence-backed Drafting service with UUID-only dispatch."""
+
+    return DraftingWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
 async def get_current_principal(

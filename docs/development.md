@@ -2,7 +2,7 @@
 
 ## Scope of the current workspace
 
-This is the Phase 17 Intake Graph slice, built on the Phase 16 typed LangGraph orchestration
+This is the Phase 20 Drafting Graph slice, built on the Phase 16 typed LangGraph orchestration
 foundation and the secure Phase 10–15 document, parsing, indexing, and governed retrieval
 boundaries, plus the Case Management UI/backend, frontend shell, authentication/session/RBAC API,
 service layer, database schema, API shell, and local runtime. Docker Compose starts the Next.js web
@@ -250,6 +250,20 @@ endpoint; workflow status contains aggregate counts and confidence bands only. H
 against the existing field kind, retain the source link, set `human_edited`, and create a
 content-free audit event. Extraction does not retrieve again, set case risk, change lifecycle state,
 draft prose, or approve an output.
+
+### Drafting workflow
+
+`{"workflow":"drafting"}` accepts only an optional closed `output_language` (`nb` or `en`); the
+current Case language is the server-side default. It can run only from the latest completed,
+sufficient, non-contradictory Evidence package for the same current-tenant case. The six-node worker
+rechecks that package, validates every `[S#]` citation against the persisted approved sources, and
+requires each cited claim segment to occur in its cited Evidence excerpt. A citation/support failure
+becomes `needs_more_evidence`. The normal workflow status exposes only availability, language,
+citation counts, and closed reason codes. The original valid draft is stored once as a protected
+`agent_messages` record and is available only through `GET /api/cases/{case_id}/draft`, with stable
+source identifiers for the existing bounded context route. Case Detail labels it as an AI draft
+requiring later human review. There is intentionally no draft edit, approval, finalization, export,
+risk decision, or trace UI in this phase.
 
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
 write/delete evidence without a cloud account (it creates and removes one synthetic object):

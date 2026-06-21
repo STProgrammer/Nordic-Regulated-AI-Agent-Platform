@@ -36,7 +36,9 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
       'From: sender@example.invalid\n\nSyntetisk dokumenttekst for lokal nettlesertest. ' +
         'Kilden beskriver et syntetisk kontrollforhold og skal bare brukes i lokal validering. ' +
         'Det finnes ingen persondata eller produksjonsinnhold i denne teksten. ' +
-        'Kildepakken trenger nok innhold til at den kontrollerte Evidence-flyten kan fullføres.',
+        'Kildepakken trenger nok innhold til at den kontrollerte Evidence-flyten kan fullføres. '.repeat(
+          12,
+        ),
     );
     form.set('title', 'E2E syntetisk dokument');
     form.set('source_status', 'approved');
@@ -100,6 +102,19 @@ test('case worker can inspect indexed synthetic document evidence in Bokmål', a
   await page.getByRole('button', { name: 'Lagre endring' }).click();
   await expect(page.getByText('Redigert av menneske.')).toBeVisible();
   await expect(page.getByText('SYNTHETIC-2')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Start utkast' }).click();
+  await expect(page.getByText('Utkastet er klart for menneskelig kontroll.')).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(
+    page.getByText('Syntetisk dokumenttekst for lokal nettlesertest [S1]'),
+  ).toBeVisible();
+  await expect(page.getByText('KI-utkast — krever senere menneskelig kontroll.')).toBeVisible();
+  await page.getByRole('button', { name: 'S1' }).last().click();
+  const draftContext = page.getByRole('dialog', { name: 'Avgrenset kildekontekst' });
+  await expect(draftContext).toBeVisible();
+  await draftContext.getByRole('button', { name: 'Lukk' }).click();
 
   await page.getByRole('button', { name: 'Be om reindeksering' }).click();
   await expect(page.getByText('Reindeksering er forespurt.')).toBeVisible();

@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
+from agent_orchestrator.graphs.drafting_types import DraftKind, OutputLanguage
 from agent_orchestrator.graphs.extraction_types import (
     ConfidenceBand,
     ExtractionFieldKind,
@@ -77,8 +78,17 @@ class ExtractionStartRequest(BaseModel):
     workflow: Literal["extraction"]
 
 
+class DraftingStartRequest(BaseModel):
+    """Closed Drafting selector with an optional server-validated display language."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workflow: Literal["drafting"]
+    output_language: OutputLanguage | None = None
+
+
 WorkflowStartRequest = Annotated[
-    IntakeStartRequest | EvidenceStartRequest | ExtractionStartRequest,
+    IntakeStartRequest | EvidenceStartRequest | ExtractionStartRequest | DraftingStartRequest,
     Field(discriminator="workflow"),
 ]
 
@@ -156,6 +166,41 @@ class ExtractionResultData(BaseModel):
     low_confidence_field_count: int | None = None
 
 
+class DraftingResultData(BaseModel):
+    """Safe Drafting lifecycle signals; text is available only on its dedicated read route."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    evidence_available: bool | None = None
+    draft_available: bool | None = None
+    citation_count: int | None = None
+    output_language: OutputLanguage | None = None
+    draft_kind: DraftKind | None = None
+    reason_codes: tuple[str, ...] = ()
+
+
+class DraftCitationData(BaseModel):
+    """One stable source reference for an already-authorized protected original draft."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    citation_label: str
+    document_id: UUID
+    chunk_id: UUID
+
+
+class DraftData(BaseModel):
+    """The limited protected presentation shape for one immutable original AI draft."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    workflow_run_id: UUID
+    content: str
+    language: OutputLanguage
+    draft_kind: DraftKind
+    citations: tuple[DraftCitationData, ...]
+
+
 class ExtractedFieldData(BaseModel):
     """One source-linked typed business field from the latest completed extraction run."""
 
@@ -192,10 +237,11 @@ class WorkflowRunData(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     workflow_run_id: UUID
-    workflow: Literal["intake", "evidence", "extraction"]
+    workflow: Literal["intake", "evidence", "extraction", "drafting"]
     status: WorkflowRunStatus
     started_at: datetime
     finished_at: datetime | None
     intake: IntakeResultData | None = None
     evidence: EvidenceResultData | None = None
     extraction: ExtractionResultData | None = None
+    drafting: DraftingResultData | None = None

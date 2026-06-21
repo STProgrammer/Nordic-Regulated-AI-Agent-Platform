@@ -8,6 +8,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from agent_orchestrator.config import AgentSettings
+from agent_orchestrator.graphs.drafting_graph import (
+    DraftingCaseInput,
+    DraftingEvidenceSource,
+    DraftingGraph,
+    DraftingGraphDependencies,
+)
+from agent_orchestrator.graphs.drafting_types import DraftingWorkflowState, OutputLanguage
 from agent_orchestrator.graphs.evidence_graph import (
     EvidenceCandidate,
     EvidenceCandidates,
@@ -62,6 +69,7 @@ from app.services.documents.parsing import DocumentParseCoordinator, ParseProces
 from app.services.documents.storage import AzureBlobObjectStorage
 from app.services.retrieval.service import RetrievalService
 from app.services.retrieval.types import RetrievalRequest, RetrievalWorkflowContext
+from app.services.workflows.drafting import DRAFTING_WORKFLOW_NAME, persist_draft
 from app.services.workflows.evidence import (
     EVIDENCE_WORKFLOW_NAME,
     persist_evidence_case_result,
@@ -473,6 +481,131 @@ async def _process_extraction_workflow(workflow_run_id: UUID, settings: AppSetti
         await dispose_database_engines()
 
 
+async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSettings) -> str:
+    """Reload one queued Drafting run and compose only its eligible Evidence package."""
+
+    try:
+        async with get_sessionmaker(settings)() as session:
+            run = await session.scalar(select(WorkflowRun).where(WorkflowRun.id == workflow_run_id))
+            if run is None or run.workflow_name != DRAFTING_WORKFLOW_NAME or run.status != "queued":
+                return "noop"
+            context = WorkflowContext(
+                workflow_run_id=run.id,
+                organization_id=run.organization_id,
+                case_id=run.case_id,
+                initiated_by_user_id=run.started_by_user_id,
+                workflow_name=run.workflow_name,
+                workflow_version=run.workflow_version,
+            )
+            case = await CaseRepository(session).get(context.organization_id, context.case_id)
+            user = await UserRepository(session).get(
+                context.organization_id, context.initiated_by_user_id
+            )
+            persistence = SqlAlchemyWorkflowPersistence(session)
+            evidence = await load_eligible_evidence(
+                session, context.organization_id, context.case_id
+            )
+            if case is None or user is None or not user.is_active:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                            "draft_available": False,
+                        },
+                        duration_ms=0,
+                        error_code="case_not_available",
+                    )
+                    await session.commit()
+                return "failed"
+            if evidence is None:
+                if await persistence.claim_run(context):
+                    await persistence.complete_run(
+                        context,
+                        status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "needs_more_evidence",
+                            "evidence_available": False,
+                            "draft_available": False,
+                        },
+                        duration_ms=0,
+                    )
+                    await session.commit()
+                return "needs_more_evidence"
+            try:
+                agent_settings = AgentSettings()
+                requested_language = run.state_snapshot.get("target_language", case.language)
+                language = OutputLanguage(
+                    requested_language if isinstance(requested_language, str) else case.language
+                )
+                fixture = {
+                    "drafting_response": {
+                        "draft": "Syntetisk dokumenttekst for lokal nettlesertest [S1]"
+                        if language is OutputLanguage.NB
+                        else "Synthetic local browser-test document text [S1]",
+                        "language": language.value,
+                    }
+                }
+                graph = DraftingGraph(
+                    DraftingGraphDependencies(
+                        case_input=DraftingCaseInput(case.title, case.description, language),
+                        evidence_sources=tuple(
+                            DraftingEvidenceSource(
+                                citation_label=source.citation_label,
+                                chunk_id=source.chunk_id,
+                                excerpt=source.excerpt,
+                            )
+                            for source in evidence.sources
+                        ),
+                        prompt_loader=SqlAlchemyPromptLoader(session),
+                        model_provider=build_model_provider(
+                            agent_settings,
+                            deterministic_fixtures=(
+                                fixture if agent_settings.provider == "deterministic" else None
+                            ),
+                        ),
+                        persistence=persistence,
+                        persist_draft=lambda graph_context, state, draft: persist_draft(
+                            session, graph_context, state, draft
+                        ),
+                        retry_policy=RetryPolicy(
+                            maximum_retries=agent_settings.node_maximum_retries
+                        ),
+                    )
+                )
+                result = await graph.run(
+                    context,
+                    DraftingWorkflowState(context=context, target_language=language.value),
+                )
+                await session.commit()
+                return result.outcome.status.value
+            except Exception:
+                if await persistence.claim_run(context):
+                    await persistence.fail_run(
+                        context,
+                        state_snapshot={
+                            "workflow_name": context.workflow_name,
+                            "workflow_version": context.workflow_version,
+                            "state_schema_version": "v1",
+                            "status": "failed",
+                            "evidence_available": True,
+                            "draft_available": False,
+                        },
+                        duration_ms=0,
+                        error_code="workflow_configuration_unavailable",
+                    )
+                    await session.commit()
+                return "failed"
+    finally:
+        await dispose_database_engines()
+
+
 def _retry_delay(retries: int) -> int:
     """Small finite exponential backoff suitable for local and production-like queues."""
 
@@ -724,6 +857,33 @@ def run_extraction_workflow_task(task: Task, workflow_run_id: str) -> str:
     except Exception as error:
         _logger.warning(
             "workflow.extraction_task_runtime_unavailable", error_type=type(error).__name__
+        )
+        if task.request.retries >= settings.document_parser_task_max_retries:
+            return "failed"
+        raise task.retry(countdown=_retry_delay(task.request.retries)) from error
+    return outcome
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="app.workers.tasks.run_drafting_workflow_task",
+    acks_late=True,
+    ignore_result=True,
+)
+def run_drafting_workflow_task(task: Task, workflow_run_id: str) -> str:
+    """Execute one UUID-only Drafting task with bounded infrastructure retries."""
+
+    try:
+        parsed_id = UUID(workflow_run_id)
+    except ValueError:
+        _logger.warning("workflow.drafting_task_invalid_identifier")
+        return "noop"
+    settings = get_settings()
+    try:
+        outcome = asyncio.run(_process_drafting_workflow(parsed_id, settings))
+    except Exception as error:
+        _logger.warning(
+            "workflow.drafting_task_runtime_unavailable", error_type=type(error).__name__
         )
         if task.request.retries >= settings.document_parser_task_max_retries:
             return "failed"

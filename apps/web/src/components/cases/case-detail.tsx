@@ -13,6 +13,7 @@ import { EvidencePanel } from '@/components/evidence/evidence-panel';
 import { EvidenceGraphPanel } from '@/components/evidence/evidence-graph-panel';
 import { IntakePanel } from '@/components/cases/intake-panel';
 import { ExtractionPanel } from '@/components/cases/extraction-panel';
+import { DraftingPanel } from '@/components/cases/drafting-panel';
 import { Alert } from '@/components/ui/alert';
 import type { AppLocale } from '@/i18n/routing';
 import { type CaseDetail as CaseDetailData } from '@/lib/api/contracts';
@@ -144,6 +145,7 @@ function DetailContent({
       <EvidenceGraphPanel caseId={caseData.case_id} />
       <IntakePanel caseId={caseData.case_id} />
       <ExtractionPanel caseId={caseData.case_id} />
+      <DraftingPanel caseId={caseData.case_id} />
       <div className="grid gap-4 md:grid-cols-2">
         {futureKeys.map((key) => (
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" key={key}>

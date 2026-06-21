@@ -21,6 +21,7 @@ from app.api.schemas.common import (
     SuccessResponse,
 )
 from app.api.schemas.workflows import (
+    DraftingResultData,
     EvidenceResultData,
     ExtractionResultData,
     IntakeCorrectionRequest,
@@ -97,7 +98,7 @@ def workflow_run_data(run: object) -> WorkflowRunData:
 
     workflow_run = cast(WorkflowRun, run)
     snapshot = workflow_run.state_snapshot
-    if workflow_run.workflow_name not in {"intake", "evidence", "extraction"}:
+    if workflow_run.workflow_name not in {"intake", "evidence", "extraction", "drafting"}:
         raise NotFoundError("Workflow run")
     intake = (
         _intake_data(snapshot)
@@ -116,15 +117,24 @@ def workflow_run_data(run: object) -> WorkflowRunData:
         and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
         else None
     )
+    drafting = (
+        _drafting_data(snapshot)
+        if workflow_run.workflow_name == "drafting"
+        and workflow_run.status in {"completed", "needs_more_evidence", "failed"}
+        else None
+    )
     return WorkflowRunData(
         workflow_run_id=workflow_run.id,
-        workflow=cast(Literal["intake", "evidence", "extraction"], workflow_run.workflow_name),
+        workflow=cast(
+            Literal["intake", "evidence", "extraction", "drafting"], workflow_run.workflow_name
+        ),
         status=WorkflowRunStatus(workflow_run.status),
         started_at=workflow_run.started_at,
         finished_at=workflow_run.finished_at,
         intake=intake,
         evidence=evidence,
         extraction=extraction,
+        drafting=drafting,
     )
 
 
@@ -193,6 +203,27 @@ def _extraction_data(snapshot: dict[str, object]) -> ExtractionResultData | None
         if value is not None:
             data[target] = value
     return ExtractionResultData.model_validate(data) if data else None
+
+
+def _drafting_data(snapshot: dict[str, object]) -> DraftingResultData | None:
+    """Map only safe Drafting availability/language/count signals into status DTOs."""
+
+    if not snapshot:
+        return None
+    data: dict[str, object] = {}
+    mapping = {
+        "evidence_available": "evidence_available",
+        "draft_available": "draft_available",
+        "citation_count": "citation_count",
+        "target_language": "output_language",
+        "draft_kind": "draft_kind",
+        "reason_codes": "reason_codes",
+    }
+    for source, target in mapping.items():
+        value = snapshot.get(source)
+        if value is not None:
+            data[target] = value
+    return DraftingResultData.model_validate(data) if data else None
 
 
 def _meta(request: Request) -> ResponseMeta:

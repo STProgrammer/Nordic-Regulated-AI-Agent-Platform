@@ -104,18 +104,25 @@ protected `POST/GET /api/cases`, `GET/PATCH /api/cases/{case_id}`, and
 `POST /api/documents/{document_id}/reindex`, `POST /api/retrieval/search`, and
 `POST /api/retrieval/answer`, `POST /api/cases/{case_id}/workflows/run`,
 `GET /api/workflows/{workflow_run_id}`, and
-`POST /api/workflows/{workflow_run_id}/intake/correction`. Case dates use ISO calendar dates
-(`YYYY-MM-DD`); the frontend localizes them for display. User and role operations require the
-persisted **Admin** role in the current organization; Case actions use their documented
-server-enforced RBAC policy. The closed workflow selectors are `{"workflow":"intake"}` and
-`{"workflow":"evidence"}`; neither accepts browser-owned model, prompt, state, tool, queue, retry,
-query, or source controls. Evidence is a source-gathering workflow that persists a safe citation
-package or `needs_more_evidence`; it does not answer, draft, approve, or expose a trace.
+`POST /api/workflows/{workflow_run_id}/intake/correction`, and the protected read-only
+`GET /api/cases/{case_id}/draft`. Case dates use ISO calendar dates (`YYYY-MM-DD`); the frontend
+localizes them for display. User and role operations require the persisted **Admin** role in the
+current organization; Case actions use their documented server-enforced RBAC policy. The closed
+workflow selectors are `{"workflow":"intake"}` and `{"workflow":"evidence"}`; neither accepts
+browser-owned model, prompt, state, tool, queue, retry, query, or source controls. Evidence is a
+source-gathering workflow that persists a safe citation package or `needs_more_evidence`; it does
+not answer, draft, approve, or expose a trace.
 
 The closed `{"workflow":"extraction"}` operation uses only a completed eligible Evidence package for
 that case. It produces bounded source-linked structured observations and permits typed edits to the
 latest Extraction result; it never creates a new search, changes case risk/lifecycle, drafts text,
 or approves an output.
+
+The closed `{"workflow":"drafting"}` operation also requires that Evidence package and may accept
+only `output_language` as `nb` or `en`. It produces a protected, immutable original AI draft only
+when its `[S#]` citations validate against that run's approved sources; otherwise it returns a safe
+`needs_more_evidence` state. Draft display is read-only and explicitly awaits later human review;
+approval, final text, risk decisions, and edits remain out of scope.
 
 Document list/detail responses are always metadata-only. A source-status update accepts only the
 closed source-governance label and is restricted to Admin and Compliance Reviewer roles; `archived`

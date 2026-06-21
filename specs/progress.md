@@ -24,7 +24,7 @@ implementation, tests, and validation checks pass within its defined scope.
 | 17    | Intake Graph                         | DONE   |
 | 18    | Evidence Graph                        | DONE   |
 | 19    | Extraction Graph                      | DONE   |
-| 20    | Drafting Graph                        | TODO   |
+| 20    | Drafting Graph                        | DONE   |
 
 ## Phase 18 — Evidence Graph (DONE)
 
@@ -73,6 +73,30 @@ Validation: graph tests (7 passed), API suite (253 collected, passing), web unit
 and the browser smoke test (1 passed) all passed. A rebuilt deterministic local stack passed Alembic
 head, local-stack verification, documentation endpoints, Evidence-to-Extraction execution, typed
 field edit, and durable human-edit persistence checks.
+
+## Phase 20 — Drafting Graph (DONE)
+
+Completed on 2026-06-21.
+
+Delivered the Evidence-gated original-draft workflow slice:
+
+- A fixed six-node Drafting Graph with closed Norwegian Bokmål/English language selection, exact
+  inline citation validation, a bounded unsupported-claim gate, a no-freeform clarity stage, and
+  default-deny snapshot/node projections. Citation or support failure becomes
+  `needs_more_evidence` and does not persist or display a draft.
+- UUID-only Celery dispatch and an Evidence-rechecking worker that persist exactly one protected
+  original `agent_messages` draft and copied same-run source provenance only after validation. The
+  start/status contracts expose safe availability, language, citation counts, and closed reason
+  codes; the distinct tenant/RBAC-protected draft read route returns only draft text and source ids.
+- A localized, accessible Case Detail Draft panel with closed language selection, active-run polling,
+  source-context links, and explicit AI-draft/review-required framing. It intentionally has no edit,
+  approval, finalization, risk, export, or trace controls.
+
+Validation: graph tests (10 passed), API suite (253 collected, passing), web unit suite (21 passed),
+and the Playwright browser smoke test (1 passed) passed. Project workspace/format/lint/type checks
+passed; a rebuilt deterministic local stack passed Alembic head, `pnpm verify:local-stack`, and a
+real synthetic Evidence-to-Extraction-to-Drafting execution with a completed draft, one citation,
+and protected source-context presentation.
 
 ## Phases 16–17 — Agent Orchestrator Foundation and Intake Graph (DONE)
 

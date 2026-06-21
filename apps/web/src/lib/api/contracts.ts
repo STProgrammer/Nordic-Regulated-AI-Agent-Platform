@@ -244,6 +244,9 @@ export const caseCreateInputSchema = z.object({
 export const intakeStartInputSchema = z.object({ workflow: z.literal('intake') }).strict();
 export const evidenceStartInputSchema = z.object({ workflow: z.literal('evidence') }).strict();
 export const extractionStartInputSchema = z.object({ workflow: z.literal('extraction') }).strict();
+export const draftingStartInputSchema = z
+  .object({ workflow: z.literal('drafting'), output_language: caseLanguageSchema.optional() })
+  .strict();
 export const intakeCorrectionInputSchema = z
   .object({
     case_type: intakeCaseTypeSchema,
@@ -339,6 +342,26 @@ export const extractionResultSchema = z.object({
   extracted_field_count: z.number().int().nonnegative().nullable(),
   low_confidence_field_count: z.number().int().nonnegative().nullable(),
 });
+export const draftingResultSchema = z.object({
+  evidence_available: z.boolean().nullable(),
+  draft_available: z.boolean().nullable(),
+  citation_count: z.number().int().nonnegative().nullable(),
+  output_language: caseLanguageSchema.nullable(),
+  draft_kind: z.enum(['response', 'internal_recommendation', 'summary', 'action_plan']).nullable(),
+  reason_codes: z.array(z.string()),
+});
+export const draftCitationSchema = z.object({
+  citation_label: z.string().regex(/^S[1-9][0-9]*$/),
+  document_id: z.string().uuid(),
+  chunk_id: z.string().uuid(),
+});
+export const draftSchema = z.object({
+  workflow_run_id: z.string().uuid(),
+  content: z.string().min(1).max(8_000),
+  language: caseLanguageSchema,
+  draft_kind: z.enum(['response', 'internal_recommendation', 'summary', 'action_plan']),
+  citations: z.array(draftCitationSchema),
+});
 export const extractedFieldSchema = z.object({
   field_id: z.string().uuid(),
   workflow_run_id: z.string().uuid(),
@@ -357,13 +380,14 @@ export const extractedFieldEditInputSchema = z
 
 export const workflowRunSchema = z.object({
   workflow_run_id: z.string().uuid(),
-  workflow: z.enum(['intake', 'evidence', 'extraction']),
+  workflow: z.enum(['intake', 'evidence', 'extraction', 'drafting']),
   status: workflowRunStatusSchema,
   started_at: isoTimestampSchema,
   finished_at: isoTimestampSchema.nullable(),
   intake: intakeResultSchema.nullable().optional(),
   evidence: evidenceResultSchema.nullable().optional(),
   extraction: extractionResultSchema.nullable().optional(),
+  drafting: draftingResultSchema.nullable().optional(),
 });
 
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
@@ -398,10 +422,12 @@ export type EvidenceSource = z.infer<typeof evidenceSourceSchema>;
 export type ExtractionFieldKind = z.infer<typeof extractionFieldKindSchema>;
 export type ExtractionValue = z.infer<typeof extractionValueSchema>;
 export type ExtractedField = z.infer<typeof extractedFieldSchema>;
+export type Draft = z.infer<typeof draftSchema>;
 export type WorkflowRun = z.infer<typeof workflowRunSchema>;
 export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
 export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
 export type ExtractionStartInput = z.infer<typeof extractionStartInputSchema>;
+export type DraftingStartInput = z.infer<typeof draftingStartInputSchema>;
 export type ExtractedFieldEditInput = z.infer<typeof extractedFieldEditInputSchema>;
 export type IntakeCorrectionInput = z.infer<typeof intakeCorrectionInputSchema>;
 export type DocumentData = z.infer<typeof documentDataSchema>;

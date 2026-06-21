@@ -171,5 +171,26 @@ async def seed_local(
                         is_active=True,
                     )
                 )
+            drafting_prompt = await session.scalar(
+                select(PromptVersion).where(
+                    PromptVersion.organization_id == organization.id,
+                    PromptVersion.name == "drafting_response",
+                    PromptVersion.version == "local-v1",
+                )
+            )
+            if drafting_prompt is None:
+                session.add(
+                    PromptVersion(
+                        organization_id=organization.id,
+                        name="drafting_response",
+                        version="local-v1",
+                        content=(
+                            "Return only the server-declared structured cited Drafting JSON. "
+                            "This synthetic local prompt is not production policy."
+                        ),
+                        description="Synthetic local Drafting fixture prompt.",
+                        is_active=True,
+                    )
+                )
 
     return 1, len(ROLE_DESCRIPTIONS), len(SEED_USERS)

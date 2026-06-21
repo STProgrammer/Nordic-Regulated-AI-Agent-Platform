@@ -5,11 +5,13 @@ from __future__ import annotations
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
+from agent_orchestrator.graphs.drafting_types import DraftKind, OutputLanguage
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.dependencies import (
     CaseServiceDependency,
     CurrentPrincipalDependency,
+    get_drafting_workflow_service,
     get_evidence_workflow_service,
     get_extraction_workflow_service,
     get_intake_workflow_service,
@@ -35,6 +37,8 @@ from app.api.schemas.common import (
     SuccessResponse,
 )
 from app.api.schemas.workflows import (
+    DraftCitationData,
+    DraftData,
     ExtractedFieldData,
     ExtractedFieldEditRequest,
     ExtractedFieldListData,
@@ -46,6 +50,7 @@ from app.db.repositories.case import CaseFilters, Unset
 from app.services.cases.service import CaseCreate, CasePatch
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
+from app.services.workflows.drafting import DraftingWorkflowService
 from app.services.workflows.evidence import EvidenceWorkflowService
 from app.services.workflows.extraction import ExtractionWorkflowService
 from app.services.workflows.intake import IntakeWorkflowService
@@ -274,6 +279,7 @@ async def start_case_workflow(
     extraction_workflows: Annotated[
         ExtractionWorkflowService, Depends(get_extraction_workflow_service)
     ],
+    drafting_workflows: Annotated[DraftingWorkflowService, Depends(get_drafting_workflow_service)],
 ) -> SuccessResponse[WorkflowRunData]:
     """Accept only fixed selectors; all model, state, and queue inputs stay server-owned."""
 
@@ -283,7 +289,11 @@ async def start_case_workflow(
         else (
             await evidence_workflows.start(principal, case_id)
             if payload.workflow == "evidence"
-            else await extraction_workflows.start(principal, case_id)
+            else (
+                await extraction_workflows.start(principal, case_id)
+                if payload.workflow == "extraction"
+                else await drafting_workflows.start(principal, case_id, payload.output_language)
+            )
         )
     )
     return SuccessResponse(data=_workflow_run_data(run), meta=_meta(request))
@@ -324,6 +334,47 @@ async def edit_extracted_field(
 ) -> SuccessResponse[ExtractedFieldData]:
     field = await workflows.edit_field(principal, case_id, field_id, payload.field_value)
     return SuccessResponse(data=_extracted_field_data(field), meta=_meta(request))
+
+
+@router.get(
+    "/{case_id}/draft",
+    response_model=SuccessResponse[DraftData],
+    responses=_CASE_ERROR_RESPONSES,
+    summary="Read the latest protected original AI draft for one current-tenant case",
+)
+async def get_draft(
+    case_id: UUID,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    workflows: Annotated[DraftingWorkflowService, Depends(get_drafting_workflow_service)],
+) -> SuccessResponse[DraftData]:
+    """This is intentionally read-only; later phases own human edits and approval."""
+
+    record = await workflows.get_draft(principal, case_id)
+    metadata = record.message.structured_output or {}
+    language_value = metadata.get("language")
+    draft_kind_value = metadata.get("draft_kind")
+    return SuccessResponse(
+        data=DraftData(
+            workflow_run_id=record.message.workflow_run_id,
+            content=record.message.content,
+            language=OutputLanguage(language_value)
+            if isinstance(language_value, str)
+            else OutputLanguage.NB,
+            draft_kind=DraftKind(draft_kind_value)
+            if isinstance(draft_kind_value, str)
+            else DraftKind.RESPONSE,
+            citations=tuple(
+                DraftCitationData(
+                    citation_label=source.citation_label,
+                    document_id=source.document_id,
+                    chunk_id=source.chunk_id,
+                )
+                for source in record.sources
+            ),
+        ),
+        meta=_meta(request),
+    )
 
 
 def _case_data(case: Case) -> CaseData:

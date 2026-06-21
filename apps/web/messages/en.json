@@ -420,5 +420,32 @@
       "title": "Audit trail",
       "description": "Audit trails arrive in Phase 23. There is no audit data to display yet."
     }
+  },
+  "drafting": {
+    "title": "AI draft",
+    "description": "Creates a source-grounded draft for later human review. It is not a final answer, decision, or approval.",
+    "start": "Start draft",
+    "starting": "Starting draft …",
+    "notStarted": "Drafting has not been started for this view.",
+    "unavailableForRole": "Your role cannot start drafting.",
+    "unavailable": "Drafting is temporarily unavailable.",
+    "loading": "Loading draft …",
+    "reviewNotice": "AI draft — requires later human review.",
+    "citations": "Sources",
+    "status": {
+      "queued": "Drafting is queued.",
+      "running": "Drafting is running.",
+      "completed": "The draft is ready for human review.",
+      "needs_more_evidence": "More eligible source evidence is needed before a draft can be shown.",
+      "failed": "Drafting could not be completed safely."
+    },
+    "language": {
+      "nb": "Language: Norwegian Bokmål",
+      "en": "Language: English"
+    },
+    "contextTitle": "Bounded source context",
+    "contextLoading": "Loading bounded source context …",
+    "contextUnavailable": "Source context is unavailable.",
+    "close": "Close"
   }
 }

@@ -420,5 +420,32 @@
       "title": "Revisjonsspor",
       "description": "Revisjonsspor kommer i fase 23. Det finnes ingen revisjonsdata å vise ennå."
     }
+  },
+  "drafting": {
+    "title": "KI-utkast",
+    "description": "Lager et kildebasert utkast til videre menneskelig kontroll. Det er ikke et endelig svar, vedtak eller en godkjenning.",
+    "start": "Start utkast",
+    "starting": "Starter utkast …",
+    "notStarted": "Utkast er ikke startet i denne visningen.",
+    "unavailableForRole": "Rollen din kan ikke starte utkast.",
+    "unavailable": "Utkast er midlertidig utilgjengelig.",
+    "loading": "Laster utkast …",
+    "reviewNotice": "KI-utkast — krever senere menneskelig kontroll.",
+    "citations": "Kilder",
+    "status": {
+      "queued": "Utkast står i kø.",
+      "running": "Utkast blir laget.",
+      "completed": "Utkastet er klart for menneskelig kontroll.",
+      "needs_more_evidence": "Det trengs mer kvalifisert kildegrunnlag før et utkast kan vises.",
+      "failed": "Utkastet kunne ikke fullføres på en trygg måte."
+    },
+    "language": {
+      "nb": "Språk: Norsk bokmål",
+      "en": "Språk: Engelsk"
+    },
+    "contextTitle": "Avgrenset kildekontekst",
+    "contextLoading": "Laster avgrenset kildekontekst …",
+    "contextUnavailable": "Kildekonteksten er ikke tilgjengelig.",
+    "close": "Lukk"
   }
 }

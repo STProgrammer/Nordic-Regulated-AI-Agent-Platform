@@ -139,7 +139,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Store extracted fields with source references and human-edit tracking support.
 - Validation: Graph tests cover extraction schemas, validation failures, low-confidence fields, and source-linked structured outputs.
 
-## Phase 20 — Drafting Graph
+## Phase 20 — Drafting Graph (DONE)
 
 - Implement drafting of Norwegian Bokmål responses, internal recommendations, summaries, and action plans grounded in retrieved sources.
 - Add citation validation, unsupported-claim detection, clarity pass, and persisted AI draft records.
