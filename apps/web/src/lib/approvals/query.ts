@@ -6,6 +6,7 @@ import {
   type ApprovalCommentInput,
   type ApprovalReassignInput,
   type EditAndApproveInput,
+  type MockHandoffInput,
 } from '@/lib/api/contracts';
 import { caseQueryKeys } from '@/lib/cases/query';
 
@@ -72,6 +73,10 @@ export function useApprovalActions(approvalId: string) {
     }),
     reassign: useMutation({
       mutationFn: (input: ApprovalReassignInput) => approvalsApi.reassign(approvalId, input),
+      onSuccess: refresh,
+    }),
+    mockHandoff: useMutation({
+      mutationFn: (input: MockHandoffInput) => approvalsApi.recordMockHandoff(approvalId, input),
       onSuccess: refresh,
     }),
   };

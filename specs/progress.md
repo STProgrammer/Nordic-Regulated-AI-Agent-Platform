@@ -32,6 +32,29 @@ implementation, tests, and validation checks pass within its defined scope.
 | 25    | Evaluation Dataset and Deterministic Evaluation Runner | DONE   |
 | 26    | AI Quality Evaluation Dashboard        | DONE   |
 | 27    | Cost, Latency, Metrics, and Observability | DONE   |
+| 28    | Export and Mock Enterprise Integrations | DONE   |
+
+## Phase 28 — Export and Mock Enterprise Integrations (DONE)
+
+Completed on 2026-06-22.
+
+Delivered approved-output actions exclusively within the existing protected Approval boundary:
+
+- Admin and Compliance Reviewer users can export a terminal human-approved output as server-owned
+  JSON, CSV, Markdown, or PDF. JSON/Markdown/PDF include approved text and safe citation locators;
+  CSV contains only structured fields and safe source locators. No raw source text, internal IDs,
+  storage data, reviewer comments, or unapproved draft is exported.
+- Clearly labelled, synchronous mock ticket, email, Teams, and archive handoffs. They never make a
+  network call, enqueue work, alter document/case state, or archive storage; each records one
+  metadata-only workflow tool call and append-only audit event.
+- Localized terminal Approval Packet controls with fixed downloads, explicit mock-only wording, and
+  a confirmation step. No migration or worker routing was added.
+
+Validation: focused renderer, integration, API/OpenAPI, and frontend controls tests passed. The
+full backend suite passed (`290 passed, 1 skipped`); web tests passed (`42 passed`); workspace
+format/lint/type checks, locked dependency verification, and production web build passed. A rebuilt
+local stack passed `pnpm verify:local-stack`, and focused Playwright passed the synthetic reviewer
+approval, PDF download, simulated Teams handoff, and case-worker approved-status journey.
 
 ## Phase 27 — Cost, Latency, Metrics, and Observability (DONE)
 

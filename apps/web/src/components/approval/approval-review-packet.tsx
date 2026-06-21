@@ -8,6 +8,8 @@ import { useState } from 'react';
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { approvalsApi, saveApprovedOutput } from '@/lib/api/approvals';
+import type { ApprovedOutputFormat, MockHandoffTarget } from '@/lib/api/contracts';
 import { documentsApi } from '@/lib/api/documents';
 import { useApprovalActions, useApprovalPacket } from '@/lib/approvals/query';
 import { useCurrentUser } from '@/lib/auth/query';
@@ -16,6 +18,8 @@ import type { AppLocale } from '@/i18n/routing';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reviewerRoles = new Set(['Admin', 'Compliance Reviewer']);
 type TerminalAction = 'approve' | 'edit_and_approve' | 'reject' | 'request_more_evidence';
+const exportFormats: ApprovedOutputFormat[] = ['json', 'csv', 'markdown', 'pdf'];
+const mockHandoffTargets: MockHandoffTarget[] = ['ticket', 'email', 'teams', 'archive'];
 
 export function ApprovalReviewPacket({ approvalId }: { approvalId: string }) {
   const locale = useLocale() as AppLocale;
@@ -54,6 +58,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
   const [finalText, setFinalText] = useState('');
   const [assignee, setAssignee] = useState('');
   const [pendingAction, setPendingAction] = useState<TerminalAction | null>(null);
+  const [pendingHandoff, setPendingHandoff] = useState<MockHandoffTarget | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   if (!packet.data) return null;
   const data = packet.data;
@@ -70,8 +75,11 @@ function PacketContent({ approvalId }: { approvalId: string }) {
     actions.editAndApprove.isPending ||
     actions.reject.isPending ||
     actions.requestMoreEvidence.isPending ||
-    actions.reassign.isPending;
+    actions.reassign.isPending ||
+    actions.mockHandoff.isPending;
   const commentInput = comment.trim() ? { reviewer_comment: comment.trim() } : {};
+  const canUseApprovedOutput =
+    canReview && data.approval_status === 'approved' && data.workflow_status === 'completed';
 
   async function submitTerminalAction() {
     if (!pendingAction) return;
@@ -101,6 +109,27 @@ function PacketContent({ approvalId }: { approvalId: string }) {
       setStatusMessage(t('reassigned'));
     } catch {
       setStatusMessage(t('actionUnavailable'));
+    }
+  }
+
+  async function downloadApprovedOutput(exportFormat: ApprovedOutputFormat) {
+    try {
+      const download = await approvalsApi.exportApprovedOutput(approvalId, exportFormat);
+      saveApprovedOutput(download);
+      setStatusMessage(t('exportStarted'));
+    } catch {
+      setStatusMessage(t('exportUnavailable'));
+    }
+  }
+
+  async function submitMockHandoff() {
+    if (!pendingHandoff) return;
+    try {
+      await actions.mockHandoff.mutateAsync({ target: pendingHandoff });
+      setStatusMessage(t('mockHandoffRecorded'));
+      setPendingHandoff(null);
+    } catch {
+      setStatusMessage(t('mockHandoffUnavailable'));
     }
   }
 
@@ -176,6 +205,50 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           <p className="mt-3 text-slate-700">{t('noExtractedFields')}</p>
         )}
       </section>
+      {canUseApprovedOutput ? (
+        <section
+          className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+          data-testid="approved-output-actions"
+        >
+          <div>
+            <h2 className="text-xl font-semibold">{t('approvedOutputTitle')}</h2>
+            <p className="mt-2 text-slate-700">{t('approvedOutputDescription')}</p>
+          </div>
+          <div>
+            <h3 className="font-semibold">{t('exportTitle')}</h3>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {exportFormats.map((exportFormat) => (
+                <Button
+                  data-testid={`approved-output-download-${exportFormat}`}
+                  disabled={isSubmitting}
+                  key={exportFormat}
+                  onClick={() => void downloadApprovedOutput(exportFormat)}
+                >
+                  {t(`exportFormat.${exportFormat}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-slate-200 pt-5">
+            <h3 className="font-semibold">{t('mockHandoffTitle')}</h3>
+            <Alert>
+              <p>{t('mockHandoffNotice')}</p>
+            </Alert>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {mockHandoffTargets.map((target) => (
+                <Button
+                  data-testid={`mock-handoff-${target}`}
+                  disabled={isSubmitting}
+                  key={target}
+                  onClick={() => setPendingHandoff(target)}
+                >
+                  {t(`mockHandoffTarget.${target}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold">{t('decisionTitle')}</h2>
         <p className="mt-2 text-slate-700">{t('decisionDescription')}</p>
@@ -266,6 +339,35 @@ function PacketContent({ approvalId }: { approvalId: string }) {
               {isSubmitting ? t('submitting') : t('confirm')}
             </Button>
             <Button disabled={isSubmitting} onClick={() => setPendingAction(null)}>
+              {t('cancel')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {pendingHandoff ? (
+        <div
+          aria-describedby="mock-handoff-confirm-description"
+          aria-labelledby="mock-handoff-confirm-title"
+          aria-modal="true"
+          className="rounded-xl border-2 border-sky-700 bg-sky-50 p-6"
+          data-testid="mock-handoff-confirmation"
+          role="alertdialog"
+        >
+          <h2 className="text-xl font-semibold" id="mock-handoff-confirm-title">
+            {t('mockHandoffConfirmTitle')}
+          </h2>
+          <p className="mt-2" id="mock-handoff-confirm-description">
+            {t('mockHandoffConfirmation', { target: t(`mockHandoffTarget.${pendingHandoff}`) })}
+          </p>
+          <div className="mt-4 flex gap-3">
+            <Button
+              data-testid="mock-handoff-confirm"
+              disabled={isSubmitting}
+              onClick={() => void submitMockHandoff()}
+            >
+              {isSubmitting ? t('submitting') : t('confirm')}
+            </Button>
+            <Button disabled={isSubmitting} onClick={() => setPendingHandoff(null)}>
               {t('cancel')}
             </Button>
           </div>

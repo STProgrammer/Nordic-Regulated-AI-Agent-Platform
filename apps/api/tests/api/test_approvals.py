@@ -10,9 +10,11 @@ from app.api.routes.workflows import workflow_run_data
 from app.api.schemas.approvals import (
     ApprovalCommentRequest,
     EditAndApproveRequest,
+    MockHandoffRequest,
     ReassignApprovalRequest,
 )
 from app.db.models.workflow import WorkflowRun
+from app.services.approvals.approved_output import MockHandoffTarget
 from pydantic import ValidationError
 
 
@@ -28,6 +30,7 @@ def test_approval_requests_reject_unknown_or_blank_browser_fields() -> None:
         == "Synthetic final text"
     )
     assert ReassignApprovalRequest.model_validate({"assigned_user_id": uuid4()}).assigned_user_id
+    assert MockHandoffRequest.model_validate({"target": "teams"}).target is MockHandoffTarget.TEAMS
     with pytest.raises(ValidationError):
         ApprovalCommentRequest.model_validate({"decision": "approve"})
     with pytest.raises(ValidationError):
@@ -36,6 +39,10 @@ def test_approval_requests_reject_unknown_or_blank_browser_fields() -> None:
         EditAndApproveRequest.model_validate({"final_text": " "})
     with pytest.raises(ValidationError):
         ReassignApprovalRequest.model_validate({"assigned_user_id": uuid4(), "risk": "high"})
+    with pytest.raises(ValidationError):
+        MockHandoffRequest.model_validate({"target": "webhook"})
+    with pytest.raises(ValidationError):
+        MockHandoffRequest.model_validate({"target": "email", "recipient": "unsafe@example"})
 
 
 def test_safe_workflow_status_supports_human_review_without_packet_content() -> None:

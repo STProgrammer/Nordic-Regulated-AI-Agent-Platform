@@ -745,6 +745,17 @@ export const editAndApproveInputSchema = approvalCommentInputSchema.extend({
 export const approvalReassignInputSchema = z
   .object({ assigned_user_id: z.string().uuid() })
   .strict();
+export const approvedOutputFormatSchema = z.enum(['json', 'csv', 'markdown', 'pdf']);
+export const mockHandoffTargetSchema = z.enum(['ticket', 'email', 'teams', 'archive']);
+export const mockHandoffInputSchema = z.object({ target: mockHandoffTargetSchema }).strict();
+export const mockHandoffResultSchema = z
+  .object({
+    approval_id: z.string().uuid(),
+    target: mockHandoffTargetSchema,
+    status: z.literal('recorded'),
+    mode: z.literal('mock'),
+  })
+  .strict();
 
 export function successEnvelopeSchema<DataSchema extends z.ZodType>(data: DataSchema) {
   return z.object({
@@ -899,6 +910,10 @@ export type ApprovalActionResult = z.infer<typeof approvalActionResultSchema>;
 export type ApprovalCommentInput = z.infer<typeof approvalCommentInputSchema>;
 export type EditAndApproveInput = z.infer<typeof editAndApproveInputSchema>;
 export type ApprovalReassignInput = z.infer<typeof approvalReassignInputSchema>;
+export type ApprovedOutputFormat = z.infer<typeof approvedOutputFormatSchema>;
+export type MockHandoffTarget = z.infer<typeof mockHandoffTargetSchema>;
+export type MockHandoffInput = z.infer<typeof mockHandoffInputSchema>;
+export type MockHandoffResult = z.infer<typeof mockHandoffResultSchema>;
 export type IntakeStartInput = z.infer<typeof intakeStartInputSchema>;
 export type EvidenceStartInput = z.infer<typeof evidenceStartInputSchema>;
 export type ExtractionStartInput = z.infer<typeof extractionStartInputSchema>;

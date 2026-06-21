@@ -22,6 +22,7 @@ from app.core.session_store import (
     get_redis_client,
 )
 from app.db.session import get_db_session
+from app.services.approvals.approved_output import ApprovedOutputService
 from app.services.approvals.service import ApprovalWorkflowService
 from app.services.audit.service import AuditService
 from app.services.auth.policy import ensure_roles, guard_tenant_resource
@@ -293,6 +294,14 @@ def get_approval_workflow_service(
     return ApprovalWorkflowService(session, dispatcher=CeleryWorkflowTaskDispatcher())
 
 
+def get_approved_output_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ApprovedOutputService:
+    """Construct the protected synchronous approved-output export boundary."""
+
+    return ApprovedOutputService(session)
+
+
 async def get_current_principal(
     request: Request,
     settings: Annotated[AppSettings, Depends(get_settings)],
@@ -381,6 +390,9 @@ RiskWorkflowServiceDependency = Annotated[RiskWorkflowService, Depends(get_risk_
 EvaluationServiceDependency = Annotated[EvaluationService, Depends(get_evaluation_service)]
 ApprovalWorkflowServiceDependency = Annotated[
     ApprovalWorkflowService, Depends(get_approval_workflow_service)
+]
+ApprovedOutputServiceDependency = Annotated[
+    ApprovedOutputService, Depends(get_approved_output_service)
 ]
 CurrentPrincipalDependency = Annotated[Principal, Depends(get_current_principal)]
 AdminPrincipalDependency = Annotated[Principal, Depends(require_roles(RoleName.ADMIN))]

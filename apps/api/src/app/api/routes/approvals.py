@@ -5,9 +5,13 @@ from uuid import UUID
 
 from agent_orchestrator.graphs.approval_types import ApprovalLifecycle, ReviewerDecision
 from agent_orchestrator.graphs.risk_types import FinalRiskLevel, RiskReason
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 
-from app.api.dependencies import ApprovalWorkflowServiceDependency, CurrentPrincipalDependency
+from app.api.dependencies import (
+    ApprovalWorkflowServiceDependency,
+    ApprovedOutputServiceDependency,
+    CurrentPrincipalDependency,
+)
 from app.api.schemas.approvals import (
     ApprovalActionResultData,
     ApprovalCommentRequest,
@@ -17,6 +21,8 @@ from app.api.schemas.approvals import (
     ApprovalReviewPacketData,
     ApprovalSourceData,
     EditAndApproveRequest,
+    MockHandoffData,
+    MockHandoffRequest,
     ReassignApprovalRequest,
 )
 from app.api.schemas.cases import CaseStatus
@@ -26,6 +32,7 @@ from app.api.schemas.common import (
     ResponseMeta,
     SuccessResponse,
 )
+from app.services.approvals.approved_output import ApprovedOutputFormat
 from app.services.approvals.service import (
     ApprovalActionSubmission,
     ApprovalQueueItem,
@@ -45,6 +52,11 @@ _APPROVAL_ERRORS = {
     404: {"model": ErrorResponse, "description": "The approval was not found."},
     409: {"model": ErrorResponse, "description": "The approval cannot be changed."},
     503: {"model": ErrorResponse, "description": "Workflow processing is unavailable."},
+}
+
+_APPROVED_OUTPUT_ERRORS = {
+    **_APPROVAL_ERRORS,
+    409: {"model": ErrorResponse, "description": "An approved terminal output is required."},
 }
 
 
@@ -203,6 +215,62 @@ async def reassign(
             decision=ReviewerDecision(approval.decision) if approval.decision is not None else None,
             case_id=approval.case_id,
             workflow_status="waiting_for_human_review",
+        ),
+        meta=_meta(request),
+    )
+
+
+@router.post(
+    "/{approval_id}/exports/{export_format}",
+    response_class=Response,
+    responses={
+        **_APPROVED_OUTPUT_ERRORS,
+        200: {
+            "content": {
+                "application/json": {"schema": {"type": "string"}},
+                "text/csv": {"schema": {"type": "string"}},
+                "text/markdown": {"schema": {"type": "string"}},
+                "application/pdf": {"schema": {"type": "string", "format": "binary"}},
+            },
+            "description": "A server-generated approved-output attachment.",
+        },
+    },
+    summary="Export one approved human-reviewed output in a fixed format",
+)
+async def export_approved_output(
+    approval_id: UUID,
+    export_format: ApprovedOutputFormat,
+    principal: CurrentPrincipalDependency,
+    outputs: ApprovedOutputServiceDependency,
+) -> Response:
+    rendered = await outputs.export(principal, approval_id, export_format=export_format)
+    return Response(
+        content=rendered.content,
+        media_type=rendered.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{rendered.filename}"'},
+    )
+
+
+@router.post(
+    "/{approval_id}/mock-handoffs",
+    response_model=SuccessResponse[MockHandoffData],
+    responses=_APPROVED_OUTPUT_ERRORS,
+    summary="Record one clearly simulated enterprise handoff for an approved output",
+)
+async def record_mock_handoff(
+    approval_id: UUID,
+    payload: MockHandoffRequest,
+    request: Request,
+    principal: CurrentPrincipalDependency,
+    outputs: ApprovedOutputServiceDependency,
+) -> SuccessResponse[MockHandoffData]:
+    record = await outputs.record_mock_handoff(principal, approval_id, target=payload.target)
+    return SuccessResponse(
+        data=MockHandoffData(
+            approval_id=record.approval_id,
+            target=record.target,
+            status="recorded",
+            mode="mock",
         ),
         meta=_meta(request),
     )

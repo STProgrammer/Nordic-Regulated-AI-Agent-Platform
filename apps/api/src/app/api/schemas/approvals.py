@@ -11,6 +11,7 @@ from agent_orchestrator.graphs.risk_types import FinalRiskLevel, RiskReason
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api.schemas.cases import CaseStatus
+from app.services.approvals.approved_output import MockHandoffTarget
 
 
 def _optional_comment(value: str | None) -> str | None:
@@ -55,6 +56,25 @@ class ReassignApprovalRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     assigned_user_id: UUID
+
+
+class MockHandoffRequest(BaseModel):
+    """One explicit mock destination; recipients and transport details stay server-owned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target: MockHandoffTarget
+
+
+class MockHandoffData(BaseModel):
+    """Safe confirmation of a simulated enterprise handoff record."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    approval_id: UUID
+    target: MockHandoffTarget
+    status: Literal["recorded"]
+    mode: Literal["mock"]
 
 
 class ApprovalSourceData(BaseModel):

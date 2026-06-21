@@ -28,7 +28,7 @@ def test_openapi_documents_health_paths() -> None:
     assert "/health/ready" in schema["paths"]
 
 
-def test_openapi_declares_the_phase_twenty_six_product_endpoints() -> None:
+def test_openapi_declares_the_phase_twenty_eight_product_endpoints() -> None:
     with _client() as client:
         schema = client.get("/openapi.json").json()
 
@@ -78,6 +78,8 @@ def test_openapi_declares_the_phase_twenty_six_product_endpoints() -> None:
         "/api/approvals/{approval_id}/reject",
         "/api/approvals/{approval_id}/request-more-evidence",
         "/api/approvals/{approval_id}/reassign",
+        "/api/approvals/{approval_id}/exports/{export_format}",
+        "/api/approvals/{approval_id}/mock-handoffs",
         "/api/admin/memory/settings",
         "/api/admin/memory/entries",
         "/api/admin/memory/entries/{memory_entry_id}",
@@ -124,6 +126,12 @@ def test_openapi_declares_cookie_security_for_protected_operations() -> None:
     assert schema["paths"]["/api/evaluations/runs/{evaluation_run_id}/report"]["post"][
         "security"
     ] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/approvals/{approval_id}/exports/{export_format}"]["post"][
+        "security"
+    ] == [{"SessionCookie": []}]
+    assert schema["paths"]["/api/approvals/{approval_id}/mock-handoffs"]["post"]["security"] == [
+        {"SessionCookie": []}
+    ]
     assert schema["paths"]["/api/cases/{case_id}/workflows/run"]["post"]["security"] == [
         {"SessionCookie": []}
     ]

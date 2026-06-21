@@ -19,8 +19,11 @@ def test_metrics_payload_declares_all_startup_guaranteed_metric_families() -> No
     assert "# HELP nordic_api_http_requests_total" in payload
     assert "# HELP nordic_workflow_runs_total" in payload
     assert "# HELP nordic_model_request_duration_seconds" in payload
-    assert "organization_id" not in payload
-    assert "case_id" not in payload
+    # Static route templates may legitimately contain names such as
+    # ``{case_id}``; assert that metrics never use tenant/resource ids as
+    # Prometheus label names or values instead.
+    assert 'organization_id="' not in payload
+    assert 'case_id="' not in payload
 
 
 def test_api_metric_uses_only_bounded_labels() -> None:

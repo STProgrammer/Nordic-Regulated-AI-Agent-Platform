@@ -195,7 +195,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add OpenTelemetry-compatible tracing hooks where appropriate.
 - Validation: Observability tests verify expected log fields, metrics emission, workflow timing, and safe error summaries.
 
-## Phase 28 — Export and Mock Enterprise Integrations
+## Phase 28 — Export and Mock Enterprise Integrations (DONE)
 
 - Implement exports for approved outputs in JSON, CSV, Markdown, and PDF report formats.
 - Add safe mock integrations for ticket handoff, email handoff, Teams-style notification, and document archive.

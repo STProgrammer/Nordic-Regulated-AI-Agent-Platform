@@ -102,6 +102,14 @@ test('reviewer resolves a pre-seeded human approval and the case worker sees app
   await expect(page.getByTestId('approval-final-text')).toHaveText(
     'Syntetisk menneskegodkjent slutttekst.',
   );
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('approved-output-download-pdf').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('approved-output.pdf');
+  await page.getByTestId('mock-handoff-teams').click();
+  await expect(page.getByTestId('mock-handoff-confirmation')).toBeVisible();
+  await page.getByTestId('mock-handoff-confirm').click();
+  await expect(page.getByText('Den simulerte overleveringen er registrert.')).toBeVisible();
 
   const workerContext = await browser.newContext();
   const workerPage = await workerContext.newPage();
