@@ -10,6 +10,7 @@ from app.core.logging import (
     get_logger,
     normalize_request_id,
 )
+from opentelemetry.sdk.trace import TracerProvider
 
 _HEX_32 = re.compile(r"\A[0-9a-f]{32}\Z")
 
@@ -90,6 +91,23 @@ def test_request_context_is_bound_and_cleared(
     lines = _json_lines(capsys.readouterr().out)
     assert lines[0]["request_id"] == "abc123"
     assert "request_id" not in lines[1]
+
+
+def test_json_logging_includes_active_generated_trace_ids(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_logging(AppSettings(environment="test", log_format="json"))
+    tracer = TracerProvider().get_tracer("test")
+
+    with tracer.start_as_current_span("safe.operation"):
+        get_logger("test.logger").info("with.trace")
+
+    record = _json_lines(capsys.readouterr().out)[0]
+    assert record["event"] == "with.trace"
+    assert len(str(record["trace_id"])) == 32
+    assert len(str(record["span_id"])) == 16
+    assert "prompt" not in record
+    assert "exception" not in record
 
 
 def test_normalize_request_id_passes_valid_value() -> None:

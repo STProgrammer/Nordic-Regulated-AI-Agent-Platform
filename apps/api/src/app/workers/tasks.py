@@ -54,6 +54,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import AppSettings, get_settings
 from app.core.logging import get_logger
+from app.core.observability import instrument_celery_task
 from app.db.models.workflow import WorkflowRun
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.document import DocumentRepository
@@ -934,6 +935,7 @@ async def _mark_index_exhausted(document_id: UUID, settings: AppSettings) -> Non
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("document.parse")
 def parse_document_task(task: Task, document_id: str) -> str:
     """Parse one UUID-only message with explicit transient retry behavior."""
 
@@ -972,6 +974,7 @@ def parse_document_task(task: Task, document_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("document.index")
 def index_document_task(task: Task, document_id: str) -> str:
     """Index one UUID-only message with explicit bounded retry behavior."""
 
@@ -1005,6 +1008,7 @@ def index_document_task(task: Task, document_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.intake")
 def run_intake_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only Intake task with bounded infrastructure retries."""
 
@@ -1030,6 +1034,7 @@ def run_intake_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.evidence")
 def run_evidence_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only Evidence task with the existing finite retry boundary."""
 
@@ -1057,6 +1062,7 @@ def run_evidence_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.extraction")
 def run_extraction_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only Extraction task with bounded infrastructure retries."""
 
@@ -1084,6 +1090,7 @@ def run_extraction_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.drafting")
 def run_drafting_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only Drafting task with bounded infrastructure retries."""
 
@@ -1111,6 +1118,7 @@ def run_drafting_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.risk_compliance")
 def run_risk_compliance_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only risk task with the established bounded retry boundary."""
 
@@ -1138,6 +1146,7 @@ def run_risk_compliance_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("workflow.approval")
 def run_human_approval_workflow_task(task: Task, workflow_run_id: str) -> str:
     """Execute one UUID-only approval interruption/resume task with finite retries."""
 
@@ -1165,6 +1174,7 @@ def run_human_approval_workflow_task(task: Task, workflow_run_id: str) -> str:
     acks_late=True,
     ignore_result=True,
 )
+@instrument_celery_task("evaluation.run")
 def run_evaluation_task(task: Task, evaluation_run_id: str) -> str:
     """Execute a UUID-only evaluation task with finite infrastructure retries."""
 

@@ -15,6 +15,7 @@ from evaluation.contracts import (
 from evaluation.runners import EvaluationRunReport, evaluate_dataset
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.observability import get_telemetry
 from app.db.models.evaluation import EvalCase, EvalDataset, EvalResult, EvalRun
 from app.db.repositories.evaluation import (
     EvaluationRepository,
@@ -205,7 +206,8 @@ class EvaluationService:
             await self._session.commit()
             return "failed"
         try:
-            report = evaluate_dataset(canonical)
+            with get_telemetry().span("evaluation.run", {"evaluation.operation": "run"}):
+                report = evaluate_dataset(canonical)
         except Exception:
             await self._mark_worker_failed(run, "deterministic_runner_failed")
             await self._session.commit()
@@ -323,6 +325,9 @@ class EvaluationService:
                     "passed_cases": report.passed_cases,
                 },
             )
+        )
+        get_telemetry().evaluation_cases(
+            passed_cases=report.passed_cases, total_cases=report.total_cases
         )
 
     async def _mark_dispatch_failed(self, run: EvalRun, principal: Principal) -> None:

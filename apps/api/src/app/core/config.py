@@ -47,6 +47,13 @@ class AppSettings(BaseSettings):
     log_level: LogLevel = "info"
     log_format: LogFormat = "console"
 
+    # Metrics are intentionally opt-in: production ingress must expose this
+    # unauthenticated operational endpoint only to an internal scraper.  The
+    # local Compose stack opts in explicitly for developer inspection.
+    metrics_enabled: bool = False
+    otlp_endpoint: str | None = None
+    otlp_export_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
+
     api_prefix: str = "/api"
     enable_docs: bool = True
 
@@ -197,6 +204,18 @@ class AppSettings(BaseSettings):
         trimmed = value.strip()
         if not trimmed or any(character.isspace() for character in trimmed):
             raise ValueError("session_cookie_name must be a non-empty token")
+        return trimmed
+
+    @field_validator("otlp_endpoint")
+    @classmethod
+    def _validate_otlp_endpoint(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        trimmed = value.strip().rstrip("/")
+        if not trimmed:
+            return None
+        if not trimmed.startswith(("http://", "https://")):
+            raise ValueError("otlp_endpoint must use http or https")
         return trimmed
 
     @field_validator("session_cookie_path")

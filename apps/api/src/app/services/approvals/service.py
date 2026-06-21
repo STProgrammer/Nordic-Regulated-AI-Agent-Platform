@@ -13,6 +13,7 @@ from agent_orchestrator.types import WorkflowContext
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.observability import get_telemetry
 from app.db.models.case import Case
 from app.db.models.document import Document
 from app.db.models.identity import Role, User, UserRole
@@ -352,7 +353,9 @@ class ApprovalWorkflowService:
                 event_data={"decision": decision.value, "workflow": APPROVAL_WORKFLOW_NAME},
             )
         )
-        await self.session.commit()
+        with get_telemetry().span("approval.decision", {"approval.decision": decision.value}):
+            await self.session.commit()
+        get_telemetry().approval_decision(decision=decision.value)
         if self._dispatcher is not None:
             try:
                 self._dispatcher.dispatch_human_approval(approval.workflow_run_id)

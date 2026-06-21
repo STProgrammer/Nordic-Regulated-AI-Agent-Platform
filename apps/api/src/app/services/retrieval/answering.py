@@ -11,6 +11,7 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.observability import get_telemetry
 from app.db.models.prompt import ModelUsageRecord
 from app.db.models.workflow import (
     AgentMessage,
@@ -254,7 +255,8 @@ class RagAnswerService:
         result: RagGenerationResult | None = None
         failure: RagGenerationFailure | None = None
         try:
-            result = await generator.generate(request)
+            with get_telemetry().span("model.request", {"model.operation": "rag_answer"}):
+                result = await generator.generate(request)
         except RagGenerationFailure as error:
             failure = error
         except Exception as error:
@@ -367,6 +369,24 @@ class RagAnswerService:
             )
         )
         await self._commit_terminal()
+        telemetry = get_telemetry()
+        telemetry.workflow_run(workflow_name=_WORKFLOW_NAME, outcome=run.status)
+        if generation is not None:
+            telemetry.model(
+                provider=generation.provider,
+                model=generation.model_name,
+                operation="rag_answer",
+                outcome="success",
+                latency_ms=generation.latency_ms,
+                token_input=generation.token_input,
+                token_output=generation.token_output,
+                cost_estimate=cost,
+            )
+        if result.outcome is RagAnswerOutcome.NEEDS_MORE_EVIDENCE:
+            reason = (
+                result.evidence_reason.value if result.evidence_reason is not None else "unknown"
+            )
+            telemetry.rag_refusal(reason=reason)
 
     async def _finalize_failure(
         self,
@@ -447,6 +467,19 @@ class RagAnswerService:
             )
         )
         await self._commit_terminal()
+        telemetry = get_telemetry()
+        telemetry.workflow_run(workflow_name=_WORKFLOW_NAME, outcome="failed")
+        if model_failure is not None:
+            telemetry.model(
+                provider=model_failure.provider,
+                model=model_failure.model_name,
+                operation="rag_answer",
+                outcome="failure",
+                latency_ms=model_failure.latency_ms,
+                token_input=model_failure.token_input,
+                token_output=model_failure.token_output,
+                cost_estimate=cost,
+            )
 
     async def _commit_terminal(self) -> None:
         try:

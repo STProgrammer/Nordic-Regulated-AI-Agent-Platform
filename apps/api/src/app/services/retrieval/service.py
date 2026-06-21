@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from time import perf_counter
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.observability import get_telemetry
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.retrieval import RetrievalRepository
 from app.db.repositories.workflow import WorkflowRunRepository
@@ -105,26 +107,34 @@ class RetrievalService:
             case.id,
             workflow_context,
         )
+        started = perf_counter()
+        telemetry = get_telemetry()
 
         try:
-            query_embedding = await self._embed_query(rewritten.semantic_query)
-            semantic_candidates = await self._repository.semantic_candidates(
-                query_embedding=query_embedding,
-                scope=scope,
-                candidate_limit=self._semantic_candidate_limit,
-                excerpt_fetch_characters=self._maximum_excerpt_characters + 1,
-            )
-            keyword_candidates = (
-                await self._repository.keyword_candidates(
-                    full_text_query=rewritten.full_text_query,
+            with telemetry.span("retrieval.search", {"retrieval.operation": "search"}):
+                query_embedding = await self._embed_query(rewritten.semantic_query)
+                semantic_candidates = await self._repository.semantic_candidates(
+                    query_embedding=query_embedding,
                     scope=scope,
-                    candidate_limit=self._keyword_candidate_limit,
+                    candidate_limit=self._semantic_candidate_limit,
                     excerpt_fetch_characters=self._maximum_excerpt_characters + 1,
                 )
-                if rewritten.full_text_query is not None
-                else ()
-            )
+                keyword_candidates = (
+                    await self._repository.keyword_candidates(
+                        full_text_query=rewritten.full_text_query,
+                        scope=scope,
+                        candidate_limit=self._keyword_candidate_limit,
+                        excerpt_fetch_characters=self._maximum_excerpt_characters + 1,
+                    )
+                    if rewritten.full_text_query is not None
+                    else ()
+                )
         except (EmbeddingError, SQLAlchemyError) as error:
+            telemetry.retrieval(
+                operation="search",
+                outcome="unavailable",
+                duration_ms=round((perf_counter() - started) * 1000),
+            )
             raise RetrievalUnavailableError() from error
 
         merged_candidates = merge_candidates(
@@ -170,7 +180,17 @@ class RetrievalService:
                 ),
             )
         except SQLAlchemyError as error:
+            telemetry.retrieval(
+                operation="search",
+                outcome="unavailable",
+                duration_ms=round((perf_counter() - started) * 1000),
+            )
             raise RetrievalUnavailableError() from error
+        telemetry.retrieval(
+            operation="search",
+            outcome="completed",
+            duration_ms=round((perf_counter() - started) * 1000),
+        )
         return results
 
     async def _embed_query(self, query: str) -> list[float]:

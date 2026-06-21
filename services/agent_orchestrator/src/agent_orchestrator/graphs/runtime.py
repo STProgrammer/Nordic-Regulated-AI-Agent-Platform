@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, ValidationError
 
 from agent_orchestrator.errors import ControlledWorkflowError
+from agent_orchestrator.observability import AgentTelemetry, get_agent_telemetry
 from agent_orchestrator.persistence.ports import WorkflowPersistence
 from agent_orchestrator.state.snapshots import node_summary, state_snapshot
 from agent_orchestrator.types import RetryPolicy, RuntimeStatus, TerminalOutcome, WorkflowContext
@@ -59,6 +60,27 @@ class GraphRuntime[StateModel: BaseModel]:
     ) -> GraphRunResult[StateModel]:
         """Claim one queued/paused run, execute explicit edges, and persist its outcome."""
 
+        telemetry = get_agent_telemetry()
+        with telemetry.span("workflow.run", {"workflow.name": context.workflow_name}):
+            return await self._run(
+                context,
+                initial_state,
+                nodes,
+                claim_mode=claim_mode,
+                telemetry=telemetry,
+            )
+
+    async def _run(
+        self,
+        context: WorkflowContext,
+        initial_state: StateModel,
+        nodes: tuple[GraphNode[StateModel], ...],
+        *,
+        claim_mode: Literal["queued", "paused"],
+        telemetry: AgentTelemetry,
+    ) -> GraphRunResult[StateModel]:
+        """Execute the graph after the process has installed its telemetry adapter."""
+
         started = time.monotonic()
         claimed = (
             await self._persistence.claim_run(context)
@@ -66,6 +88,7 @@ class GraphRuntime[StateModel: BaseModel]:
             else await self._persistence.claim_paused_run(context)
         )
         if not claimed:
+            telemetry.workflow_run(workflow_name=context.workflow_name, outcome="failed")
             return GraphRunResult(
                 state=initial_state,
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="run_not_claimed"),
@@ -75,7 +98,7 @@ class GraphRuntime[StateModel: BaseModel]:
         for node in nodes:
             # LangGraph's generic node overload cannot express a runtime-selected
             # Pydantic subclass despite the handler accepting that exact state model.
-            graph.add_node(node.name, self._wrapped_node(context, node))  # type: ignore[call-overload]
+            graph.add_node(node.name, self._wrapped_node(context, node, telemetry))  # type: ignore[call-overload]
             graph.add_edge(previous, node.name)
             previous = node.name
         graph.add_edge(previous, END)
@@ -91,6 +114,7 @@ class GraphRuntime[StateModel: BaseModel]:
                 duration_ms=_duration_ms(started),
                 error_code=error.code,
             )
+            telemetry.workflow_run(workflow_name=context.workflow_name, outcome="failed")
             return GraphRunResult(
                 state=failed_state,
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code=error.code),
@@ -103,6 +127,7 @@ class GraphRuntime[StateModel: BaseModel]:
                 duration_ms=_duration_ms(started),
                 error_code="invalid_state_update",
             )
+            telemetry.workflow_run(workflow_name=context.workflow_name, outcome="failed")
             return GraphRunResult(
                 state=failed_state,
                 outcome=TerminalOutcome(
@@ -117,6 +142,7 @@ class GraphRuntime[StateModel: BaseModel]:
                 duration_ms=_duration_ms(started),
                 error_code="runtime_failure",
             )
+            telemetry.workflow_run(workflow_name=context.workflow_name, outcome="failed")
             return GraphRunResult(
                 state=failed_state,
                 outcome=TerminalOutcome(status=RuntimeStatus.FAILED, error_code="runtime_failure"),
@@ -128,6 +154,10 @@ class GraphRuntime[StateModel: BaseModel]:
                 context,
                 state_snapshot=_snapshot(context, paused_state),
                 duration_ms=_duration_ms(started),
+            )
+            telemetry.workflow_run(
+                workflow_name=context.workflow_name,
+                outcome=RuntimeStatus.WAITING_FOR_HUMAN_REVIEW.value,
             )
             return GraphRunResult(
                 state=paused_state,
@@ -145,6 +175,7 @@ class GraphRuntime[StateModel: BaseModel]:
             state_snapshot=_snapshot(context, completed_state),
             duration_ms=_duration_ms(started),
         )
+        telemetry.workflow_run(workflow_name=context.workflow_name, outcome=terminal_status.value)
         return GraphRunResult(
             state=completed_state,
             outcome=TerminalOutcome(
@@ -160,7 +191,7 @@ class GraphRuntime[StateModel: BaseModel]:
         )
 
     def _wrapped_node(
-        self, context: WorkflowContext, node: GraphNode[StateModel]
+        self, context: WorkflowContext, node: GraphNode[StateModel], telemetry: AgentTelemetry
     ) -> Callable[[StateModel], Awaitable[StateModel]]:
         async def wrapped(raw_state: StateModel) -> StateModel:
             state = self._state_model.model_validate(raw_state)
@@ -174,7 +205,11 @@ class GraphRuntime[StateModel: BaseModel]:
                 )
                 started = time.monotonic()
                 try:
-                    update = dict(await node.handler(state))
+                    with telemetry.span(
+                        "workflow.node",
+                        {"workflow.name": context.workflow_name, "workflow.node.name": node.name},
+                    ):
+                        update = dict(await node.handler(state))
                     candidate = self._state_model.model_validate(
                         {**state.model_dump(mode="python"), **update}
                     )
@@ -189,6 +224,12 @@ class GraphRuntime[StateModel: BaseModel]:
                         retry_count=retry_count,
                         error_code=error.code,
                     )
+                    telemetry.workflow_node(
+                        workflow_name=context.workflow_name,
+                        node_name=node.name,
+                        outcome="failed",
+                        duration_ms=duration,
+                    )
                     if (
                         error.retryable
                         and error.code in self._retry_policy.retryable_codes
@@ -198,34 +239,55 @@ class GraphRuntime[StateModel: BaseModel]:
                         continue
                     raise
                 except ValidationError as error:
+                    duration = _duration_ms(started)
                     await self._persistence.finish_node(
                         context,
                         node_run_id=node_run_id,
                         status=RuntimeStatus.FAILED,
                         output_summary=node_summary(state, outcome_code="invalid_state_update"),
-                        duration_ms=_duration_ms(started),
+                        duration_ms=duration,
                         retry_count=retry_count,
                         error_code="invalid_state_update",
                     )
+                    telemetry.workflow_node(
+                        workflow_name=context.workflow_name,
+                        node_name=node.name,
+                        outcome="failed",
+                        duration_ms=duration,
+                    )
                     raise ControlledWorkflowError("invalid_state_update") from error
                 except Exception as error:
+                    duration = _duration_ms(started)
                     await self._persistence.finish_node(
                         context,
                         node_run_id=node_run_id,
                         status=RuntimeStatus.FAILED,
                         output_summary=node_summary(state, outcome_code="node_failed"),
-                        duration_ms=_duration_ms(started),
+                        duration_ms=duration,
                         retry_count=retry_count,
                         error_code="node_failed",
                     )
+                    telemetry.workflow_node(
+                        workflow_name=context.workflow_name,
+                        node_name=node.name,
+                        outcome="failed",
+                        duration_ms=duration,
+                    )
                     raise ControlledWorkflowError("node_failed") from error
+                duration = _duration_ms(started)
                 await self._persistence.finish_node(
                     context,
                     node_run_id=node_run_id,
                     status=RuntimeStatus.COMPLETED,
                     output_summary=node_summary(candidate),
-                    duration_ms=_duration_ms(started),
+                    duration_ms=duration,
                     retry_count=retry_count,
+                )
+                telemetry.workflow_node(
+                    workflow_name=context.workflow_name,
+                    node_name=node.name,
+                    outcome="completed",
+                    duration_ms=duration,
                 )
                 return candidate
 

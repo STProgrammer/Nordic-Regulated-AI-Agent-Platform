@@ -62,6 +62,7 @@ services:
       NORDIC_API_DOCUMENT_INDEXER_TASK_MAX_RETRIES: ${NORDIC_API_DOCUMENT_INDEXER_TASK_MAX_RETRIES:-3}
       NORDIC_API_DOCUMENT_INDEXER_RECONCILIATION_INTERVAL_SECONDS: ${NORDIC_API_DOCUMENT_INDEXER_RECONCILIATION_INTERVAL_SECONDS:-60}
       NORDIC_API_DOCUMENT_INDEXER_PROCESSING_LEASE_SECONDS: ${NORDIC_API_DOCUMENT_INDEXER_PROCESSING_LEASE_SECONDS:-600}
+      NORDIC_API_METRICS_ENABLED: ${NORDIC_API_METRICS_ENABLED:-true}
     ports:
       - '127.0.0.1:${API_HOST_PORT:-8000}:8000'
     depends_on:
@@ -103,7 +104,9 @@ services:
         '--beat',
         '--loglevel=WARNING',
       ]
-    environment: *health_environment
+    environment:
+      <<: *health_environment
+      NORDIC_API_SERVICE_NAME: nordic-regulated-ai-worker
     depends_on:
       postgres:
         condition: service_healthy

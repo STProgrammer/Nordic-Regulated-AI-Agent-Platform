@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from agent_orchestrator.config import AgentSettings
 from agent_orchestrator.errors import InvalidModelOutputError, ProviderUnavailableError
 from agent_orchestrator.model_providers.base import ModelCompletion, StructuredModelRequest
+from agent_orchestrator.observability import get_agent_telemetry
 from agent_orchestrator.types import ModelUsage
 
 
@@ -50,27 +51,33 @@ class OpenAIModelProvider:
     async def complete(self, request: StructuredModelRequest) -> ModelCompletion:
         started = time.monotonic()
         try:
-            completion: Any = await self._get_client().chat.completions.create(
-                model=self._settings.model,
-                messages=[
-                    {"role": "system", "content": request.prompt.content},
-                    {"role": "user", "content": json.dumps(dict(request.input_payload))},
-                ],
-                response_format={"type": "json_object"},
-                max_tokens=self._settings.max_output_tokens,
-            )
+            with get_agent_telemetry().span(
+                "model.request", {"model.operation": request.operation}
+            ):
+                completion: Any = await self._get_client().chat.completions.create(
+                    model=self._settings.model,
+                    messages=[
+                        {"role": "system", "content": request.prompt.content},
+                        {"role": "user", "content": json.dumps(dict(request.input_payload))},
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=self._settings.max_output_tokens,
+                )
             content = completion.choices[0].message.content
             if not isinstance(content, str):
                 raise InvalidModelOutputError()
             output = request.output_model.model_validate_json(content).model_dump(mode="json")
         except InvalidModelOutputError:
+            _record_failure(request, self._settings, started)
             raise
         except (IndexError, TypeError, ValueError, ValidationError, json.JSONDecodeError) as error:
+            _record_failure(request, self._settings, started)
             raise InvalidModelOutputError() from error
         except Exception as error:
+            _record_failure(request, self._settings, started)
             raise ProviderUnavailableError() from error
         usage = getattr(completion, "usage", None)
-        return ModelCompletion(
+        result = ModelCompletion(
             output=output,
             usage=ModelUsage(
                 provider=self._settings.provider,
@@ -82,8 +89,30 @@ class OpenAIModelProvider:
                 success=True,
             ),
         )
+        get_agent_telemetry().model(
+            provider=result.usage.provider,
+            model=result.usage.model_name,
+            operation=result.usage.operation,
+            outcome="success",
+            latency_ms=result.usage.latency_ms,
+            token_input=result.usage.token_input,
+            token_output=result.usage.token_output,
+        )
+        return result
 
 
 def _usage_value(usage: object, field: str) -> int | None:
     value = getattr(usage, field, None)
     return value if isinstance(value, int) and value >= 0 else None
+
+
+def _record_failure(
+    request: StructuredModelRequest, settings: AgentSettings, started: float
+) -> None:
+    get_agent_telemetry().model(
+        provider=settings.provider,
+        model=settings.model,
+        operation=request.operation,
+        outcome="failure",
+        latency_ms=max(0, int((time.monotonic() - started) * 1000)),
+    )

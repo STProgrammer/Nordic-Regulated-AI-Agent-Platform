@@ -168,6 +168,27 @@ connection strings, exception details, or stack traces.
   emits validated inline citation labels, or returns a normal safe refusal. All other product groups
   remain operation-free until their own phases.
 
+### Observability and local metrics
+
+Phase 27 adds structured, content-free lifecycle logs and bounded metrics for API requests,
+retrieval, workflows and nodes, model usage, document parsing failures, deterministic evaluation
+results, approval decisions, and source-grounded refusals. Metrics never use organization, user,
+case, document, request, query, source, or error-text labels.
+
+The local Compose API enables the unauthenticated Prometheus endpoint at
+`http://127.0.0.1:8000/metrics`; production ingress must leave it disabled or restrict it to an
+internal scraper. Trigger an API request before checking its request metric:
+
+```bash
+curl -fsS http://127.0.0.1:8000/openapi.json >/dev/null
+curl -fsS http://127.0.0.1:8000/metrics | rg '^nordic_api_http_'
+```
+
+Set `NORDIC_API_OTLP_ENDPOINT` to an internal OTLP HTTP collector base URL to export safe trace
+spans. No collector, cloud-monitoring resource, client telemetry, or external-model call is needed
+for local automated validation. Celery task payloads remain UUID-only; trace context, when present,
+uses only W3C `traceparent`/`tracestate` task headers.
+
 ### Secure document upload and private storage
 
 Use `POST /api/documents/upload` in local Swagger (`http://127.0.0.1:8000/docs`) only after the

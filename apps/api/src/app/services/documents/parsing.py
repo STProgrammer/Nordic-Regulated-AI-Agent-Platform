@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
+from app.core.observability import get_telemetry
 from app.db.models.document import Document
 from app.db.repositories.document import DocumentRepository
 from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
@@ -71,13 +72,14 @@ class DocumentParseCoordinator:
             return ParseProcessOutcome.TRANSIENT_FAILURE
 
         try:
-            payload = await self._verified_payload(document)
-            parsed = self.registry.parse(file_type=document.file_type, payload=payload)
-            language = detect_language(
-                parsed.extracted_text,
-                minimum_characters=self.language_minimum_characters,
-                confidence_threshold=self.language_confidence_threshold,
-            )
+            with get_telemetry().span("document.parse", {"document.operation": "parse"}):
+                payload = await self._verified_payload(document)
+                parsed = self.registry.parse(file_type=document.file_type, payload=payload)
+                language = detect_language(
+                    parsed.extracted_text,
+                    minimum_characters=self.language_minimum_characters,
+                    confidence_threshold=self.language_confidence_threshold,
+                )
         except ParseFailure as error:
             await self._record_permanent_failure(document_id, error)
             return ParseProcessOutcome.PERMANENT_FAILURE
@@ -153,6 +155,7 @@ class DocumentParseCoordinator:
                             "failure_code": "infrastructure_unavailable",
                         },
                     )
+                    get_telemetry().parsing_failure(outcome="infrastructure_unavailable")
         except SQLAlchemyError as error:
             _logger.warning(
                 "document.retry_exhaustion_persist_unavailable",
@@ -188,6 +191,7 @@ class DocumentParseCoordinator:
                             "failure_code": failure.code.value,
                         },
                     )
+                    get_telemetry().parsing_failure(outcome=failure.code.value)
         except SQLAlchemyError as error:
             _logger.warning(
                 "document.parse_failure_persist_unavailable",

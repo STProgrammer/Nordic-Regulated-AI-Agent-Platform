@@ -31,6 +31,28 @@ implementation, tests, and validation checks pass within its defined scope.
 | 24    | Controlled LangMem Memory              | DONE   |
 | 25    | Evaluation Dataset and Deterministic Evaluation Runner | DONE   |
 | 26    | AI Quality Evaluation Dashboard        | DONE   |
+| 27    | Cost, Latency, Metrics, and Observability | DONE   |
+
+## Phase 27 — Cost, Latency, Metrics, and Observability (DONE)
+
+Completed on 2026-06-21.
+
+Delivered safe, process-wide observability without a schema migration, browser telemetry, dashboard,
+collector, or cloud-monitoring resource. The API now provides an opt-in, unversioned Prometheus
+`/metrics` endpoint (enabled only by local Compose), safe structured request/worker/service logs,
+and optional OTLP trace export. Metric labels are deliberately bounded and exclude organization,
+user, case, document, request, query, source, prompt, and exception data.
+
+API request latency/count, retrieval latency, workflow/node outcomes and timing, model latency/token
+usage/known cost, parsing failures, deterministic evaluation outcomes, approval decisions, and RAG
+refusals are emitted through one process-local façade. Worker task spans propagate only W3C headers;
+all Celery bodies remain their existing UUID-only argument. Existing persistence, workflow state,
+pricing semantics, and Phase 26 UI projections are unchanged.
+
+Validation: focused observability/API/service/integration and deterministic agent tests passed; Ruff,
+strict mypy, repository formatting, and `git diff --check` passed. The rebuilt local stack passed
+`pnpm verify:local-stack`; an explicit `GET /openapi.json` trigger was followed by a successful
+`/metrics` check for `nordic_api_http_*` samples. The stack was then shut down cleanly.
 
 ## Phase 26 — AI Quality Evaluation Dashboard (DONE)
 

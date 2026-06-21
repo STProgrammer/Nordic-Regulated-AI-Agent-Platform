@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from agent_orchestrator.observability import configure_agent_telemetry
 from celery import Celery  # type: ignore[import-untyped]
 from kombu import Queue  # type: ignore[import-untyped]
 
 from app.core.config import get_settings
+from app.core.logging import configure_logging
+from app.core.observability import configure_observability, get_telemetry
 
 _settings = get_settings()
+configure_logging(_settings)
+configure_observability(_settings)
+configure_agent_telemetry(get_telemetry())
 
 celery_app = Celery(
     "nordic_document_parser",

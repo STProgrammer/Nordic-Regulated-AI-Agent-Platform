@@ -188,7 +188,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add evaluation report export for portfolio and review use.
 - Validation: Frontend, API, and integration tests verify evaluation run listing, result detail, failure display, and dashboard metrics.
 
-## Phase 27 — Cost, Latency, Metrics, and Observability
+## Phase 27 — Cost, Latency, Metrics, and Observability (DONE)
 
 - Add structured logging across frontend-relevant API flows, backend services, workers, retrieval, model providers, and LangGraph nodes.
 - Add metrics for API latency, workflow runs, node latency, retrieval latency, model latency, token usage, estimated cost, parsing failures, evaluation pass rate, approval rate, and refusal rate.

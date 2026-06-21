@@ -12,6 +12,7 @@ import re
 from uuid import uuid4
 
 import structlog
+from opentelemetry import trace
 from structlog.contextvars import bind_contextvars, clear_contextvars
 from structlog.typing import EventDict, Processor, WrappedLogger
 
@@ -42,6 +43,19 @@ def _static_context_processor(service: str, environment: str) -> Processor:
     return processor
 
 
+def _trace_context_processor() -> Processor:
+    """Attach only generated trace identifiers when an OTLP span is active."""
+
+    def processor(_logger: WrappedLogger, _method_name: str, event_dict: EventDict) -> EventDict:
+        context = trace.get_current_span().get_span_context()
+        if context.is_valid:
+            event_dict.setdefault("trace_id", format(context.trace_id, "032x"))
+            event_dict.setdefault("span_id", format(context.span_id, "016x"))
+        return event_dict
+
+    return processor
+
+
 def configure_logging(settings: AppSettings) -> None:
     """Configure structlog idempotently for the given settings.
 
@@ -60,6 +74,7 @@ def configure_logging(settings: AppSettings) -> None:
         processors=[
             structlog.contextvars.merge_contextvars,
             _static_context_processor(settings.service_name, settings.environment),
+            _trace_context_processor(),
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             renderer,

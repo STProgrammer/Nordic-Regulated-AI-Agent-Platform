@@ -20,6 +20,7 @@ from app.core.logging import (
     get_logger,
     normalize_request_id,
 )
+from app.core.observability import get_telemetry
 
 _INCOMPLETE_RESPONSE_STATUS = 500
 
@@ -65,17 +66,30 @@ class RequestContextMiddleware:
                 headers[self.header_name] = request_id
             await send(message)
 
-        try:
-            await self.app(scope, receive, send_with_request_id)
-        finally:
-            duration_ms = round((perf_counter() - started_at) * 1000, 3)
-            route = scope.get("route")
-            path = getattr(route, "path", request.url.path)
-            self._logger.info(
-                "request.completed",
-                method=request.method,
-                path=path,
-                status=status_code,
-                duration_ms=duration_ms,
-            )
-            clear_request_context()
+        route_path = request.url.path
+        telemetry = get_telemetry()
+        with telemetry.span(
+            "http.request",
+            {"http.request.method": request.method},
+        ):
+            try:
+                await self.app(scope, receive, send_with_request_id)
+            finally:
+                duration_ms = round((perf_counter() - started_at) * 1000, 3)
+                route = scope.get("route")
+                route_path = getattr(route, "path", request.url.path)
+                if route_path != "/metrics":
+                    telemetry.api_request(
+                        method=request.method,
+                        route=route_path,
+                        status_code=status_code,
+                        duration_ms=duration_ms,
+                    )
+                self._logger.info(
+                    "request.completed",
+                    method=request.method,
+                    path=route_path,
+                    status=status_code,
+                    duration_ms=duration_ms,
+                )
+                clear_request_context()
