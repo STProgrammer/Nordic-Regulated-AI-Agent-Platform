@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from langdetect import (  # type: ignore[import-not-found]
+from langdetect import (  # type: ignore[import-untyped]
     DetectorFactory,
     LangDetectException,
     detect_langs,

@@ -63,7 +63,7 @@ describe('CaseInbox', () => {
       'aria-describedby',
       'case-table-scroll-hint',
     );
-    expect(screen.getByText('Bla vannrett for å se alle kolonnene.')).toBeInTheDocument();
+    expect(screen.getByText('Skroll vannrett for å se alle kolonnene.')).toBeInTheDocument();
     expect(screen.getByTestId('case-table-viewport')).toHaveClass('nordic-table-viewport');
     expect(screen.getByTestId('case-table-scrollbar-top')).toHaveClass(
       'nordic-table-scrollbar-top',

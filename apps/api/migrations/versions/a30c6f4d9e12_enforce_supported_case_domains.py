@@ -15,14 +15,16 @@ branch_labels = None
 depends_on = None
 
 _SUPPORTED_DOMAINS = "'public_sector', 'banking', 'energy', 'internal_policy'"
+_DOMAIN_REPAIR_SQL = (
+    "UPDATE cases SET domain = 'internal_policy' "
+    "WHERE domain NOT IN ('public_sector', 'banking', 'energy', 'internal_policy')"
+)
 
 
 def upgrade() -> None:
     """Map legacy synthetic values to internal policy before closing the database contract."""
 
-    op.execute(
-        f"UPDATE cases SET domain = 'internal_policy' WHERE domain NOT IN ({_SUPPORTED_DOMAINS})"
-    )
+    op.execute(_DOMAIN_REPAIR_SQL)
     op.create_check_constraint(
         "domain_allowed",
         "cases",
