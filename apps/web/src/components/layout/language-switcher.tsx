@@ -40,11 +40,15 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div aria-label={t('label')} className="flex items-center gap-1" role="group">
+    <div
+      aria-label={t('label')}
+      className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 p-1"
+      role="group"
+    >
       {supportedLocales.map((supportedLocale) => (
         <button
           aria-pressed={locale === supportedLocale}
-          className="rounded px-2 py-1 text-sm font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 aria-pressed:bg-slate-900 aria-pressed:text-white"
+          className="min-h-9 rounded-md px-3 py-1 text-sm font-semibold text-slate-800 transition hover:bg-slate-200 aria-pressed:bg-[#123c5a] aria-pressed:text-white"
           key={supportedLocale}
           lang={supportedLocale}
           disabled={preference.isPending}

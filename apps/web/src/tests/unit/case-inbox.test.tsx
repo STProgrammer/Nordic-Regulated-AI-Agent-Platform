@@ -59,6 +59,15 @@ describe('CaseInbox', () => {
       `/nb/cases/${item.case_id}`,
     );
     expect(screen.getByText('Ikke vurdert')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Saker i saksinnboksen' })).toHaveAttribute(
+      'aria-describedby',
+      'case-table-scroll-hint',
+    );
+    expect(screen.getByText('Bla vannrett for å se alle kolonnene.')).toBeInTheDocument();
+    expect(screen.getByTestId('case-table-viewport')).toHaveClass('nordic-table-viewport');
+    expect(screen.getByTestId('case-table-scrollbar-top')).toHaveClass(
+      'nordic-table-scrollbar-top',
+    );
     await actor.type(screen.getByLabelText('Søk i saker'), 'syntetisk');
     await actor.click(screen.getByRole('button', { name: 'Bruk filtre' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/nb/cases?q=syntetisk'));

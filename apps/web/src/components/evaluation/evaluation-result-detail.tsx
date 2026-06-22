@@ -62,7 +62,7 @@ export function EvaluationResultDetail({
               <h1 className="text-3xl font-semibold tracking-tight">{t('resultDetail')}</h1>
               <p className="mt-2 text-slate-700">{result.data.case_key}</p>
             </header>
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="nordic-surface nordic-card">
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-slate-700">{t('caseKey')}</dt>
@@ -76,13 +76,13 @@ export function EvaluationResultDetail({
                 </div>
               </dl>
             </section>
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="nordic-surface nordic-card">
               <h2 className="text-xl font-semibold">{t('title')}</h2>
               <div className="mt-4">
                 <EvaluationResultMetrics result={result.data} />
               </div>
             </section>
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="nordic-surface nordic-card">
               <h2 className="text-xl font-semibold">{t('failureCodes')}</h2>
               {result.data.failure_codes.length ? (
                 <ul className="mt-3 list-disc space-y-1 pl-5">

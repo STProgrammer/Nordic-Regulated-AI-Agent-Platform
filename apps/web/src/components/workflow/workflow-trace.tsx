@@ -71,10 +71,7 @@ function TraceContent({ locale, trace }: { locale: AppLocale; trace: WorkflowTra
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="mt-2 text-slate-700">{t('description')}</p>
       </header>
-      <section
-        aria-labelledby="trace-summary"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
+      <section aria-labelledby="trace-summary" className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold" id="trace-summary">
           {t('summary')}
         </h2>
@@ -288,7 +285,7 @@ function SourceContextButton({ chunkId, documentId }: { chunkId: string; documen
 
 function TraceSection({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="nordic-surface nordic-card">
       <h2 className="text-xl font-semibold">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
@@ -297,8 +294,8 @@ function TraceSection({ children, title }: { children: ReactNode; title: string 
 
 function TraceTable({ children, headings }: { children: ReactNode; headings: string[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <div className="nordic-table-scroll-window">
+      <table className="nordic-table min-w-[48rem] text-left text-sm">
         <thead className="border-b border-slate-200 text-slate-700">
           <tr>
             {headings.map((heading) => (

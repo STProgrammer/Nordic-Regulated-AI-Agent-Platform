@@ -1,8 +1,20 @@
-import type { PropsWithChildren } from 'react';
+import type { HTMLAttributes, PropsWithChildren } from 'react';
 
-export function Alert({ children }: PropsWithChildren) {
+export type AlertTone = 'info' | 'success' | 'warning' | 'error';
+
+type AlertProps = PropsWithChildren<
+  HTMLAttributes<HTMLDivElement> & {
+    tone?: AlertTone;
+  }
+>;
+
+export function Alert({ children, className = '', role, tone = 'info', ...props }: AlertProps) {
   return (
-    <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-slate-900" role="alert">
+    <div
+      className={`nordic-notice nordic-notice-${tone} ${className}`}
+      role={role ?? (tone === 'error' ? 'alert' : undefined)}
+      {...props}
+    >
       {children}
     </div>
   );

@@ -73,10 +73,7 @@ export function IntakePanel({ caseId }: { caseId: string }) {
   });
 
   return (
-    <section
-      aria-labelledby="intake-title"
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
+    <section aria-labelledby="intake-title" className="nordic-surface nordic-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold" id="intake-title">

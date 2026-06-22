@@ -209,7 +209,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add security documentation for auth, RBAC, file handling, AI safety, secrets, and public demo restrictions.
 - Validation: Security tests and scans pass; no high-severity dependency findings are allowed; no secrets are detected in repository.
 
-## Phase 30 — Accessibility and Norwegian UX Polish
+## Phase 30 — Accessibility and Norwegian UX Polish (DONE)
 
 - Polish the UI for Norwegian Bokmål as default, English option, Norwegian date/number/currency formatting, clear enterprise language, and domain-relevant sample flows.
 - Improve keyboard navigation, labels, error messages, semantic structure, contrast, and non-color-only state indicators.

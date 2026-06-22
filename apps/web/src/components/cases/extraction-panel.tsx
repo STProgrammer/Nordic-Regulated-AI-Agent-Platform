@@ -81,10 +81,7 @@ export function ExtractionPanel({ caseId }: { caseId: string }) {
   const displayedRun = activeRun ?? persistedRun;
 
   return (
-    <section
-      aria-labelledby="extraction-title"
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
+    <section aria-labelledby="extraction-title" className="nordic-surface nordic-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold" id="extraction-title">
@@ -220,15 +217,15 @@ function ExtractionResult({
         ))}
       </ul>
       {contextField ? (
-        <div
-          aria-label={t('contextTitle')}
-          aria-modal="true"
+        <section
+          aria-labelledby="extraction-context-title"
           className="rounded-lg border border-slate-300 bg-slate-50 p-4"
-          role="dialog"
         >
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-semibold">{t('contextTitle')}</h3>
-            <Button onClick={() => setContextField(null)} type="button">
+            <h3 className="font-semibold" id="extraction-context-title">
+              {t('contextTitle')}
+            </h3>
+            <Button onClick={() => setContextField(null)} type="button" variant="secondary">
               {t('close')}
             </Button>
           </div>
@@ -237,7 +234,7 @@ function ExtractionResult({
           {context.data ? (
             <p className="mt-3 whitespace-pre-wrap text-slate-800">{context.data.context}</p>
           ) : null}
-        </div>
+        </section>
       ) : null}
     </div>
   );

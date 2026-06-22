@@ -122,7 +122,7 @@ export function CaseForm() {
     !currentUser.data.roles.some((role) => ['Admin', 'Case Worker', 'Manager'].includes(role))
   ) {
     return (
-      <Alert>
+      <Alert tone="warning">
         <p>{t('permissionDescription')}</p>
       </Alert>
     );
@@ -130,12 +130,12 @@ export function CaseForm() {
 
   return (
     <form
-      className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="nordic-surface nordic-card space-y-5"
       noValidate
       onSubmit={form.handleSubmit(submit)}
     >
       {submitFailure ? (
-        <Alert>
+        <Alert tone="error">
           <p aria-live="assertive" ref={errorRef} tabIndex={-1}>
             {t('submitError')}
           </p>
@@ -211,7 +211,7 @@ export function CaseForm() {
           {mutation.isPending ? t('submitting') : t('submit')}
         </Button>
         <Link
-          className="inline-flex min-h-10 items-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+          className="nordic-button nordic-button-secondary inline-flex items-center"
           href={`/${locale}/cases`}
         >
           {t('cancel')}
@@ -221,8 +221,7 @@ export function CaseForm() {
   );
 }
 
-const inputClass =
-  'mt-1 w-full rounded-md border border-slate-400 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700';
+const inputClass = 'nordic-field mt-1 w-full';
 type Registration = ReturnType<ReturnType<typeof useForm<CaseFormValues>>['register']>;
 function TextField({
   error,
@@ -264,7 +263,7 @@ function TextField({
         />
       )}
       {error ? (
-        <p className="mt-1 text-sm text-red-700" id={`${id}-error`}>
+        <p className="mt-1 text-sm font-medium text-[#b42318]" id={`${id}-error`}>
           {error}
         </p>
       ) : null}
@@ -299,7 +298,7 @@ function SelectField({
         {children}
       </select>
       {error ? (
-        <p className="mt-1 text-sm text-red-700" id={`${id}-error`}>
+        <p className="mt-1 text-sm font-medium text-[#b42318]" id={`${id}-error`}>
           {error}
         </p>
       ) : null}

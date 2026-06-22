@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { approvalsApi, saveApprovedOutput } from '@/lib/api/approvals';
 import type { ApprovedOutputFormat, MockHandoffTarget } from '@/lib/api/contracts';
 import { documentsApi } from '@/lib/api/documents';
@@ -154,10 +155,10 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           {t(`status.${data.approval_status}`)} · {t(`risk.${data.risk_level}`)}
         </p>
       </div>
-      {statusMessage ? <Alert>{statusMessage}</Alert> : null}
-      {assignedToAnother ? <Alert>{t('assignedToAnother')}</Alert> : null}
-      {!canReview && user.data ? <Alert>{t('unavailableForRole')}</Alert> : null}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      {statusMessage ? <Alert tone="success">{statusMessage}</Alert> : null}
+      {assignedToAnother ? <Alert tone="warning">{t('assignedToAnother')}</Alert> : null}
+      {!canReview && user.data ? <Alert tone="warning">{t('unavailableForRole')}</Alert> : null}
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('riskReasons')}</h2>
         {data.risk_reasons.length ? (
           <ul className="mt-3 list-disc space-y-1 pl-5">
@@ -169,9 +170,9 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           <p className="mt-3 text-slate-700">{t('noReasons')}</p>
         )}
       </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('originalDraft')}</h2>
-        <Alert>
+        <Alert tone="info">
           <p>{t('originalDraftNotice')}</p>
         </Alert>
         <p className="mt-4 whitespace-pre-wrap text-slate-800">{data.ai_draft}</p>
@@ -188,7 +189,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
         ) : null}
       </section>
       <SourceReferences sources={data.sources} title={t('sources')} />
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('extractedFields')}</h2>
         {data.extracted_fields.length ? (
           <ul className="mt-3 space-y-3">
@@ -207,7 +208,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
       </section>
       {canUseApprovedOutput ? (
         <section
-          className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="nordic-surface nordic-card space-y-5"
           data-testid="approved-output-actions"
         >
           <div>
@@ -231,7 +232,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           </div>
           <div className="border-t border-slate-200 pt-5">
             <h3 className="font-semibold">{t('mockHandoffTitle')}</h3>
-            <Alert>
+            <Alert tone="info">
               <p>{t('mockHandoffNotice')}</p>
             </Alert>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -249,7 +250,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
           </div>
         </section>
       ) : null}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('decisionTitle')}</h2>
         <p className="mt-2 text-slate-700">{t('decisionDescription')}</p>
         {canAct ? (
@@ -257,7 +258,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
             <label className="block">
               <span className="font-medium">{t('commentLabel')}</span>
               <textarea
-                className="mt-2 min-h-24 w-full rounded-md border border-slate-300 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                className="nordic-field mt-2 min-h-24 w-full"
                 maxLength={2000}
                 onChange={(event) => setComment(event.target.value)}
                 value={comment}
@@ -266,7 +267,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
             <label className="block">
               <span className="font-medium">{t('finalTextLabel')}</span>
               <textarea
-                className="mt-2 min-h-32 w-full rounded-md border border-slate-300 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                className="nordic-field mt-2 min-h-32 w-full"
                 data-testid="approval-final-text-input"
                 maxLength={20000}
                 onChange={(event) => setFinalText(event.target.value)}
@@ -299,7 +300,7 @@ function PacketContent({ approvalId }: { approvalId: string }) {
               <label className="block" htmlFor="approval-assignee">
                 <span className="font-medium">{t('reassignLabel')}</span>
                 <input
-                  className="mt-2 w-full rounded-md border border-slate-300 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                  className="nordic-field mt-2 w-full"
                   id="approval-assignee"
                   onChange={(event) => setAssignee(event.target.value)}
                   placeholder={t('reassignPlaceholder')}
@@ -316,20 +317,13 @@ function PacketContent({ approvalId }: { approvalId: string }) {
         )}
       </section>
       {pendingAction ? (
-        <div
-          aria-describedby="approval-confirm-description"
-          aria-labelledby="approval-confirm-title"
-          aria-modal="true"
-          className="rounded-xl border-2 border-sky-700 bg-sky-50 p-6"
-          data-testid="approval-decision-confirmation"
-          role="alertdialog"
+        <Dialog
+          description={t(`confirmation.${pendingAction}`)}
+          kind="alertdialog"
+          onClose={() => setPendingAction(null)}
+          testId="approval-decision-confirmation"
+          title={t('confirmTitle')}
         >
-          <h2 className="text-xl font-semibold" id="approval-confirm-title">
-            {t('confirmTitle')}
-          </h2>
-          <p className="mt-2" id="approval-confirm-description">
-            {t(`confirmation.${pendingAction}`)}
-          </p>
           <div className="mt-4 flex gap-3">
             <Button
               data-testid="approval-decision-confirm"
@@ -338,27 +332,26 @@ function PacketContent({ approvalId }: { approvalId: string }) {
             >
               {isSubmitting ? t('submitting') : t('confirm')}
             </Button>
-            <Button disabled={isSubmitting} onClick={() => setPendingAction(null)}>
+            <Button
+              disabled={isSubmitting}
+              onClick={() => setPendingAction(null)}
+              variant="secondary"
+            >
               {t('cancel')}
             </Button>
           </div>
-        </div>
+        </Dialog>
       ) : null}
       {pendingHandoff ? (
-        <div
-          aria-describedby="mock-handoff-confirm-description"
-          aria-labelledby="mock-handoff-confirm-title"
-          aria-modal="true"
-          className="rounded-xl border-2 border-sky-700 bg-sky-50 p-6"
-          data-testid="mock-handoff-confirmation"
-          role="alertdialog"
+        <Dialog
+          description={t('mockHandoffConfirmation', {
+            target: t(`mockHandoffTarget.${pendingHandoff}`),
+          })}
+          kind="alertdialog"
+          onClose={() => setPendingHandoff(null)}
+          testId="mock-handoff-confirmation"
+          title={t('mockHandoffConfirmTitle')}
         >
-          <h2 className="text-xl font-semibold" id="mock-handoff-confirm-title">
-            {t('mockHandoffConfirmTitle')}
-          </h2>
-          <p className="mt-2" id="mock-handoff-confirm-description">
-            {t('mockHandoffConfirmation', { target: t(`mockHandoffTarget.${pendingHandoff}`) })}
-          </p>
           <div className="mt-4 flex gap-3">
             <Button
               data-testid="mock-handoff-confirm"
@@ -367,11 +360,15 @@ function PacketContent({ approvalId }: { approvalId: string }) {
             >
               {isSubmitting ? t('submitting') : t('confirm')}
             </Button>
-            <Button disabled={isSubmitting} onClick={() => setPendingHandoff(null)}>
+            <Button
+              disabled={isSubmitting}
+              onClick={() => setPendingHandoff(null)}
+              variant="secondary"
+            >
               {t('cancel')}
             </Button>
           </div>
-        </div>
+        </Dialog>
       ) : null}
     </section>
   );
@@ -391,7 +388,7 @@ function SourceReferences({
       documentsApi.getContext(documentId, chunkId),
   });
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="nordic-surface nordic-card">
       <h2 className="text-xl font-semibold">{title}</h2>
       {sources.length ? (
         <ul className="mt-3 space-y-2">
@@ -416,15 +413,17 @@ function SourceReferences({
         <p className="mt-3 text-slate-700">{t('noSources')}</p>
       )}
       {selected ? (
-        <div
-          aria-label={t('contextTitle')}
-          aria-modal="true"
+        <section
+          aria-labelledby="approval-source-context-title"
           className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-4"
-          role="dialog"
         >
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-semibold">{t('contextTitle')}</h3>
-            <Button onClick={() => setSelected(null)}>{t('close')}</Button>
+            <h3 className="font-semibold" id="approval-source-context-title">
+              {t('contextTitle')}
+            </h3>
+            <Button onClick={() => setSelected(null)} variant="secondary">
+              {t('close')}
+            </Button>
           </div>
           {context.isPending ? <p className="mt-3">{t('contextLoading')}</p> : null}
           {context.isError ? <Alert>{t('contextUnavailable')}</Alert> : null}
@@ -434,7 +433,7 @@ function SourceReferences({
               <p className="mt-3 whitespace-pre-wrap text-slate-800">{context.data.context}</p>
             </>
           ) : null}
-        </div>
+        </section>
       ) : null}
     </section>
   );

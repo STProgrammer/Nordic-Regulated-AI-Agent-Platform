@@ -1,8 +1,10 @@
-import type { PropsWithChildren } from 'react';
+import type { HTMLAttributes, PropsWithChildren } from 'react';
 
-export function Card({ children }: PropsWithChildren) {
+type CardProps = PropsWithChildren<HTMLAttributes<HTMLElement>>;
+
+export function Card({ children, className = '', ...props }: CardProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className={`nordic-surface nordic-card ${className}`} {...props}>
       {children}
     </section>
   );

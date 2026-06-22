@@ -6,7 +6,16 @@ from datetime import date
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, ForeignKeyConstraint, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +31,10 @@ class Case(UUIDPrimaryKeyMixin, TimestampMixin, ArchivableMixin, Base):
 
     __tablename__ = "cases"
     __table_args__ = (
+        CheckConstraint(
+            "domain IN ('public_sector', 'banking', 'energy', 'internal_policy')",
+            name="domain_allowed",
+        ),
         ForeignKeyConstraint(
             ["organization_id", "assigned_user_id"],
             ["users.organization_id", "users.id"],

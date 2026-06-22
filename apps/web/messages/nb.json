@@ -78,6 +78,7 @@
     "allDomains": "Alle fagområder",
     "allPriorities": "Alle prioriteter",
     "tableCaption": "Saker i saksinnboksen",
+    "tableScrollHint": "Skroll vannrett for å se alle kolonnene.",
     "caseNumber": "Saksnummer",
     "caseTitle": "Tittel",
     "status": "Status",

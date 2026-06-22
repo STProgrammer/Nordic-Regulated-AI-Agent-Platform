@@ -27,7 +27,7 @@ export function ApprovalStatusPanel({ status }: { status: CaseStatus }) {
   return (
     <section
       aria-labelledby="approval-status-title"
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="nordic-surface nordic-card"
       data-case-status={status}
       data-testid="case-approval-status"
     >

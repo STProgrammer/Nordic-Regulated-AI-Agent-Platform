@@ -94,6 +94,14 @@ def test_baseline_migration_creates_postgresql_contract(
                 ).scalars()
             )
             assert extensions == {"pgcrypto", "vector"}
+        case_constraints = {
+            constraint["name"]: constraint["sqltext"]
+            for constraint in inspect(engine).get_check_constraints("cases")
+        }
+        assert "ck_cases_domain_allowed" in case_constraints
+        assert "public_sector" in case_constraints["ck_cases_domain_allowed"]
+        assert "internal_policy" in case_constraints["ck_cases_domain_allowed"]
+        with engine.connect() as connection:
             dimension = connection.execute(
                 text(
                     """
@@ -157,6 +165,60 @@ def test_baseline_migration_creates_postgresql_contract(
         engine.dispose()
 
 
+def test_case_domain_migration_repairs_legacy_synthetic_rows(
+    database_settings: AppSettings,
+) -> None:
+    """An old unconstrained fixture must not make the Case Inbox unavailable after upgrade."""
+
+    organization_id = uuid4()
+    user_id = uuid4()
+    case_id = uuid4()
+    config = _alembic_config()
+    command.downgrade(config, "e25a1c6d7f90")
+
+    engine = create_engine(database_settings.database_sync_url())
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO organizations (id, name, slug, default_language) "
+                    "VALUES (:id, 'Legacy domain tenant', 'legacy-domain-tenant', 'nb')"
+                ),
+                {"id": organization_id},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO users ("
+                    "id, organization_id, email, display_name, preferred_language"
+                    ") "
+                    "VALUES (:id, :organization_id, 'legacy.domain@demo.invalid', "
+                    "'Legacy Domain User', 'nb')"
+                ),
+                {"id": user_id, "organization_id": organization_id},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO cases ("
+                    "id, organization_id, case_number, title, description, language, domain, "
+                    "priority, status, submitted_by_user_id"
+                    ") VALUES ("
+                    ":id, :organization_id, 'LEGACY-DOMAIN-1', 'Legacy domain case', "
+                    "'Synthetic migration record.', 'nb', 'testing', 'normal', 'new', :user_id"
+                    ")"
+                ),
+                {"id": case_id, "organization_id": organization_id, "user_id": user_id},
+            )
+
+        command.upgrade(config, "head")
+        with engine.connect() as connection:
+            repaired_domain = connection.execute(
+                text("SELECT domain FROM cases WHERE id = :id"), {"id": case_id}
+            ).scalar_one()
+        assert repaired_domain == "internal_policy"
+    finally:
+        engine.dispose()
+
+
 def test_human_approval_migration_normalizes_legacy_decisions(
     database_settings: AppSettings,
 ) -> None:
@@ -199,7 +261,8 @@ def test_human_approval_migration_normalizes_legacy_decisions(
                     )
                     VALUES (
                         :id, :organization_id, 'LEGACY-APPROVAL-1', 'Legacy approval case',
-                        'Synthetic migration record.', 'nb', 'testing', 'normal', 'new', :user_id
+                        'Synthetic migration record.', 'nb', 'internal_policy', 'normal', 'new',
+                        :user_id
                     )
                     """
                 ),
@@ -336,7 +399,7 @@ async def _exercise_records(settings: AppSettings) -> None:
                 title="Syntetisk sak",
                 description="Kun integrasjonstestdata.",
                 language="nb",
-                domain="testing",
+                domain="public_sector",
                 priority="normal",
                 status="new",
                 submitted_by_user_id=user.id,
@@ -347,7 +410,7 @@ async def _exercise_records(settings: AppSettings) -> None:
                 title="Isolert syntetisk sak",
                 description="Kun integrasjonstestdata.",
                 language="nb",
-                domain="testing",
+                domain="public_sector",
                 priority="normal",
                 status="new",
                 submitted_by_user_id=second_user.id,
@@ -566,6 +629,22 @@ async def _exercise_records(settings: AppSettings) -> None:
                             organization_id=organization.id,
                             case_number=case.case_number,
                             title="Duplicate case number",
+                            description="Synthetic constraint test.",
+                            language="nb",
+                            domain="public_sector",
+                            priority="normal",
+                            status="new",
+                            submitted_by_user_id=user.id,
+                        )
+                    )
+                    await session.flush()
+            with pytest.raises(IntegrityError):
+                async with session.begin_nested():
+                    session.add(
+                        Case(
+                            organization_id=organization.id,
+                            case_number="INVALID-DOMAIN",
+                            title="Invalid domain case",
                             description="Synthetic constraint test.",
                             language="nb",
                             domain="testing",

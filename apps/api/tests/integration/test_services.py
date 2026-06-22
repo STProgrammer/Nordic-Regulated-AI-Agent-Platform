@@ -84,7 +84,7 @@ async def _exercise_services(settings: AppSettings, tenant_seed: TenantSeed) -> 
                     title="Duplicate synthetic case",
                     description="Synthetic conflict check.",
                     language="nb",
-                    domain="testing",
+                    domain="public_sector",
                     priority="normal",
                 ),
             )

@@ -50,7 +50,7 @@ export function CaseDetail({ caseId }: { caseId: string }) {
     <ProtectedPage>
       <div className="space-y-6">
         <Link
-          className="inline-flex text-sky-800 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+          className="inline-flex font-semibold text-[#075985] underline underline-offset-2"
           href={inboxHref}
         >
           {t('backToInbox')}
@@ -127,11 +127,11 @@ function DetailContent({
           {caseData.title}
         </h1>
       </div>
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('fields.description')}</h2>
         <p className="mt-3 whitespace-pre-wrap text-slate-800">{caseData.description}</p>
       </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('title')}</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           {metadata.map(([term, description]) => (
@@ -152,7 +152,7 @@ function DetailContent({
       <ApprovalStatusPanel status={caseData.status} />
       <div className="grid gap-4 md:grid-cols-2">
         {futureKeys.map((key) => (
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" key={key}>
+          <section className="nordic-surface rounded-xl p-5" key={key}>
             <h2 className="font-semibold">{t(`futureTitles.${key}`)}</h2>
             <p className="mt-2 text-slate-700">{t(`future.${key}`)}</p>
           </section>

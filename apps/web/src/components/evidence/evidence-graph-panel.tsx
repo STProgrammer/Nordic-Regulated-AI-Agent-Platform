@@ -35,10 +35,7 @@ export function EvidenceGraphPanel({ caseId }: { caseId: string }) {
   const activeRun = status.data ?? run;
 
   return (
-    <section
-      aria-labelledby="evidence-graph-title"
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
+    <section aria-labelledby="evidence-graph-title" className="nordic-surface nordic-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold" id="evidence-graph-title">
@@ -124,15 +121,15 @@ function EvidenceResult({ run }: { run: WorkflowRun }) {
         </div>
       ) : null}
       {selected ? (
-        <div
-          aria-label={t('contextTitle')}
-          aria-modal="true"
+        <section
+          aria-labelledby="evidence-graph-context-title"
           className="rounded-lg border border-slate-300 bg-slate-50 p-4"
-          role="dialog"
         >
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-semibold">{t('contextTitle')}</h3>
-            <Button onClick={() => setSelected(null)} type="button">
+            <h3 className="font-semibold" id="evidence-graph-context-title">
+              {t('contextTitle')}
+            </h3>
+            <Button onClick={() => setSelected(null)} type="button" variant="secondary">
               {t('close')}
             </Button>
           </div>
@@ -146,7 +143,7 @@ function EvidenceResult({ run }: { run: WorkflowRun }) {
               </p>
             </>
           ) : null}
-        </div>
+        </section>
       ) : null}
     </div>
   );

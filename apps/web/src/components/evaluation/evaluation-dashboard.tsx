@@ -64,7 +64,7 @@ export function EvaluationDashboard() {
             <p className="rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-slate-800">
               {t('structuralFaithfulnessNote')}
             </p>
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="nordic-surface rounded-xl p-5">
               <label
                 className="block text-sm font-medium text-slate-800"
                 htmlFor="evaluation-dataset"
@@ -147,10 +147,7 @@ function DashboardContent({
   return (
     <>
       {latest ? (
-        <section
-          aria-labelledby="latest-evaluation-run"
-          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
+        <section aria-labelledby="latest-evaluation-run" className="nordic-surface nordic-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold" id="latest-evaluation-run">
@@ -175,20 +172,15 @@ function DashboardContent({
           </div>
         </section>
       ) : (
-        <p className="rounded-xl border border-slate-200 bg-white p-6 text-slate-700">
-          {t('empty')}
-        </p>
+        <p className="nordic-surface nordic-card text-slate-700">{t('empty')}</p>
       )}
-      <section
-        aria-labelledby="recent-evaluation-runs"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
+      <section aria-labelledby="recent-evaluation-runs" className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold" id="recent-evaluation-runs">
           {t('recentRuns')}
         </h2>
         {runs.items.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left">
+          <div className="nordic-table-scroll-window mt-4">
+            <table className="nordic-table min-w-[48rem] text-left">
               <thead className="border-b border-slate-200 text-sm text-slate-700">
                 <tr>
                   <th className="px-3 py-2" scope="col">

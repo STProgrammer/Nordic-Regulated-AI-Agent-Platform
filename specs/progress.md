@@ -34,6 +34,22 @@ implementation, tests, and validation checks pass within its defined scope.
 | 27    | Cost, Latency, Metrics, and Observability | DONE   |
 | 28    | Export and Mock Enterprise Integrations | DONE   |
 | 29    | Security Hardening                     | DONE   |
+| 30    | Accessibility and Norwegian UX Polish   | DONE   |
+
+## Phase 30 — Accessibility and Norwegian UX Polish (DONE)
+
+Completed on 2026-06-22.
+
+Delivered the Nordic civic visual system across the web application, accessible UI variants and a
+reusable focus-managed dialog, improved semantic landmarks and state treatments, Norwegian/English
+formatting coverage, and focused axe/keyboard browser coverage. Wide tables retain real native
+horizontal scrolling with visible native scrollbar styling; no simulated scroll controls are used.
+
+Validation: focused web unit tests (47 passed), web lint, type-check, production build, frozen lockfile
+install, and final `git diff --check` passed. The focused Playwright accessibility run remained blocked
+by the local environment's missing `chromium_headless_shell` binary after the permitted retry. The user
+manually verified the live local UI and explicitly accepted that manual validation fallback before this
+phase was marked complete.
 
 ## Phase 29 — Security Hardening (DONE)
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { CaseErrorPanel } from '@/components/cases/case-error-panel';
@@ -103,7 +103,7 @@ export function CaseInbox() {
           </div>
           {hasCreatePermission ? (
             <Link
-              className="inline-flex min-h-10 items-center rounded-md bg-slate-900 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+              className="nordic-button nordic-button-primary inline-flex items-center"
               href={`/${locale}/cases/new`}
             >
               {t('newCase')}
@@ -111,12 +111,12 @@ export function CaseInbox() {
           ) : null}
         </div>
         {currentUser.data && !hasCreatePermission ? (
-          <Alert>
+          <Alert tone="warning">
             <p>{t('permissionDescription')}</p>
           </Alert>
         ) : null}
         <form
-          className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-3"
+          className="nordic-surface grid gap-4 rounded-xl p-5 md:grid-cols-2 xl:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault();
             applyFilters();
@@ -128,7 +128,7 @@ export function CaseInbox() {
             </label>
             <input
               aria-describedby="case-search-hint"
-              className="mt-1 w-full rounded-md border border-slate-400 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+              className="nordic-field mt-1 w-full"
               id="case-search"
               onChange={(event) => updateDraft('query', event.target.value || undefined)}
               placeholder={t('searchPlaceholder')}
@@ -205,10 +205,7 @@ export function CaseInbox() {
           </FilterSelect>
           <div className="flex items-end gap-3">
             <Button type="submit">{t('applyFilters')}</Button>
-            <Button
-              className="bg-white text-slate-900 ring-1 ring-slate-300 hover:bg-slate-100"
-              onClick={clearFilters}
-            >
+            <Button onClick={clearFilters} variant="secondary">
               {t('clearFilters')}
             </Button>
           </div>
@@ -245,9 +242,49 @@ export function CaseInbox() {
     onPage: (offset: number) => void;
   }) {
     const data = list.data!;
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const viewportRef = useRef<HTMLDivElement>(null);
+    const tableRef = useRef<HTMLTableElement>(null);
+    const [tableWidth, setTableWidth] = useState(0);
+
+    useEffect(() => {
+      const topScroll = topScrollRef.current;
+      const viewport = viewportRef.current;
+      const table = tableRef.current;
+      if (!topScroll || !viewport || !table) return;
+
+      let synchronizing = false;
+      const updateWidth = () => setTableWidth(table.scrollWidth);
+      const syncFromTop = () => {
+        if (synchronizing) return;
+        synchronizing = true;
+        viewport.scrollLeft = topScroll.scrollLeft;
+        synchronizing = false;
+      };
+      const syncFromViewport = () => {
+        if (synchronizing) return;
+        synchronizing = true;
+        topScroll.scrollLeft = viewport.scrollLeft;
+        synchronizing = false;
+      };
+
+      updateWidth();
+      topScroll.addEventListener('scroll', syncFromTop);
+      viewport.addEventListener('scroll', syncFromViewport);
+      const observer =
+        typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateWidth);
+      observer?.observe(table);
+
+      return () => {
+        topScroll.removeEventListener('scroll', syncFromTop);
+        viewport.removeEventListener('scroll', syncFromViewport);
+        observer?.disconnect();
+      };
+    }, [data.items.length]);
+
     if (!data.items.length)
       return (
-        <Alert>
+        <Alert tone="info">
           <h2 className="font-semibold">
             {t(hasCaseFilters(currentFilters) ? 'filterEmptyTitle' : 'emptyTitle')}
           </h2>
@@ -263,75 +300,100 @@ export function CaseInbox() {
         : t('unassigned');
     return (
       <>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="min-w-full text-left text-sm">
-            <caption className="sr-only">{t('tableCaption')}</caption>
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                {[
-                  t('caseNumber'),
-                  t('caseTitle'),
-                  t('status'),
-                  t('priority'),
-                  t('risk'),
-                  t('assignee'),
-                  t('dueDate'),
-                  t('updated'),
-                  t('domain'),
-                  t('workflow'),
-                ].map((heading) => (
-                  <th
-                    className="whitespace-nowrap px-3 py-3 font-semibold"
-                    key={heading}
-                    scope="col"
-                  >
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item) => (
-                <tr className="border-b border-slate-100 last:border-0" key={item.case_id}>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <Link
-                      className="font-medium text-sky-800 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-                      href={`/${currentLocale}/cases/${item.case_id}`}
+        <div className="nordic-data-table overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="font-semibold text-slate-900">{t('tableCaption')}</p>
+            <p className="text-sm text-slate-700" id="case-table-scroll-hint">
+              {t('tableScrollHint')}
+            </p>
+          </div>
+          <div
+            aria-label={t('tableScrollHint')}
+            className="nordic-table-scrollbar-top"
+            data-testid="case-table-scrollbar-top"
+            ref={topScrollRef}
+            tabIndex={0}
+          >
+            <div style={{ width: tableWidth }} />
+          </div>
+          <div
+            aria-describedby="case-table-scroll-hint"
+            aria-label={t('tableCaption')}
+            className="nordic-table-viewport"
+            data-testid="case-table-viewport"
+            ref={viewportRef}
+            role="region"
+            tabIndex={0}
+          >
+            <table className="nordic-table min-w-[72rem] text-left text-sm" ref={tableRef}>
+              <caption className="sr-only">{t('tableCaption')}</caption>
+              <thead>
+                <tr>
+                  {[
+                    t('caseNumber'),
+                    t('caseTitle'),
+                    t('status'),
+                    t('priority'),
+                    t('risk'),
+                    t('assignee'),
+                    t('dueDate'),
+                    t('updated'),
+                    t('domain'),
+                    t('workflow'),
+                  ].map((heading) => (
+                    <th
+                      className="whitespace-nowrap px-3 py-3 font-semibold"
+                      key={heading}
+                      scope="col"
                     >
-                      {item.case_number}
-                    </Link>
-                  </td>
-                  <td className="min-w-48 px-3 py-3">{item.title}</td>
-                  <td className="px-3 py-3">
-                    <StatusBadge value={item.status} />
-                  </td>
-                  <td className="px-3 py-3">
-                    <PriorityBadge value={item.priority} />
-                  </td>
-                  <td className="px-3 py-3">
-                    <RiskBadge value={item.risk_level} />
-                  </td>
-                  <td className="px-3 py-3">{nameFor(item.assigned_user_id)}</td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    {item.due_date ? (
-                      <time dateTime={item.due_date}>
-                        {formatCalendarDate(item.due_date, currentLocale)}
-                      </time>
-                    ) : (
-                      t('noDueDate')
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <time dateTime={item.updated_at}>
-                      {formatTimestamp(item.updated_at, currentLocale)}
-                    </time>
-                  </td>
-                  <td className="px-3 py-3">{t(domainMessageKey[item.domain])}</td>
-                  <td className="px-3 py-3">{t('workflowUnavailable')}</td>
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.items.map((item) => (
+                  <tr key={item.case_id}>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <Link
+                        className="font-semibold text-[#075985] underline underline-offset-2"
+                        href={`/${currentLocale}/cases/${item.case_id}`}
+                      >
+                        {item.case_number}
+                      </Link>
+                    </td>
+                    <td className="min-w-48 px-3 py-3">{item.title}</td>
+                    <td className="px-3 py-3">
+                      <StatusBadge value={item.status} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <PriorityBadge value={item.priority} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <RiskBadge value={item.risk_level} />
+                    </td>
+                    <td className="px-3 py-3">{nameFor(item.assigned_user_id)}</td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      {item.due_date ? (
+                        <time dateTime={item.due_date}>
+                          {formatCalendarDate(item.due_date, currentLocale)}
+                        </time>
+                      ) : (
+                        t('noDueDate')
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <time dateTime={item.updated_at}>
+                        {formatTimestamp(item.updated_at, currentLocale)}
+                      </time>
+                    </td>
+                    <td className="px-3 py-3">{t(domainMessageKey[item.domain])}</td>
+                    <td className="px-3 py-3">{t('workflowUnavailable')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
         <nav aria-label={t('title')} className="flex items-center justify-between gap-4">
           <Button
@@ -369,7 +431,7 @@ function FilterSelect({
         {label}
       </label>
       <select
-        className="mt-1 w-full rounded-md border border-slate-400 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className="nordic-field mt-1 w-full"
         id={id}
         onChange={(event) => onChange(event.target.value)}
         value={value}

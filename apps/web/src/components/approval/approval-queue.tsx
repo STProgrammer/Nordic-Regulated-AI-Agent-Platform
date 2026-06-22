@@ -38,7 +38,7 @@ export function ApprovalQueue() {
           <ul aria-label={t('queueLabel')} className="space-y-3">
             {queue.data.items.map((item) => (
               <li
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="nordic-surface rounded-xl p-5"
                 data-testid={`approval-queue-item-${item.approval_id}`}
                 key={item.approval_id}
               >

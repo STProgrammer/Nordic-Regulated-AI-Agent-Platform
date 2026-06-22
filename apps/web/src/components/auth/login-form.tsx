@@ -80,7 +80,7 @@ export function LoginForm() {
   return (
     <form className="space-y-5" noValidate onSubmit={form.handleSubmit(submit)}>
       {submissionError !== null ? (
-        <Alert>
+        <Alert tone="error">
           <p aria-live="assertive" ref={errorRef} tabIndex={-1}>
             {errorMessage(submissionError, t)}
           </p>
@@ -99,7 +99,7 @@ export function LoginForm() {
           aria-describedby={emailError ? 'email-hint email-error' : 'email-hint'}
           aria-invalid={Boolean(emailError)}
           autoComplete="username"
-          className="mt-1 w-full rounded-md border border-slate-400 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+          className="nordic-field mt-1 w-full"
           id="email"
           inputMode="email"
           {...form.register('email')}
@@ -108,7 +108,7 @@ export function LoginForm() {
           {t('emailHint')}
         </p>
         {emailError ? (
-          <p className="mt-1 text-sm text-red-700" id="email-error">
+          <p className="mt-1 text-sm font-medium text-[#b42318]" id="email-error">
             {t('emailRequired')}
           </p>
         ) : null}
@@ -121,13 +121,13 @@ export function LoginForm() {
           aria-describedby={passwordError ? 'password-error' : undefined}
           aria-invalid={Boolean(passwordError)}
           autoComplete="current-password"
-          className="mt-1 w-full rounded-md border border-slate-400 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+          className="nordic-field mt-1 w-full"
           id="password"
           type="password"
           {...form.register('password')}
         />
         {passwordError ? (
-          <p className="mt-1 text-sm text-red-700" id="password-error">
+          <p className="mt-1 text-sm font-medium text-[#b42318]" id="password-error">
             {passwordError.type === 'too_big' ? t('passwordTooLong') : t('passwordRequired')}
           </p>
         ) : null}

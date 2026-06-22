@@ -61,10 +61,7 @@ export function AuditTrail() {
           <h1 className="text-3xl font-semibold tracking-tight">{t('title')}</h1>
           <p className="mt-2 text-slate-700">{t('description')}</p>
         </header>
-        <form
-          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          onSubmit={submit}
-        >
+        <form className="nordic-surface nordic-card" onSubmit={submit}>
           <h2 className="text-xl font-semibold">{t('filters')}</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <FilterInput
@@ -146,14 +143,14 @@ export function AuditTrail() {
     const data = audit.data;
     if (!data) return null;
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-xl font-semibold">{t('events')}</h2>
           <p className="text-sm text-slate-700">{t('results', { count: data.total })}</p>
         </div>
         {data.items.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="nordic-table-scroll-window mt-4">
+            <table className="nordic-table min-w-[52rem] text-left text-sm">
               <caption className="sr-only">{t('tableCaption')}</caption>
               <thead className="border-b border-slate-200">
                 <tr>

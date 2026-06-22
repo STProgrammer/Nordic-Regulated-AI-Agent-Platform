@@ -109,7 +109,7 @@ function RunContent({
         ) : null}
       </header>
       {reportError ? <Alert>{t('reportUnavailable')}</Alert> : null}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <DetailValue label={t('status')} value={t(`statusValue.${run.status}`)} />
           <DetailValue label={t('passFail')} value={t(`passFailValue.${run.pass_fail}`)} />
@@ -136,10 +136,7 @@ function RunContent({
           />
         </dl>
       </section>
-      <section
-        aria-labelledby="evaluation-run-metrics"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
+      <section aria-labelledby="evaluation-run-metrics" className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold" id="evaluation-run-metrics">
           {t('title')}
         </h2>
@@ -147,7 +144,7 @@ function RunContent({
           <EvaluationMetrics metrics={run.metrics} />
         </div>
       </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('failureCodes')}</h2>
         {run.metrics.failure_code_counts.length ? (
           <ul className="mt-3 list-disc space-y-1 pl-5">
@@ -161,11 +158,11 @@ function RunContent({
           <p className="mt-3 text-slate-700">{t('noFailureCodes')}</p>
         )}
       </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('results')}</h2>
         {results.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left">
+          <div className="nordic-table-scroll-window mt-4">
+            <table className="nordic-table min-w-[44rem] text-left">
               <thead className="border-b border-slate-200 text-sm text-slate-700">
                 <tr>
                   <th className="px-3 py-2" scope="col">

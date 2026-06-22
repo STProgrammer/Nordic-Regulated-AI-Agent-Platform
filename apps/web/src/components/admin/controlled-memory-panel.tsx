@@ -120,7 +120,7 @@ export function ControlledMemoryPanel() {
         <p className="mt-1">{t('allowedDescription')}</p>
         <p className="mt-1">{t('forbiddenDescription')}</p>
       </Alert>
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="nordic-surface rounded-xl p-5">
         <h2 className="text-xl font-semibold">{t('settingTitle')}</h2>
         {settings.isPending ? (
           <p className="mt-2" role="status">
@@ -142,7 +142,7 @@ export function ControlledMemoryPanel() {
         ) : null}
       </div>
       <form
-        className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+        className="nordic-surface space-y-4 rounded-xl p-5"
         onSubmit={(event) => {
           event.preventDefault();
           void save();
@@ -186,10 +186,7 @@ export function ControlledMemoryPanel() {
         {entries.data?.items.length === 0 ? <p>{t('empty')}</p> : null}
         <ul aria-label={t('entriesTitle')} className="space-y-3">
           {entries.data?.items.map((entry) => (
-            <li
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-              key={entry.memory_entry_id}
-            >
+            <li className="nordic-surface rounded-xl p-5" key={entry.memory_entry_id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{entryTitle(entry, t)}</h3>

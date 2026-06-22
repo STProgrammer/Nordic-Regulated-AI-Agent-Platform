@@ -27,10 +27,7 @@ export function DocumentsSection({ caseId }: { caseId: string }) {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
   return (
-    <section
-      aria-labelledby="documents-title"
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
+    <section aria-labelledby="documents-title" className="nordic-surface nordic-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl font-semibold" id="documents-title">
           {t('title')}

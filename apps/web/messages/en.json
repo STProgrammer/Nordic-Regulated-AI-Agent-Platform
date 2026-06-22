@@ -78,6 +78,7 @@
     "allDomains": "All domains",
     "allPriorities": "All priorities",
     "tableCaption": "Cases in the case inbox",
+    "tableScrollHint": "Scroll horizontally to view all columns.",
     "caseNumber": "Case number",
     "caseTitle": "Title",
     "status": "Status",

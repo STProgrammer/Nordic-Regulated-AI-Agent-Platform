@@ -76,24 +76,24 @@ export function ApplicationShell({ children, user }: PropsWithChildren<{ user: C
   const tNavigation = useTranslations('navigation');
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="nordic-canvas min-h-screen text-slate-950">
       <a
-        className="sr-only fixed left-4 top-4 z-50 rounded bg-white px-4 py-2 font-medium shadow focus:not-sr-only focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className="sr-only fixed left-4 top-4 z-50 rounded-lg bg-white px-4 py-3 font-semibold text-slate-950 shadow-lg focus:not-sr-only"
         href="#main-content"
       >
         {tNavigation('skipToContent')}
       </a>
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-300 bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
-            <p className="text-lg font-semibold tracking-tight">{tApp('name')}</p>
-            <p className="text-sm text-slate-600">{tAccount('label')}</p>
+            <p className="text-lg font-bold tracking-tight text-slate-900">{tApp('name')}</p>
+            <p className="text-sm text-slate-700">{tAccount('label')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <LanguageSwitcher />
-            <div className="border-l border-slate-200 pl-3 text-right text-sm">
+            <div className="border-l border-slate-300 pl-3 text-right text-sm">
               <p className="font-medium">{user.display_name}</p>
-              <p className="text-slate-600">
+              <p className="text-slate-700">
                 {user.roles.map((role) => roleLabel(role, tAccount)).join(', ')}
               </p>
             </div>
@@ -101,9 +101,9 @@ export function ApplicationShell({ children, user }: PropsWithChildren<{ user: C
           </div>
         </div>
       </header>
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:py-8">
         <nav aria-label={tNavigation('label')} className="lg:w-56">
-          <ul className="flex flex-wrap gap-2 lg:flex-col">
+          <ul className="flex flex-wrap gap-2 rounded-xl border border-slate-300 bg-white/85 p-2 shadow-sm lg:flex-col">
             {navigationItems.map((item) => {
               const href = `/${locale}${item.href}`;
               const active =
@@ -112,10 +112,10 @@ export function ApplicationShell({ children, user }: PropsWithChildren<{ user: C
                 <li key={item.href}>
                   <Link
                     aria-current={active ? 'page' : undefined}
-                    className={`inline-flex rounded-md border px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${
+                    className={`inline-flex min-h-11 w-full items-center rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                       active
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-300 bg-white text-slate-800 hover:border-slate-500'
+                        ? 'border-[#123c5a] bg-[#123c5a] text-white shadow-sm'
+                        : 'border-transparent bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                     href={href}
                   >
