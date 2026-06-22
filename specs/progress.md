@@ -41,26 +41,21 @@ implementation, tests, and validation checks pass within its defined scope.
 
 ## Phase 33 — Full Bug Fix and Full Test Pass (DONE)
 
-Completed on 2026-06-22.
+Revalidated on 2026-06-23 at commit `79640c6` after the later worker snapshot and web API-client
+refactors. The earlier Phase 33 record was stale because its validation preceded those committed
+changes. Current review confirmed the refactors preserve existing public contracts; no additional
+Phase 33 source or test changes were required.
 
-Resolved four focused reliability defects exposed by the complete validation pass: the same-origin
-API proxy now forwards `Content-Disposition` for server-owned approved-output and evaluation
-attachments; local fixture seeding serializes shared identity setup with a PostgreSQL transaction
-advisory lock; controlled-memory browser fixtures send their configured same-origin `Origin` for
-CSRF-protected direct API setup; and the case-table scroll region has valid labelled landmark
-semantics. The accessibility browser check now accommodates Next.js development tooling's portal
-before asserting the first application-owned keyboard target. Focused unit and integration
-regressions cover the forwarding, landmark, and concurrent-seed behavior. No public interface or
-feature was added.
-
-Validation: locked pnpm/uv installs and lock checks, workspace validation, formatting, lint, type
-checks, the full backend suites (310 passed, 1 intentional optional skip), web unit suite (50
-passed), deterministic agent/evaluation tests (40 passed) and canonical evaluator (4/4), and
-security checks passed. A clean deterministic local stack migrated to `a30c6f4d9e12`, exposed
-parseable OpenAPI, and passed `pnpm verify:local-stack`. The complete Playwright suite passed (7
-passed). Production images built successfully; Trivy scans for API, web, and worker passed at the
-HIGH/CRITICAL fixed-finding threshold; and `pnpm release:validate` passed and removed its release
-Compose resources. Final scope review and `git diff --check` passed.
+Validation: frozen pnpm/uv installs and lock checks, workspace validation, formatting, lint, and
+type checks passed. Backend unit, integration, and API suites passed (205 passed; 25 passed, 1
+intentional optional skip; 80 passed); the web suite passed (50); deterministic agent/evaluation
+tests passed (40), and the canonical evaluator passed all 4 cases. Security checks passed; the
+production Node audit reports three moderate findings and no findings at the configured high-severity
+threshold. A deterministic local stack migrated to `a30c6f4d9e12`, exposed parseable OpenAPI JSON,
+and passed `pnpm verify:local-stack`. The complete Playwright suite passed (7 passed). Production
+images built, Trivy scans of API/web/worker passed at the HIGH/CRITICAL fixed-finding threshold, and
+`pnpm release:validate` passed with a clean release-stack teardown. Development Compose resources
+were also shut down. Final scope review and `git diff --check` passed.
 
 ## Phase 32 — Production Docker Images and Release Build (DONE)
 
