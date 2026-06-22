@@ -35,6 +35,25 @@ implementation, tests, and validation checks pass within its defined scope.
 | 28    | Export and Mock Enterprise Integrations | DONE   |
 | 29    | Security Hardening                     | DONE   |
 | 30    | Accessibility and Norwegian UX Polish   | DONE   |
+| 31    | CI Pipeline                             | DONE   |
+
+## Phase 31 — CI Pipeline (DONE)
+
+Completed on 2026-06-22.
+
+Delivered a validation-only GitHub Actions workflow for every pull request and every push to
+`main`. It exposes the documented ten stable checks covering backend quality/unit/integration/API
+coverage, frontend quality/unit coverage, deterministic AI regression, security scans, development
+container builds, and a deterministic Compose migration/OpenAPI/focused approval-browser smoke.
+The workflow has read-only repository permission, uses no secrets or external AI credentials, and
+does not publish images, access cloud resources, or deploy services. The smoke check uses the
+GitHub-hosted runner's Chrome binary and uploads only the generated OpenAPI JSON artifact.
+
+Validation: all ten checks passed on PR #1 and again on the resulting `main` push, including
+Testcontainers integration tests, Compose image builds, Alembic migration/status, JSON-validated
+`/openapi.json`, and the focused Playwright approval journey. Local workflow/configuration checks
+and final `git diff --check` passed. Final scope review confirmed that no Phase 32 release-image,
+registry, scanning, or deployment work was added.
 
 ## Phase 30 — Accessibility and Norwegian UX Polish (DONE)
 

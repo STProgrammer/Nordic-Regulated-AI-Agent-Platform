@@ -217,7 +217,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add axe-core accessibility checks for critical pages.
 - Validation: Frontend accessibility tests pass; Playwright verifies language switching, Norwegian formatting, and critical keyboard navigation.
 
-## Phase 31 — CI Pipeline
+## Phase 31 — CI Pipeline (DONE)
 
 - Add GitHub Actions pull request pipeline for backend linting, backend type checks, backend unit tests, backend integration tests, API contract tests, frontend linting, frontend type checks, frontend unit tests, Playwright smoke tests, deterministic AI regression tests, dependency scanning, and container build checks.
 - Add branch protection expectations and CI status documentation.
