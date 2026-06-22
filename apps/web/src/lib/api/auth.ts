@@ -1,6 +1,7 @@
 import {
   apiRequest,
   currentUserSchema,
+  jsonRequest,
   logoutDataSchema,
   type CurrentUser,
   languagePreferenceInputSchema,
@@ -13,11 +14,7 @@ export const authApi = {
   },
 
   login(input: LoginInput): Promise<CurrentUser> {
-    return apiRequest('/api/auth/login', currentUserSchema, {
-      body: JSON.stringify(input),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest('/api/auth/login', currentUserSchema, jsonRequest('POST', input));
   },
 
   logout(): Promise<{ logged_out: true }> {
@@ -25,12 +22,13 @@ export const authApi = {
   },
 
   updatePreferredLanguage(preferredLanguage: 'nb' | 'en'): Promise<CurrentUser> {
-    return apiRequest('/api/auth/me/preferred-language', currentUserSchema, {
-      body: JSON.stringify(
+    return apiRequest(
+      '/api/auth/me/preferred-language',
+      currentUserSchema,
+      jsonRequest(
+        'PUT',
         languagePreferenceInputSchema.parse({ preferred_language: preferredLanguage }),
       ),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'PUT',
-    });
+    );
   },
 };

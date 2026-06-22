@@ -7,6 +7,7 @@ import {
   extractionStartInputSchema,
   intakeCorrectionInputSchema,
   intakeStartInputSchema,
+  jsonRequest,
   riskComplianceStartInputSchema,
   workflowTraceSchema,
   workflowRunSchema,
@@ -21,48 +22,49 @@ function runPath(runId: string): string {
 
 export const workflowsApi = {
   startIntake(caseId: string): Promise<WorkflowRun> {
-    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
-      body: JSON.stringify(intakeStartInputSchema.parse({ workflow: 'intake' })),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      `/api/cases/${encodeURIComponent(caseId)}/workflows/run`,
+      workflowRunSchema,
+      jsonRequest('POST', intakeStartInputSchema.parse({ workflow: 'intake' })),
+    );
   },
 
   startEvidence(caseId: string): Promise<WorkflowRun> {
-    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
-      body: JSON.stringify(evidenceStartInputSchema.parse({ workflow: 'evidence' })),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      `/api/cases/${encodeURIComponent(caseId)}/workflows/run`,
+      workflowRunSchema,
+      jsonRequest('POST', evidenceStartInputSchema.parse({ workflow: 'evidence' })),
+    );
   },
 
   startExtraction(caseId: string): Promise<WorkflowRun> {
-    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
-      body: JSON.stringify(extractionStartInputSchema.parse({ workflow: 'extraction' })),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      `/api/cases/${encodeURIComponent(caseId)}/workflows/run`,
+      workflowRunSchema,
+      jsonRequest('POST', extractionStartInputSchema.parse({ workflow: 'extraction' })),
+    );
   },
 
   startDrafting(caseId: string, outputLanguage?: 'nb' | 'en'): Promise<WorkflowRun> {
-    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
-      body: JSON.stringify(
+    return apiRequest(
+      `/api/cases/${encodeURIComponent(caseId)}/workflows/run`,
+      workflowRunSchema,
+      jsonRequest(
+        'POST',
         draftingStartInputSchema.parse({
           workflow: 'drafting',
           ...(outputLanguage ? { output_language: outputLanguage } : {}),
         }),
       ),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    );
   },
 
   startRiskCompliance(caseId: string): Promise<WorkflowRun> {
-    return apiRequest(`/api/cases/${encodeURIComponent(caseId)}/workflows/run`, workflowRunSchema, {
-      body: JSON.stringify(riskComplianceStartInputSchema.parse({ workflow: 'risk_compliance' })),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      `/api/cases/${encodeURIComponent(caseId)}/workflows/run`,
+      workflowRunSchema,
+      jsonRequest('POST', riskComplianceStartInputSchema.parse({ workflow: 'risk_compliance' })),
+    );
   },
 
   get(runId: string): Promise<WorkflowRun> {
@@ -75,10 +77,10 @@ export const workflowsApi = {
 
   correct(runId: string, input: IntakeCorrectionInput): Promise<WorkflowRun> {
     const payload = intakeCorrectionInputSchema.parse(input);
-    return apiRequest(`${runPath(runId)}/intake/correction`, workflowRunSchema, {
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      `${runPath(runId)}/intake/correction`,
+      workflowRunSchema,
+      jsonRequest('POST', payload),
+    );
   },
 };

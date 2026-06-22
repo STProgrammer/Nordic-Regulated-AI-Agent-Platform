@@ -106,6 +106,25 @@ _logger = get_logger("workers.document_tasks")
 _RECONCILIATION_LIMIT = 100
 
 
+def _terminal_state_snapshot(
+    context: WorkflowContext, status: str, **extra: object
+) -> dict[str, object]:
+    """Build the content-free snapshot a worker persists when it ends a run early.
+
+    Every early-exit branch (unavailable case, missing evidence, configuration
+    failure) writes the same base shape; ``extra`` carries the few workflow-specific
+    availability flags. Snapshots are stored as order-independent JSON.
+    """
+
+    return {
+        "workflow_name": context.workflow_name,
+        "workflow_version": context.workflow_version,
+        "state_schema_version": "v1",
+        "status": status,
+        **extra,
+    }
+
+
 async def _process_evaluation(run_id: UUID, settings: AppSettings) -> str:
     """Reload a UUID-only deterministic evaluation run and persist its safe terminal result."""
 
@@ -172,12 +191,7 @@ async def _process_intake_workflow(workflow_run_id: UUID, settings: AppSettings)
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="case_not_available",
                     )
@@ -229,12 +243,7 @@ async def _process_intake_workflow(workflow_run_id: UUID, settings: AppSettings)
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="workflow_configuration_unavailable",
                     )
@@ -286,12 +295,7 @@ async def _process_evidence_workflow(workflow_run_id: UUID, settings: AppSetting
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="case_not_available",
                     )
@@ -379,12 +383,7 @@ async def _process_evidence_workflow(workflow_run_id: UUID, settings: AppSetting
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="workflow_configuration_unavailable",
                     )
@@ -423,12 +422,7 @@ async def _process_extraction_workflow(workflow_run_id: UUID, settings: AppSetti
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="case_not_available",
                     )
@@ -442,13 +436,9 @@ async def _process_extraction_workflow(workflow_run_id: UUID, settings: AppSetti
                     await persistence.complete_run(
                         context,
                         status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "needs_more_evidence",
-                            "evidence_available": False,
-                        },
+                        state_snapshot=_terminal_state_snapshot(
+                            context, "needs_more_evidence", evidence_available=False
+                        ),
                         duration_ms=0,
                     )
                     await session.commit()
@@ -500,13 +490,9 @@ async def _process_extraction_workflow(workflow_run_id: UUID, settings: AppSetti
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                            "evidence_available": True,
-                        },
+                        state_snapshot=_terminal_state_snapshot(
+                            context, "failed", evidence_available=True
+                        ),
                         duration_ms=0,
                         error_code="workflow_configuration_unavailable",
                     )
@@ -544,13 +530,9 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                            "draft_available": False,
-                        },
+                        state_snapshot=_terminal_state_snapshot(
+                            context, "failed", draft_available=False
+                        ),
                         duration_ms=0,
                         error_code="case_not_available",
                     )
@@ -561,14 +543,12 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                     await persistence.complete_run(
                         context,
                         status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "needs_more_evidence",
-                            "evidence_available": False,
-                            "draft_available": False,
-                        },
+                        state_snapshot=_terminal_state_snapshot(
+                            context,
+                            "needs_more_evidence",
+                            evidence_available=False,
+                            draft_available=False,
+                        ),
                         duration_ms=0,
                     )
                     await session.commit()
@@ -647,14 +627,9 @@ async def _process_drafting_workflow(workflow_run_id: UUID, settings: AppSetting
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                            "evidence_available": True,
-                            "draft_available": False,
-                        },
+                        state_snapshot=_terminal_state_snapshot(
+                            context, "failed", evidence_available=True, draft_available=False
+                        ),
                         duration_ms=0,
                         error_code="workflow_configuration_unavailable",
                     )
@@ -689,12 +664,7 @@ async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: App
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="case_not_available",
                     )
@@ -708,12 +678,7 @@ async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: App
                     await persistence.complete_run(
                         context,
                         status=RuntimeStatus.NEEDS_MORE_EVIDENCE,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "needs_more_evidence",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "needs_more_evidence"),
                         duration_ms=0,
                     )
                     await session.commit()
@@ -752,12 +717,7 @@ async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: App
                 if await persistence.claim_run(context):
                     await persistence.fail_run(
                         context,
-                        state_snapshot={
-                            "workflow_name": context.workflow_name,
-                            "workflow_version": context.workflow_version,
-                            "state_schema_version": "v1",
-                            "status": "failed",
-                        },
+                        state_snapshot=_terminal_state_snapshot(context, "failed"),
                         duration_ms=0,
                         error_code="workflow_configuration_unavailable",
                     )

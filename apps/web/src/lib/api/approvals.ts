@@ -8,6 +8,7 @@ import {
   approvalReviewPacketSchema,
   approvedOutputFormatSchema,
   editAndApproveInputSchema,
+  jsonRequest,
   mockHandoffInputSchema,
   mockHandoffResultSchema,
   type ApprovalActionResult,
@@ -26,11 +27,7 @@ function approvalPath(path = ''): string {
 }
 
 function post<TInput>(path: string, payload: TInput, schema: typeof approvalActionResultSchema) {
-  return apiRequest(path, schema, {
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  });
+  return apiRequest(path, schema, jsonRequest('POST', payload));
 }
 
 const exportMetadata = {
@@ -137,11 +134,7 @@ export const approvalsApi = {
     return apiRequest(
       approvalPath(`/${encodeURIComponent(approvalId)}/mock-handoffs`),
       mockHandoffResultSchema,
-      {
-        body: JSON.stringify(mockHandoffInputSchema.parse(input)),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      },
+      jsonRequest('POST', mockHandoffInputSchema.parse(input)),
     );
   },
 };

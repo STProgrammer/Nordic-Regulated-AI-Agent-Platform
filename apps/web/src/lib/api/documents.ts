@@ -4,6 +4,7 @@ import {
   documentListSchema,
   documentSourceContextSchema,
   documentSourceStatusSchema,
+  jsonRequest,
   type DocumentData,
   type DocumentList,
   type DocumentSourceContext,
@@ -62,11 +63,7 @@ export const documentsApi = {
     return apiRequest(
       documentPath(`/${encodeURIComponent(documentId)}/source-status`),
       documentDataSchema,
-      {
-        body: JSON.stringify({ source_status: payload }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'PATCH',
-      },
+      jsonRequest('PATCH', { source_status: payload }),
     );
   },
 };

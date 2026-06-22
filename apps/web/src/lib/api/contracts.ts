@@ -1045,3 +1045,17 @@ export async function apiRequest<DataSchema extends z.ZodType>(
 
   return parsedData.data;
 }
+
+/**
+ * Build the `RequestInit` for a JSON-body mutation passed to {@link apiRequest}.
+ *
+ * Centralizes the body serialization, `Content-Type` header, and method so the
+ * per-resource clients describe only the path, schema, method, and payload.
+ */
+export function jsonRequest(method: 'POST' | 'PUT' | 'PATCH', payload: unknown): RequestInit {
+  return {
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+    method,
+  };
+}

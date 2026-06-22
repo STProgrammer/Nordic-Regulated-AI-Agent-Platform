@@ -1,5 +1,6 @@
 import {
   apiRequest,
+  jsonRequest,
   retrievalSearchInputSchema,
   retrievalSourceSchema,
   type RetrievalSearchInput,
@@ -9,10 +10,10 @@ import {
 export const retrievalApi = {
   search(input: RetrievalSearchInput): Promise<RetrievalSource[]> {
     const payload = retrievalSearchInputSchema.parse(input);
-    return apiRequest('/api/retrieval/search', retrievalSourceSchema.array(), {
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      '/api/retrieval/search',
+      retrievalSourceSchema.array(),
+      jsonRequest('POST', payload),
+    );
   },
 };

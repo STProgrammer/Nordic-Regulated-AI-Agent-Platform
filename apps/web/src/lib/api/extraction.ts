@@ -5,6 +5,7 @@ import {
   extractedFieldEditInputSchema,
   extractedFieldListSchema,
   extractedFieldSchema,
+  jsonRequest,
   type ExtractedField,
   type ExtractedFieldEditInput,
 } from '@/lib/api/contracts';
@@ -22,11 +23,7 @@ export const extractionApi = {
     return apiRequest(
       `${fieldsPath(caseId)}/${encodeURIComponent(fieldId)}`,
       extractedFieldSchema,
-      {
-        body: JSON.stringify(extractedFieldEditInputSchema.parse(input)),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'PATCH',
-      },
+      jsonRequest('PATCH', extractedFieldEditInputSchema.parse(input)),
     );
   },
 };

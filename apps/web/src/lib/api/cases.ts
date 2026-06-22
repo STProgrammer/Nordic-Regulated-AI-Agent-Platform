@@ -4,6 +4,7 @@ import {
   caseCreateInputSchema,
   caseDetailSchema,
   caseListSchema,
+  jsonRequest,
   type CaseAssigneeList,
   type CaseCreateInput,
   type CaseDetail,
@@ -22,11 +23,7 @@ function casePath(path = ''): string {
 export const casesApi = {
   create(input: CaseCreateInput): Promise<CaseDetail> {
     const payload = caseCreateInputSchema.parse(input);
-    return apiRequest(casePath(), caseDetailSchema, {
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(casePath(), caseDetailSchema, jsonRequest('POST', payload));
   },
 
   get(caseId: string): Promise<CaseDetail> {

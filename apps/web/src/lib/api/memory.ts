@@ -3,6 +3,7 @@ import {
   controlledMemoryEntryListSchema,
   controlledMemoryEntrySchema,
   controlledMemoryInputSchema,
+  jsonRequest,
   memorySettingsSchema,
   type ControlledMemoryInput,
 } from '@/lib/api/contracts';
@@ -17,11 +18,11 @@ export const memoryApi = {
   },
 
   updateSettings(enabled: boolean) {
-    return apiRequest(memoryPath('/settings'), memorySettingsSchema, {
-      body: JSON.stringify({ enabled }),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'PUT',
-    });
+    return apiRequest(
+      memoryPath('/settings'),
+      memorySettingsSchema,
+      jsonRequest('PUT', { enabled }),
+    );
   },
 
   listEntries(includeArchived = true) {
@@ -32,22 +33,18 @@ export const memoryApi = {
   },
 
   createEntry(input: ControlledMemoryInput) {
-    return apiRequest(memoryPath('/entries'), controlledMemoryEntrySchema, {
-      body: JSON.stringify(controlledMemoryInputSchema.parse(input)),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
+    return apiRequest(
+      memoryPath('/entries'),
+      controlledMemoryEntrySchema,
+      jsonRequest('POST', controlledMemoryInputSchema.parse(input)),
+    );
   },
 
   reviseEntry(entryId: string, input: ControlledMemoryInput) {
     return apiRequest(
       memoryPath(`/entries/${encodeURIComponent(entryId)}`),
       controlledMemoryEntrySchema,
-      {
-        body: JSON.stringify({ content: controlledMemoryInputSchema.parse(input).content }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'PUT',
-      },
+      jsonRequest('PUT', { content: controlledMemoryInputSchema.parse(input).content }),
     );
   },
 

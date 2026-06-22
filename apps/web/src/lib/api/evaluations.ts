@@ -6,6 +6,7 @@ import {
   evaluationRunDetailSchema,
   evaluationRunListSchema,
   evaluationRunSchema,
+  jsonRequest,
   type EvaluationDatasetList,
   type EvaluationResult,
   type EvaluationRun,
@@ -36,11 +37,7 @@ export const evaluationsApi = {
     return apiRequest(
       evaluationsPath(`/datasets/${encodeURIComponent(datasetKey)}/runs`),
       evaluationRunSchema,
-      {
-        body: JSON.stringify({}),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      },
+      jsonRequest('POST', {}),
     );
   },
 
