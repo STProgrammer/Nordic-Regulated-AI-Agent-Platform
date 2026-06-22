@@ -238,37 +238,31 @@ Every phase must include at least one validation method. A phase is not complete
 - Re-run the full validation suite after fixes.
 - Validation: All required checks pass from a clean checkout/local stack; no known blocker or high-severity issue remains.
 
-## Phase 34 — Documentation and Portfolio Presentation
+## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide
 
-- Update README, setup instructions, local run instructions, test instructions, architecture summary, screenshots section, demo workflow explanation, limitations, and cloud deployment status.
-- Make it clear that the system is cloud-ready and deployment-ready, but public cloud deployment is planned rather than completed in this version.
-- Validation: A reviewer can understand what the project does, how to run it, how to test it, and why it is professionally relevant.
+* Add safe synthetic demo data for a polished local portfolio demo of Norwegian regulated workflows.
+* Add one focused demo scenario showing login, case inbox, document handling, evidence, RAG with citations, agent workflow, risk/compliance, human approval, audit/evaluation/observability where appropriate.
+* Add a short local demo video guide with screen order and talking points for a strong one-minute employer-focused demo.
+* Validation: The demo scenario runs locally with safe synthetic data, and the video guide is specific enough to follow without improvising.
 
-## Phase 35 — Demo Data and Demo Scenario
+## Phase 35 — Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes
 
-- Prepare safe synthetic demo data for Norwegian regulated workflows.
-- Prepare one polished demo scenario that shows login, case inbox, document handling, evidence, RAG/citations, agent workflow, risk/compliance, human approval, audit/evaluation/observability where appropriate.
-- Keep demo data synthetic, safe, and suitable for portfolio presentation.
-- Validation: The full demo scenario can be run locally from a clean setup without using real personal data.
+* Clean up demo data after the local demo scenario is prepared.
+* Make necessary safe changes so the system is more deployment-ready.
+* Make sure users can understand the difference between demo mode and clean/deployment-ready mode.
+* Add or update notes explaining that cloud deployment is planned and deployment-ready, but not completed in this version.
+* Explain the intended later Azure path: Azure Container Apps or App Service for Containers, Azure PostgreSQL, Azure Blob Storage, Key Vault, monitoring, image registry, migrations, HTTPS, health checks, backups, and smoke tests.
+* Validation: Clean/deployment-ready mode is documented and locally verifiable; production/release configuration remains valid; no secrets or unsafe data are present.
 
-## Phase 36 — One-Minute Demo Video Guide
+## Phase 36 — Documentation and Portfolio Presentation
 
-- Add a short step-by-step guide for recording a strong one-minute demo video.
-- Specify exactly what to show, in what order, and what to say briefly.
-- Keep the video short and professional, focused on employer signals: production-style architecture, Norwegian UI, document workflow, citations, human approval, auditability, evaluation, and CI/Docker readiness.
-- Do not make the video itself; add only the guide, script, and checklist.
-- Validation: The guide is specific enough to record the demo without improvising.
+* Update README, setup instructions, local run instructions, test instructions, architecture summary, screenshots section, demo workflow explanation, limitations, and cloud deployment status.
+* Make it clear that the system is cloud-ready and deployment-ready, but public cloud deployment is planned rather than completed in this version.
+* Validation: A reviewer can understand what the project does, how to run it, how to test it, and why it is professionally relevant.
 
-## Phase 37 — Cloud Deployment Planned / Deployment-Ready Notes
+## Phase 37 — Final Repository Quality Review
 
-- Replace mandatory Azure staging and production deployment with documentation that explains the intended deployment path.
-- Explain that the architecture remains prepared for Azure Container Apps or App Service for Containers, Azure PostgreSQL, Azure Blob Storage, Key Vault, monitoring, and a CI/CD release flow.
-- Include what a later deployment would need: cloud resources, secrets, registry, migrations, HTTPS, health checks, backups, monitoring, and smoke tests.
-- Validation: The roadmap honestly communicates that cloud deployment is planned and deployment-ready, but not completed in this version.
-
-## Phase 38 — Final Repository Quality Review
-
-- Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
-- Remove stale TODOs or clearly mark future work.
-- Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.
-- Validation: Final checklist passes and the project is ready to show to employers.
+* Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
+* Remove stale TODOs or clearly mark future work.
+* Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.
+* Validation: Final checklist passes and the project is ready to show to employers.
