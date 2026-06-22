@@ -7,6 +7,9 @@ export default defineConfig({
   timeout: 30_000,
   use: {
     baseURL: process.env.NORDIC_E2E_BASE_URL ?? 'http://127.0.0.1:3000',
+    launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : undefined,
     screenshot: 'off',
     trace: 'off',
     video: 'off',
