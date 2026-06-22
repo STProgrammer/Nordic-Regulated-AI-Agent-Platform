@@ -266,7 +266,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: uv sync --all-packages --locked
-      - run: pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
+      - run: timeout 10m pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium-headless-shell
       - run: docker compose --env-file .env.example config --quiet
       - run: pnpm dev:up
       - run: docker compose --env-file .env.example exec -T api alembic -c apps/api/alembic.ini upgrade head

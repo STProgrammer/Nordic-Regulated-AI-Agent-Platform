@@ -86,7 +86,7 @@ export NORDIC_AGENT_ENVIRONMENT=test
 export NORDIC_AGENT_PROVIDER=deterministic
 export NORDIC_LOCAL_SEED_PASSWORD=ci-synthetic-password-not-a-secret
 
-pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
+timeout 10m pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium-headless-shell
 pnpm dev:up
 docker compose --env-file .env.example exec -T api alembic -c apps/api/alembic.ini upgrade head
 docker compose --env-file .env.example exec -T api python scripts/check_migrations.py
