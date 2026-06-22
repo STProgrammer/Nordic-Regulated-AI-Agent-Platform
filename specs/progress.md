@@ -37,6 +37,30 @@ implementation, tests, and validation checks pass within its defined scope.
 | 30    | Accessibility and Norwegian UX Polish   | DONE   |
 | 31    | CI Pipeline                             | DONE   |
 | 32    | Production Docker Images and Release Build | DONE   |
+| 33    | Full Bug Fix and Full Test Pass          | DONE   |
+
+## Phase 33 — Full Bug Fix and Full Test Pass (DONE)
+
+Completed on 2026-06-22.
+
+Resolved four focused reliability defects exposed by the complete validation pass: the same-origin
+API proxy now forwards `Content-Disposition` for server-owned approved-output and evaluation
+attachments; local fixture seeding serializes shared identity setup with a PostgreSQL transaction
+advisory lock; controlled-memory browser fixtures send their configured same-origin `Origin` for
+CSRF-protected direct API setup; and the case-table scroll region has valid labelled landmark
+semantics. The accessibility browser check now accommodates Next.js development tooling's portal
+before asserting the first application-owned keyboard target. Focused unit and integration
+regressions cover the forwarding, landmark, and concurrent-seed behavior. No public interface or
+feature was added.
+
+Validation: locked pnpm/uv installs and lock checks, workspace validation, formatting, lint, type
+checks, the full backend suites (310 passed, 1 intentional optional skip), web unit suite (50
+passed), deterministic agent/evaluation tests (40 passed) and canonical evaluator (4/4), and
+security checks passed. A clean deterministic local stack migrated to `a30c6f4d9e12`, exposed
+parseable OpenAPI, and passed `pnpm verify:local-stack`. The complete Playwright suite passed (7
+passed). Production images built successfully; Trivy scans for API, web, and worker passed at the
+HIGH/CRITICAL fixed-finding threshold; and `pnpm release:validate` passed and removed its release
+Compose resources. Final scope review and `git diff --check` passed.
 
 ## Phase 32 — Production Docker Images and Release Build (DONE)
 

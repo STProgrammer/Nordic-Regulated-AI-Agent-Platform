@@ -312,6 +312,7 @@ export function CaseInbox() {
             className="nordic-table-scrollbar-top"
             data-testid="case-table-scrollbar-top"
             ref={topScrollRef}
+            role="region"
             tabIndex={0}
           >
             <div style={{ width: tableWidth }} />

@@ -88,8 +88,14 @@ test('critical Norwegian workflow pages meet WCAG A/AA and remain keyboard-opera
 
   await authenticate(page);
   await page.goto('/nb/cases');
-  await page.keyboard.press('Tab');
   const skipLink = page.getByRole('link', { name: 'Hopp til hovedinnhold' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Saksinnboks' })).toBeVisible();
+  // Next.js development tooling adds one framework-owned portal to the tab
+  // order. The skip link must still be the first application-owned target.
+  await page.keyboard.press('Tab');
+  if (!(await skipLink.evaluate((element) => element === document.activeElement))) {
+    await page.keyboard.press('Tab');
+  }
   await expect(skipLink).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();

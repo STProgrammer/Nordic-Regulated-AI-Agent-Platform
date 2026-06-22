@@ -7,6 +7,7 @@ const adminEmail = 'per.eksempel+admin@demo.invalid';
 const workerEmail = 'kari.eksempel+caseworker@demo.invalid';
 const managerEmail = 'elin.eksempel+manager@demo.invalid';
 const password = process.env.NORDIC_LOCAL_SEED_PASSWORD;
+const browserOrigin = new URL(process.env.NORDIC_E2E_BASE_URL ?? 'http://127.0.0.1:3000').origin;
 const fixtureTitle = `E2E Phase 24 controlled memory ${Date.now()}`;
 const terminologySuffix = Date.now().toString(36);
 
@@ -37,6 +38,7 @@ async function authenticate(page: Page, email: string): Promise<void> {
 async function startAndWaitForDraft(request: APIRequestContext): Promise<void> {
   const start = await request.post(`/api/cases/${fixture.case_id}/workflows/run`, {
     data: { workflow: 'drafting', output_language: 'nb' },
+    headers: { Origin: browserOrigin },
   });
   expect(start.status()).toBe(202);
   const workflowRunId = ((await start.json()) as { data: { workflow_run_id: string } }).data
@@ -78,7 +80,10 @@ test('Admin controls safe memory and disablement stops future Drafting applicati
 }) => {
   test.setTimeout(90_000);
   await authenticate(page, adminEmail);
-  const reset = await page.request.put('/api/admin/memory/settings', { data: { enabled: false } });
+  const reset = await page.request.put('/api/admin/memory/settings', {
+    data: { enabled: false },
+    headers: { Origin: browserOrigin },
+  });
   expect(reset.status()).toBe(200);
   await page.goto('/nb/admin');
   await expect(page.getByTestId('controlled-memory')).toBeVisible();

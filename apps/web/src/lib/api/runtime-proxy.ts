@@ -9,6 +9,7 @@ const FORWARDED_REQUEST_HEADERS = [
 
 const FORWARDED_RESPONSE_HEADERS = [
   'cache-control',
+  'content-disposition',
   'content-type',
   'retry-after',
   'www-authenticate',

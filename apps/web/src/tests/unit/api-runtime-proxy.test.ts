@@ -21,6 +21,7 @@ describe('runtime API proxy', () => {
       new Response(JSON.stringify({ data: { logged_out: true } }), {
         headers: {
           'Cache-Control': 'no-store',
+          'Content-Disposition': 'attachment; filename="approved-output.pdf"',
           'Content-Type': 'application/json',
           'Retry-After': '30',
           'Set-Cookie': 'nordic_session=opaque; HttpOnly; Path=/',
@@ -53,6 +54,9 @@ describe('runtime API proxy', () => {
     expect(forwardedHeaders.get('cookie')).toBe('nordic_session=opaque');
     expect(forwardedHeaders.get('origin')).toBe('https://app.example.invalid');
     expect(response.status).toBe(429);
+    expect(response.headers.get('content-disposition')).toBe(
+      'attachment; filename="approved-output.pdf"',
+    );
     expect(response.headers.get('retry-after')).toBe('30');
     expect(response.headers.get('set-cookie')).toContain('nordic_session=opaque');
     expect(response.headers.get('x-request-id')).toBe('request-42');

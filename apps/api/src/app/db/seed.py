@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.core.config import AppSettings, get_settings
 from app.core.security import PasswordSecurity
@@ -38,6 +38,7 @@ SEED_USERS = (
     SeedUser("ida.eksempel+auditor@demo.invalid", "Ida Eksempel", "Read-only Auditor"),
 )
 DEMO_ORGANIZATION_SLUG = "synthetic-nordlys-demo"
+LOCAL_SEED_ADVISORY_LOCK_KEY = 763_983_741
 
 
 async def seed_local(
@@ -59,6 +60,13 @@ async def seed_local(
     )
     sessionmaker = get_sessionmaker(resolved_settings)
     async with sessionmaker() as session, session.begin():
+        # Browser workers can bootstrap their independent fixtures at the same
+        # time. Serialize the shared organization/role/user seed transaction
+        # so concurrent read-then-insert checks remain idempotent.
+        await session.execute(
+            text("SELECT pg_advisory_xact_lock(:lock_key)"),
+            {"lock_key": LOCAL_SEED_ADVISORY_LOCK_KEY},
+        )
         organization = await session.scalar(
             select(Organization).where(Organization.slug == DEMO_ORGANIZATION_SLUG)
         )

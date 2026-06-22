@@ -68,6 +68,11 @@ describe('CaseInbox', () => {
     expect(screen.getByTestId('case-table-scrollbar-top')).toHaveClass(
       'nordic-table-scrollbar-top',
     );
+    expect(screen.getByTestId('case-table-scrollbar-top')).toHaveAttribute('role', 'region');
+    expect(screen.getByTestId('case-table-scrollbar-top')).toHaveAttribute(
+      'aria-label',
+      'Skroll vannrett for å se alle kolonnene.',
+    );
     await actor.type(screen.getByLabelText('Søk i saker'), 'syntetisk');
     await actor.click(screen.getByRole('button', { name: 'Bruk filtre' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/nb/cases?q=syntetisk'));

@@ -714,6 +714,12 @@ def test_seed_and_downgrade_reupgrade_are_safe_and_repeatable(
         engine.dispose()
 
 
+def test_seed_is_safe_when_local_fixture_workers_start_concurrently(
+    database_settings: AppSettings,
+) -> None:
+    asyncio.run(_seed_concurrently(database_settings))
+
+
 def test_local_seed_password_requires_explicit_input_and_is_never_plaintext(
     database_settings: AppSettings,
 ) -> None:
@@ -739,6 +745,20 @@ async def _seed_twice(settings: AppSettings) -> None:
         assert set(ROLE_DESCRIPTIONS).issubset(roles)
         assert len(users) == len(SEED_USERS)
         assert all(user.password_hash is None for user in users)
+        assert memberships == len(SEED_USERS)
+
+
+async def _seed_concurrently(settings: AppSettings) -> None:
+    await asyncio.gather(*(seed_local(settings) for _ in range(3)))
+    sessionmaker = get_sessionmaker(settings)
+    async with sessionmaker() as session:
+        roles = set((await session.scalars(select(Role.name))).all())
+        users = (
+            await session.scalars(select(User).where(User.email.in_([u.email for u in SEED_USERS])))
+        ).all()
+        memberships = await session.scalar(select(func.count()).select_from(UserRole))
+        assert set(ROLE_DESCRIPTIONS).issubset(roles)
+        assert len(users) == len(SEED_USERS)
         assert memberships == len(SEED_USERS)
 
 
