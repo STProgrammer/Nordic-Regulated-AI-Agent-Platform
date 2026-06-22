@@ -224,51 +224,51 @@ Every phase must include at least one validation method. A phase is not complete
 - Add migration check and OpenAPI schema export check.
 - Validation: Full CI pipeline passes from a clean checkout.
 
-## Phase 32 — Container Images and Release Build
+## Phase 32 — Production Docker Images and Release Build
 
 - Add production-ready Dockerfiles for frontend, API, and worker services.
-- Add image build, tagging, container scanning, and registry push workflow.
-- Add runtime environment configuration for local, staging, and production.
+- Add image build, tagging, container scanning, and local release-build validation.
+- Add runtime environment configuration for local use and a later deployment-ready path.
 - Validation: Container images build successfully; container scan passes release threshold; production-mode containers run locally through Docker Compose.
 
-## Phase 33 — Infrastructure-as-Code for Azure
+## Phase 33 — Full Bug Fix and Full Test Pass
 
-- Add Bicep or Terraform infrastructure definitions for Azure Container Apps, Azure Database for PostgreSQL, Azure Blob Storage, Azure Key Vault, Azure Container Registry, monitoring resources, managed identity, and environment configuration.
-- Add staging and production parameterization.
-- Add documentation for required cloud secrets, resource naming, deployment assumptions, and cost-aware settings.
-- Validation: Infrastructure plan/validation succeeds; configuration contains no secrets; documentation explains staging and production setup.
+- Run the full backend, frontend, integration, Playwright, AI deterministic regression, lint, typecheck, formatting, OpenAPI, migration, dependency/security, and production Docker validation suite.
+- Fix discovered bugs in one focused hardening round.
+- Re-run the full validation suite after fixes.
+- Validation: All required checks pass from a clean checkout/local stack; no known blocker or high-severity issue remains.
 
-## Phase 34 — Staging Deployment
+## Phase 34 — Documentation and Portfolio Presentation
 
-- Implement automated staging deployment after main branch pipeline success.
-- Run database migrations, deploy frontend/API/worker containers, configure storage, connect secrets, and expose HTTPS endpoint.
-- Add staging smoke tests for login, case submission, document upload, workflow run, approval, evaluation listing, and health checks.
-- Validation: Staging deployment succeeds; staging smoke tests pass; health checks pass over HTTPS.
+- Update README, setup instructions, local run instructions, test instructions, architecture summary, screenshots section, demo workflow explanation, limitations, and cloud deployment status.
+- Make it clear that the system is cloud-ready and deployment-ready, but public cloud deployment is planned rather than completed in this version.
+- Validation: A reviewer can understand what the project does, how to run it, how to test it, and why it is professionally relevant.
 
-## Phase 35 — Production Deployment
+## Phase 35 — Demo Data and Demo Scenario
 
-- Implement production deployment with manual approval gate, secure secrets, HTTPS, backups, rate limiting, safe demo data, monitored logs, and restricted admin access.
-- Run production smoke tests after deployment.
-- Add rollback documentation and operational checklist.
-- Validation: Production deployment succeeds; public HTTPS demo is reachable; production smoke tests pass; no real personal data is present.
+- Prepare safe synthetic demo data for Norwegian regulated workflows.
+- Prepare one polished demo scenario that shows login, case inbox, document handling, evidence, RAG/citations, agent workflow, risk/compliance, human approval, audit/evaluation/observability where appropriate.
+- Keep demo data synthetic, safe, and suitable for portfolio presentation.
+- Validation: The full demo scenario can be run locally from a clean setup without using real personal data.
 
-## Phase 36 — Final End-to-End Product Validation
+## Phase 36 — One-Minute Demo Video Guide
 
-- Run complete manual and automated product validation across public-sector, banking, energy, and internal policy workflows.
-- Validate full path from login, case submission, document upload, parsing, indexing, RAG, LangGraph workflows, risk checks, approval, audit trace, evaluation dashboard, export, and deployment.
-- Confirm acceptance criteria from PRD are satisfied or explicitly documented as known limitations.
-- Validation: Full E2E test suite passes; manual validation checklist passes; acceptance criteria checklist is complete.
+- Add a short step-by-step guide for recording a strong one-minute demo video.
+- Specify exactly what to show, in what order, and what to say briefly.
+- Keep the video short and professional, focused on employer signals: production-style architecture, Norwegian UI, document workflow, citations, human approval, auditability, evaluation, and CI/Docker readiness.
+- Do not make the video itself; add only the guide, script, and checklist.
+- Validation: The guide is specific enough to record the demo without improvising.
 
-## Phase 37 — Documentation and Portfolio Presentation
+## Phase 37 — Cloud Deployment Planned / Deployment-Ready Notes
 
-- Finalize README, deployment guide, testing guide, security notes, GDPR notes, AI evaluation report, LangGraph workflow documentation, API contract documentation, architecture diagrams, screenshots, demo instructions, and known limitations.
-- Add portfolio-ready project summary, demo workflow script, safe demo credentials if used, and repository navigation guide for employers.
-- Ensure documentation states implemented features accurately and marks any remaining items as known limitations.
-- Validation: Documentation review passes; links, commands, diagrams, screenshots, and demo instructions are accurate.
+- Replace mandatory Azure staging and production deployment with documentation that explains the intended deployment path.
+- Explain that the architecture remains prepared for Azure Container Apps or App Service for Containers, Azure PostgreSQL, Azure Blob Storage, Key Vault, monitoring, and a CI/CD release flow.
+- Include what a later deployment would need: cloud resources, secrets, registry, migrations, HTTPS, health checks, backups, monitoring, and smoke tests.
+- Validation: The roadmap honestly communicates that cloud deployment is planned and deployment-ready, but not completed in this version.
 
 ## Phase 38 — Final Repository Quality Review
 
-- Review commit history, naming consistency, folder structure, code quality, dead code, TODOs, dependency hygiene, environment examples, and public-demo safety.
-- Run full local test suite, full CI, staging smoke tests, production smoke tests, security scans, and evaluation tests one final time.
-- Tag the final professional release.
-- Validation: Final release checklist passes; release tag is present; README points to live demo, architecture, tests, deployment, and evaluation evidence.
+- Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
+- Remove stale TODOs or clearly mark future work.
+- Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.
+- Validation: Final checklist passes and the project is ready to show to employers.
