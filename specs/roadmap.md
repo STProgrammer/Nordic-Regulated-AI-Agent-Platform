@@ -224,7 +224,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Add migration check and OpenAPI schema export check.
 - Validation: Full CI pipeline passes from a clean checkout.
 
-## Phase 32 — Production Docker Images and Release Build
+## Phase 32 — Production Docker Images and Release Build (DONE)
 
 - Add production-ready Dockerfiles for frontend, API, and worker services.
 - Add image build, tagging, container scanning, and local release-build validation.

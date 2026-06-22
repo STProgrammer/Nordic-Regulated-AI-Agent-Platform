@@ -1,7 +1,6 @@
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
 
-const apiOrigin = process.env.API_ORIGIN;
 const webEnvironment = process.env.NORDIC_WEB_ENVIRONMENT ?? 'local';
 
 const securityHeaders = [
@@ -31,21 +30,10 @@ if (webEnvironment === 'staging' || webEnvironment === 'production') {
 }
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
-  },
-  async rewrites() {
-    if (!apiOrigin) {
-      return [];
-    }
-
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${apiOrigin}/api/:path*`,
-      },
-    ];
   },
 };
 

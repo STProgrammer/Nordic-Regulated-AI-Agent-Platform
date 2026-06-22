@@ -36,6 +36,31 @@ implementation, tests, and validation checks pass within its defined scope.
 | 29    | Security Hardening                     | DONE   |
 | 30    | Accessibility and Norwegian UX Polish   | DONE   |
 | 31    | CI Pipeline                             | DONE   |
+| 32    | Production Docker Images and Release Build | DONE   |
+
+## Phase 32 — Production Docker Images and Release Build (DONE)
+
+Completed on 2026-06-22.
+
+Delivered separate, non-root production images for the Next.js web app, FastAPI API, and Celery
+worker; a standalone Next build with a runtime-configured same-origin API proxy; and an isolated
+production-mode Compose stack with credential-free deterministic local validation. Deployed API
+configuration now requires injected runtime database, Redis, object-storage, health, rate-limit,
+CSRF, embedding, and RAG settings, while local/test fallbacks remain explicit. Readiness exposes the
+provider-neutral `object_storage` dependency. Release commands build, start, validate, and clean up
+the production stack without Azure provisioning, registry access, real model calls, or credentials.
+
+CI now builds commit-tagged production images, scans API/web/worker images with Trivy at the
+HIGH/CRITICAL fixed-finding threshold, and runs a separate production-Compose smoke job. README and
+infrastructure/development/CI documentation describe local release validation, later deployment
+variables, the scanning policy, and the deferred Azure boundary.
+
+Validation: focused configuration/health tests passed (38), full API suite passed (310 passed, 1
+intentional skip), web unit suite passed (50), standalone web build passed, production Compose
+configuration/build/release validation passed, all three local Trivy scans passed, and the unchanged
+development Compose migration/readiness/same-origin-proxy smoke passed. Formatting, lint, type
+checks, security checks, and final `git diff --check` passed. No browser E2E was required for this
+infrastructure/runtime phase.
 
 ## Phase 31 — CI Pipeline (DONE)
 

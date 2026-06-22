@@ -3,10 +3,12 @@
 .env.*
 
 node_modules/
+**/node_modules/
 .pnpm-store/
 .npm/
 .yarn/
 .next/
+**/.next/
 .turbo/
 dist/
 build/
@@ -23,6 +25,7 @@ __pycache__/
 .coverage
 coverage/
 htmlcov/
+**/test-results/
 
 data/
 storage/

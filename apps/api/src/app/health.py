@@ -1,7 +1,6 @@
 """Small, safe health contracts for the local Phase 2 runtime."""
 
 import asyncio
-import os
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Literal, Protocol
@@ -14,7 +13,9 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from starlette import status
 
-DependencyName = Literal["postgres", "redis", "azurite"]
+from app.core.config import AppSettings, get_settings
+
+DependencyName = Literal["postgres", "redis", "object_storage"]
 DependencyState = Literal["ready", "unavailable"]
 ReadinessState = Literal["ready", "unavailable"]
 Probe = Callable[[], Awaitable[bool]]
@@ -49,48 +50,29 @@ class HealthProbes(Protocol):
 
     async def redis(self) -> bool: ...
 
-    async def azurite(self) -> bool: ...
+    async def object_storage(self) -> bool: ...
 
 
 @dataclass(frozen=True)
 class RuntimeHealthProbes:
-    """Short-timeout local probes configured only through individual environment values."""
+    """Short-timeout probes configured through validated application settings."""
 
-    postgres_host: str
-    postgres_port: int
-    postgres_database: str
-    postgres_user: str
-    postgres_password: str
-    redis_host: str
-    redis_port: int
-    azurite_blob_url: str
+    postgres_dsn: str
+    redis_dsn: str
+    object_storage_health_url: str
 
     @classmethod
-    def from_environment(cls) -> "RuntimeHealthProbes":
+    def from_settings(cls, settings: AppSettings) -> "RuntimeHealthProbes":
         return cls(
-            postgres_host=os.getenv("POSTGRES_HOST", "postgres"),
-            postgres_port=_environment_port("POSTGRES_PORT", 5432),
-            postgres_database=os.getenv("POSTGRES_DB", "nordic_local"),
-            postgres_user=os.getenv("POSTGRES_USER", "nordic_local"),
-            postgres_password=os.getenv(
-                "POSTGRES_PASSWORD", "local-postgres-password-not-for-production"
+            postgres_dsn=settings.database_async_url().replace(
+                "postgresql+asyncpg://", "postgresql://", 1
             ),
-            redis_host=os.getenv("REDIS_HOST", "redis"),
-            redis_port=_environment_port("REDIS_PORT", 6379),
-            azurite_blob_url=os.getenv(
-                "AZURITE_BLOB_HEALTH_URL", "http://azurite:10000/devstoreaccount1"
-            ),
+            redis_dsn=settings.redis_async_url(),
+            object_storage_health_url=settings.object_storage_health_url_value(),
         )
 
     async def postgres(self) -> bool:
-        connection = await asyncpg.connect(
-            host=self.postgres_host,
-            port=self.postgres_port,
-            database=self.postgres_database,
-            user=self.postgres_user,
-            password=self.postgres_password,
-            timeout=PROBE_TIMEOUT_SECONDS,
-        )
+        connection = await asyncpg.connect(self.postgres_dsn, timeout=PROBE_TIMEOUT_SECONDS)
         try:
             value: object = await connection.fetchval("SELECT 1")
             return value == 1
@@ -98,9 +80,8 @@ class RuntimeHealthProbes:
             await connection.close()
 
     async def redis(self) -> bool:
-        client = Redis(
-            host=self.redis_host,
-            port=self.redis_port,
+        client = Redis.from_url(
+            self.redis_dsn,
             socket_connect_timeout=PROBE_TIMEOUT_SECONDS,
             socket_timeout=PROBE_TIMEOUT_SECONDS,
         )
@@ -109,18 +90,20 @@ class RuntimeHealthProbes:
         finally:
             await client.aclose()
 
-    async def azurite(self) -> bool:
+    async def object_storage(self) -> bool:
         async with httpx2.AsyncClient(timeout=PROBE_TIMEOUT_SECONDS) as client:
-            response = await client.get(self.azurite_blob_url)
-        # Azurite exposes no unauthenticated health endpoint; any HTTP response below 500
-        # (typically 400/403 for an unauthenticated blob request) confirms it is serving.
+            response = await client.get(self.object_storage_health_url)
+        # Blob services commonly return 400/403 to an unauthenticated root probe; any
+        # response below 500 confirms that the configured private-storage endpoint is serving.
         return response.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-def get_health_probes() -> HealthProbes:
-    """Build local probes at request time so tests can replace this dependency cleanly."""
+def get_health_probes(
+    settings: Annotated[AppSettings, Depends(get_settings)],
+) -> HealthProbes:
+    """Build probes at request time so tests can replace this dependency cleanly."""
 
-    return RuntimeHealthProbes.from_environment()
+    return RuntimeHealthProbes.from_settings(settings)
 
 
 def create_health_router() -> APIRouter:
@@ -158,7 +141,7 @@ async def collect_readiness(probes: HealthProbes) -> ReadinessResponse:
         await asyncio.gather(
             _probe_dependency("postgres", probes.postgres),
             _probe_dependency("redis", probes.redis),
-            _probe_dependency("azurite", probes.azurite),
+            _probe_dependency("object_storage", probes.object_storage),
         )
     )
     readiness_status: ReadinessState = (
@@ -175,14 +158,3 @@ async def _probe_dependency(name: DependencyName, probe: Probe) -> DependencySta
     except Exception:
         ready = False
     return DependencyStatus(name=name, status="ready" if ready else "unavailable")
-
-
-def _environment_port(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        port = int(value)
-    except ValueError:
-        return default
-    return port if 1 <= port <= 65535 else default

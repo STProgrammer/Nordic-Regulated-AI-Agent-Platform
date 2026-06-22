@@ -11,10 +11,12 @@ AppFactory = Callable[[], FastAPI]
 
 
 class FixedProbes:
-    def __init__(self, postgres: bool = True, redis: bool = True, azurite: bool = True) -> None:
+    def __init__(
+        self, postgres: bool = True, redis: bool = True, object_storage: bool = True
+    ) -> None:
         self._postgres = postgres
         self._redis = redis
-        self._azurite = azurite
+        self._object_storage = object_storage
 
     async def postgres(self) -> bool:
         return self._postgres
@@ -22,8 +24,8 @@ class FixedProbes:
     async def redis(self) -> bool:
         return self._redis
 
-    async def azurite(self) -> bool:
-        return self._azurite
+    async def object_storage(self) -> bool:
+        return self._object_storage
 
 
 class FailingPostgresProbes(FixedProbes):
@@ -66,7 +68,7 @@ def test_readiness_reports_all_available_dependencies(app_factory: AppFactory) -
         "dependencies": [
             {"name": "postgres", "status": "ready"},
             {"name": "redis", "status": "ready"},
-            {"name": "azurite", "status": "ready"},
+            {"name": "object_storage", "status": "ready"},
         ],
     }
 
@@ -86,7 +88,7 @@ def test_readiness_uses_503_and_safe_failure_summary() -> None:
         "dependencies": [
             {"name": "postgres", "status": "unavailable"},
             {"name": "redis", "status": "ready"},
-            {"name": "azurite", "status": "ready"},
+            {"name": "object_storage", "status": "ready"},
         ],
     }
     assert "local-postgres-password-not-for-production" not in serialized_body
@@ -96,7 +98,9 @@ def test_readiness_uses_503_and_safe_failure_summary() -> None:
 
 def test_readiness_marks_each_unavailable_dependency_without_error_details() -> None:
     app = create_worker_app()
-    app.dependency_overrides[get_health_probes] = lambda: FixedProbes(redis=False, azurite=False)
+    app.dependency_overrides[get_health_probes] = lambda: FixedProbes(
+        redis=False, object_storage=False
+    )
 
     with TestClient(app) as client:
         response = client.get("/health/ready")
@@ -105,5 +109,5 @@ def test_readiness_marks_each_unavailable_dependency_without_error_details() -> 
     assert response.json()["dependencies"] == [
         {"name": "postgres", "status": "ready"},
         {"name": "redis", "status": "unavailable"},
-        {"name": "azurite", "status": "unavailable"},
+        {"name": "object_storage", "status": "unavailable"},
     ]

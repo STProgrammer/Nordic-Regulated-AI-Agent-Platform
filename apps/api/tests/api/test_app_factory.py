@@ -15,6 +15,18 @@ def _make_app(**overrides: object) -> FastAPI:
     params: dict[str, object] = {"environment": "test"}
     params.update(overrides)
     if params["environment"] in {"staging", "production"}:
+        params.setdefault(
+            "database_url",
+            SecretStr("postgresql+asyncpg://fixture:fixture@db.example.invalid:5432/fixture"),
+        )
+        params.setdefault("redis_url", SecretStr("rediss://:fixture@redis.example.invalid:6380/0"))
+        params.setdefault(
+            "object_storage_connection_string",
+            SecretStr("DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture;"),
+        )
+        params.setdefault("object_storage_health_url", "https://fixture.blob.core.windows.net")
+        params.setdefault("rate_limit_key_secret", SecretStr("fixture-rate-key"))
+        params.setdefault("embedding_api_key", SecretStr("synthetic-embedding-key"))
         params.setdefault("rag_completion_api_key", SecretStr("synthetic-rag-key"))
         params.setdefault("rag_input_price_per_million", "1")
         params.setdefault("rag_output_price_per_million", "2")

@@ -1,6 +1,7 @@
 # Infrastructure boundary
 
-This directory holds stable locations for local Docker assets plus future Azure infrastructure and
-GitHub Actions workflows. `docker/` now contains Phase 11 local-only API, Celery worker, and web
-development images. Production Docker hardening begins in Phase 32, CI in Phase 31, and Azure
-infrastructure as code in Phase 33.
+This directory holds stable locations for Docker assets plus future Azure infrastructure and GitHub
+Actions workflows. `docker/` contains development-only images and Phase 32 production images for the
+API, worker, and web app. `production-local.env.example` supports credential-free local release
+validation; `production.env.template` documents the later deployment configuration without
+containing a secret. Azure infrastructure as code, registry pushes, and deployment remain deferred.

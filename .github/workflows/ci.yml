@@ -215,29 +215,56 @@ jobs:
       - run: pnpm security:check
 
   container-build:
-    name: Container build check
+    name: Production container images
     runs-on: ubuntu-24.04
+    env:
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - run:
+          docker compose --env-file infra/docker/production-local.env.example -f
+          docker-compose.production.yml config --quiet
+      - run:
+          docker compose --env-file infra/docker/production-local.env.example -f
+          docker-compose.production.yml build web api worker
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          python-version: '3.12'
-      - uses: astral-sh/setup-uv@v6
+          image-ref: nordic-regulated-ai/api:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+      - name: Scan web image
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          version: '0.11.23'
-          enable-cache: true
-      - uses: pnpm/action-setup@v4
+          image-ref: nordic-regulated-ai/web:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          skip-setup-trivy: true
+      - name: Scan worker image
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          version: '11.8.0'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24.17.0'
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: uv sync --all-packages --locked
-      - run: docker compose --env-file .env.example config --quiet
-      - run: docker compose --env-file .env.example build web api worker
+          image-ref: nordic-regulated-ai/worker:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          skip-setup-trivy: true
+
+  production-compose-smoke:
+    name: Production Compose smoke
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/validate_production_release.sh
 
   system-smoke:
     name: Migration, OpenAPI, and browser smoke
@@ -270,7 +297,9 @@ jobs:
       - run: test -x "$PLAYWRIGHT_EXECUTABLE_PATH"
       - run: docker compose --env-file .env.example config --quiet
       - run: pnpm dev:up
-      - run: docker compose --env-file .env.example exec -T api alembic -c apps/api/alembic.ini upgrade head
+      - run:
+          docker compose --env-file .env.example exec -T api alembic -c apps/api/alembic.ini upgrade
+          head
       - run: docker compose --env-file .env.example exec -T api python scripts/check_migrations.py
       - run: |
           mkdir -p "$RUNNER_TEMP/openapi"
@@ -279,7 +308,9 @@ jobs:
           uv run python -m json.tool "$RUNNER_TEMP/openapi/openapi.json" >/dev/null
           test -s "$RUNNER_TEMP/openapi/openapi.json"
       - run: pnpm verify:local-stack
-      - run: pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright test e2e/case-management.spec.ts
+      - run:
+          pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright test
+          e2e/case-management.spec.ts
       - name: Upload OpenAPI schema
         if: success()
         uses: actions/upload-artifact@v4

@@ -1,47 +1,49 @@
 # Continuous integration
 
 The repository runs the validation-only **CI** workflow for every pull request and every push to
-`main`. It does not publish images, access GitHub Environments, use cloud credentials, or deploy
-any service.
+`main`. It does not publish images, access GitHub Environments, use cloud credentials, or deploy any
+service.
 
 ## Required checks
 
 The workflow exposes these stable GitHub status checks:
 
-| Status check | Validation |
-| --- | --- |
-| `Backend quality` | Ruff format/lint and strict mypy |
-| `Backend unit tests` | API unit tests |
-| `Backend integration tests` | PostgreSQL/pgvector Testcontainers integration tests |
-| `API contract tests` | API and OpenAPI contract coverage |
-| `Frontend quality` | Web lint and TypeScript check |
-| `Frontend unit tests` | Vitest component/unit tests |
-| `AI deterministic regression` | LangGraph/evaluation tests and canonical evaluation runner |
-| `Security checks` | Bandit, locked Python audit, production Node audit, and secret scan |
-| `Container build check` | Compose validation and development image builds |
+| Status check                            | Validation                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `Backend quality`                       | Ruff format/lint and strict mypy                                                                              |
+| `Backend unit tests`                    | API unit tests                                                                                                |
+| `Backend integration tests`             | PostgreSQL/pgvector Testcontainers integration tests                                                          |
+| `API contract tests`                    | API and OpenAPI contract coverage                                                                             |
+| `Frontend quality`                      | Web lint and TypeScript check                                                                                 |
+| `Frontend unit tests`                   | Vitest component/unit tests                                                                                   |
+| `AI deterministic regression`           | LangGraph/evaluation tests and canonical evaluation runner                                                    |
+| `Security checks`                       | Bandit, locked Python audit, production Node audit, and secret scan                                           |
+| `Production container images`           | Production image build and Trivy scan of API, web, and worker                                                 |
+| `Production Compose smoke`              | Credential-free local production-image Compose startup, migrations, health, proxy, and non-root checks        |
 | `Migration, OpenAPI, and browser smoke` | Compose migration/status, OpenAPI export, local-stack verification, and the approval Playwright smoke journey |
 
-The last check uploads only the generated OpenAPI JSON as a seven-day CI artifact. It does not
-track generated schemas in Git and does not upload application logs, browser traces, screenshots,
-or videos. On GitHub-hosted Ubuntu runners, the focused browser smoke uses the preinstalled
-Google Chrome binary rather than downloading a Playwright browser at runtime.
+The last check uploads only the generated OpenAPI JSON as a seven-day CI artifact. It does not track
+generated schemas in Git and does not upload application logs, browser traces, screenshots, or
+videos. On GitHub-hosted Ubuntu runners, the focused browser smoke uses the preinstalled Google
+Chrome binary rather than downloading a Playwright browser at runtime.
 
 ## Provider and credential policy
 
 CI sets the API embedding provider and non-container agent test provider to `deterministic`. The
 Compose smoke test also receives the deterministic embedding provider. The workflow has no
 `secrets.*` references, does not set an OpenAI or Azure credential, and does not make an external
-model call. Its `NORDIC_LOCAL_SEED_PASSWORD` value is an ephemeral, synthetic fixture password;
-it is not a user, production, or reusable credential.
+model call. Its `NORDIC_LOCAL_SEED_PASSWORD` value is an ephemeral, synthetic fixture password; it
+is not a user, production, or reusable credential.
 
-The workflow has read-only repository permission. Image publishing, container scanning, registry
-logins, GitHub Environments, cloud infrastructure, and deployments are intentionally deferred to
-later phases.
+The production-image check uses Trivy for OS and library vulnerabilities. It fails on fixable `HIGH`
+or `CRITICAL` findings and reports unfixed upstream-base findings without blocking the release gate.
+The workflow has read-only repository permission. Image publishing, registry logins, GitHub
+Environments, cloud infrastructure, and deployments remain intentionally deferred.
 
 ## Main branch protection
 
-A repository administrator should protect `main` in GitHub after the workflow has completed at
-least once. Configure the following expectations:
+A repository administrator should protect `main` in GitHub after the workflow has completed at least
+once. Configure the following expectations:
 
 1. Require a pull request before merging, with at least one approval.
 2. Require every status check listed above, and require the branch to be current before merging.
@@ -75,8 +77,8 @@ pnpm test:web
 uv run pytest services/agent_orchestrator/tests services/evaluation/tests
 uv run python scripts/run_evals.py --dataset nordic-regulated-core-v1 --check
 pnpm security:check
-docker compose --env-file .env.example config --quiet
-docker compose --env-file .env.example build web api worker
+pnpm release:build
+pnpm release:validate
 ```
 
 Run the migration, OpenAPI, and browser smoke check with local synthetic data only:
@@ -99,6 +101,6 @@ docker compose --env-file .env.example down --volumes --remove-orphans
 unset NORDIC_API_EMBEDDING_PROVIDER NORDIC_AGENT_ENVIRONMENT NORDIC_AGENT_PROVIDER NORDIC_LOCAL_SEED_PASSWORD
 ```
 
-If the focused browser smoke fails twice after one Phase 31 fix attempt, stop and report the
-blocker instead of repeatedly rerunning it. A manual browser fallback requires explicit approval
-before the phase can be marked complete.
+If the focused browser smoke fails twice after one Phase 31 fix attempt, stop and report the blocker
+instead of repeatedly rerunning it. A manual browser fallback requires explicit approval before the
+phase can be marked complete.

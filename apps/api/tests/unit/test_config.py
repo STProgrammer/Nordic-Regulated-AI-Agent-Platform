@@ -76,26 +76,14 @@ def test_browser_origins_are_exact_and_deployed_csrf_configuration_is_required()
             rag_output_price_per_million=Decimal("2"),
         )
 
-    deployed = AppSettings(
-        environment="staging",
-        csrf_trusted_origins=("https://app.example.invalid",),
-        rag_completion_api_key=SecretStr("synthetic-rag-key"),
-        rag_input_price_per_million=Decimal("1"),
-        rag_output_price_per_million=Decimal("2"),
-    )
+    deployed = _deployed_settings(environment="staging")
     assert deployed.enable_docs_value is False
 
 
 @pytest.mark.parametrize("environment", ["local", "test", "staging", "production"])
 def test_allowed_environments(environment: str) -> None:
     if environment in {"staging", "production"}:
-        settings = AppSettings(
-            environment=cast(Environment, environment),
-            rag_completion_api_key=SecretStr("synthetic-rag-key"),
-            rag_input_price_per_million=Decimal("1"),
-            rag_output_price_per_million=Decimal("2"),
-            csrf_trusted_origins=("https://app.example.invalid",),
-        )
+        settings = _deployed_settings(environment=cast(Environment, environment))
     else:
         settings = AppSettings(environment=cast(Environment, environment))
     assert settings.environment == environment
@@ -140,6 +128,22 @@ def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
     monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
     monkeypatch.setenv("NORDIC_API_CSRF_TRUSTED_ORIGINS", '["https://app.example.invalid"]')
+    monkeypatch.setenv(
+        "NORDIC_API_DATABASE_URL",
+        "postgresql+asyncpg://fixture-user:fixture-password@db.example.invalid:5432/fixture",
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_REDIS_URL", "rediss://:fixture-password@redis.example.invalid:6380/0"
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_OBJECT_STORAGE_CONNECTION_STRING",
+        "DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture-key;",
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_OBJECT_STORAGE_HEALTH_URL", "https://fixture.blob.core.windows.net"
+    )
+    monkeypatch.setenv("NORDIC_API_RATE_LIMIT_KEY_SECRET", "fixture-rate-key")
+    monkeypatch.setenv("NORDIC_API_EMBEDDING_API_KEY", "fixture-embedding-key")
 
     settings = AppSettings()
 
@@ -158,6 +162,22 @@ def test_get_settings_is_cached_and_resettable(
     monkeypatch.setenv("NORDIC_API_RAG_INPUT_PRICE_PER_MILLION", "1")
     monkeypatch.setenv("NORDIC_API_RAG_OUTPUT_PRICE_PER_MILLION", "2")
     monkeypatch.setenv("NORDIC_API_CSRF_TRUSTED_ORIGINS", '["https://app.example.invalid"]')
+    monkeypatch.setenv(
+        "NORDIC_API_DATABASE_URL",
+        "postgresql+asyncpg://fixture-user:fixture-password@db.example.invalid:5432/fixture",
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_REDIS_URL", "rediss://:fixture-password@redis.example.invalid:6380/0"
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_OBJECT_STORAGE_CONNECTION_STRING",
+        "DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture-key;",
+    )
+    monkeypatch.setenv(
+        "NORDIC_API_OBJECT_STORAGE_HEALTH_URL", "https://fixture.blob.core.windows.net"
+    )
+    monkeypatch.setenv("NORDIC_API_RATE_LIMIT_KEY_SECRET", "fixture-rate-key")
+    monkeypatch.setenv("NORDIC_API_EMBEDDING_API_KEY", "fixture-embedding-key")
     assert get_settings() is first  # still cached
 
     reset_settings_cache()
@@ -173,23 +193,10 @@ def test_settings_are_immutable() -> None:
 
 
 def test_production_requires_secure_cookie_but_derives_it_by_default() -> None:
-    production_settings = AppSettings(
-        environment="production",
-        rag_completion_api_key=SecretStr("synthetic-rag-key"),
-        rag_input_price_per_million=Decimal("1"),
-        rag_output_price_per_million=Decimal("2"),
-        csrf_trusted_origins=("https://app.example.invalid",),
-    )
+    production_settings = _deployed_settings()
     assert production_settings.session_cookie_secure_value is True
     with pytest.raises(ValidationError):
-        AppSettings(
-            environment="production",
-            session_cookie_secure=False,
-            rag_completion_api_key=SecretStr("synthetic-rag-key"),
-            rag_input_price_per_million=Decimal("1"),
-            rag_output_price_per_million=Decimal("2"),
-            csrf_trusted_origins=("https://app.example.invalid",),
-        )
+        _deployed_settings(session_cookie_secure=False)
 
 
 def test_password_bounds_and_redis_urls_are_validated_without_leaking_values() -> None:
@@ -228,6 +235,79 @@ def test_object_storage_configuration_is_secret_safe_and_requires_valid_containe
     assert "fixture-key" not in repr(settings)
     with pytest.raises(ValidationError):
         AppSettings(object_storage_container="bad--container")
+
+
+def _deployed_settings(*, missing: str | None = None, **overrides: object) -> AppSettings:
+    values: dict[str, object] = {
+        "environment": "production",
+        "database_url": SecretStr(
+            "postgresql+asyncpg://fixture-user:fixture-password@db.example.invalid:5432/fixture"
+        ),
+        "redis_url": SecretStr("rediss://:fixture-redis-password@redis.example.invalid:6380/0"),
+        "object_storage_connection_string": SecretStr(
+            "DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture-storage-key;"
+        ),
+        "object_storage_health_url": "https://fixture.blob.core.windows.net",
+        "rate_limit_key_secret": SecretStr("fixture-rate-limit-key"),
+        "csrf_trusted_origins": ("https://app.example.invalid",),
+        "embedding_api_key": SecretStr("fixture-embedding-key"),
+        "rag_completion_api_key": SecretStr("fixture-rag-key"),
+        "rag_input_price_per_million": Decimal("1"),
+        "rag_output_price_per_million": Decimal("2"),
+    }
+    if missing is not None:
+        values.pop(missing)
+    values.update(overrides)
+    return AppSettings(**values)  # type: ignore[arg-type]
+
+
+def test_deployed_settings_require_explicit_runtime_dependencies() -> None:
+    for key in (
+        "database_url",
+        "redis_url",
+        "object_storage_connection_string",
+        "object_storage_health_url",
+        "rate_limit_key_secret",
+        "embedding_api_key",
+    ):
+        with pytest.raises(ValidationError):
+            _deployed_settings(missing=key)
+
+
+def test_deployed_settings_accept_injected_synthetic_values_without_connections() -> None:
+    settings = _deployed_settings()
+
+    assert settings.object_storage_health_url_value() == "https://fixture.blob.core.windows.net"
+    assert settings.database_async_url().startswith("postgresql+asyncpg://fixture-user:")
+    assert settings.redis_async_url().startswith("rediss://:")
+    assert settings.rate_limit_hmac_key() == b"fixture-rate-limit-key"
+    serialized = repr(settings)
+    assert "fixture-password" not in serialized
+    assert "fixture-redis-password" not in serialized
+    assert "fixture-storage-key" not in serialized
+    assert "fixture-rate-limit-key" not in serialized
+    assert "fixture-embedding-key" not in serialized
+
+
+def test_deployed_azure_embedding_provider_requires_its_endpoint() -> None:
+    with pytest.raises(ValidationError):
+        _deployed_settings(embedding_provider="azure_openai")
+
+    settings = _deployed_settings(
+        embedding_provider="azure_openai",
+        embedding_azure_endpoint=SecretStr("https://embedding.example.invalid"),
+    )
+    assert settings.embedding_provider == "azure_openai"
+
+
+def test_object_storage_health_url_is_safe_and_local_fallback_is_explicit() -> None:
+    local_settings = AppSettings()
+    assert (
+        local_settings.object_storage_health_url_value() == "http://azurite:10000/devstoreaccount1"
+    )
+
+    with pytest.raises(ValidationError):
+        AppSettings(object_storage_health_url="https://fixture.blob.core.windows.net/?sig=secret")
 
 
 def test_parser_bounds_are_validated_as_one_worker_contract() -> None:

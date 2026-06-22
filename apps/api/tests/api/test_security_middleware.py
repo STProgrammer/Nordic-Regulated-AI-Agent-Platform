@@ -104,7 +104,17 @@ def test_cors_preflight_uses_only_configured_origin_and_keeps_security_headers()
 def test_deployed_apps_disable_docs_by_default_and_emit_hsts() -> None:
     settings = AppSettings(
         environment="production",
+        database_url=SecretStr(
+            "postgresql+asyncpg://fixture:fixture@db.example.invalid:5432/fixture"
+        ),
+        redis_url=SecretStr("rediss://:fixture@redis.example.invalid:6380/0"),
+        object_storage_connection_string=SecretStr(
+            "DefaultEndpointsProtocol=https;AccountName=fixture;AccountKey=fixture;"
+        ),
+        object_storage_health_url="https://fixture.blob.core.windows.net",
+        rate_limit_key_secret=SecretStr("fixture-rate-key"),
         csrf_trusted_origins=(_TRUSTED_ORIGIN,),
+        embedding_api_key=SecretStr("synthetic-embedding-key"),
         rag_completion_api_key=SecretStr("synthetic-rag-key"),
         rag_input_price_per_million=Decimal("1"),
         rag_output_price_per_million=Decimal("2"),

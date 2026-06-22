@@ -121,9 +121,33 @@ same-origin browser `/api/...` calls and the HTTP-only cookie. For host web deve
 `API_ORIGIN=http://127.0.0.1:8000` when starting the web package; never expose this as
 `NEXT_PUBLIC_*`.
 
-Liveness is dependency-free. Readiness checks PostgreSQL, Redis, and Azurite and returns `503` with
-only safe dependency identifiers when a local dependency is unavailable; it never returns passwords,
-connection strings, exception details, or stack traces.
+Liveness is dependency-free. Readiness checks PostgreSQL, Redis, and object storage and returns
+`503` with only safe dependency identifiers when a local dependency is unavailable; it never returns
+passwords, connection strings, exception details, or stack traces.
+
+## Production image and Compose validation
+
+The development Compose file remains the default developer workflow. Phase 32 adds a separate,
+production-mode local stack that builds non-root release images and uses different loopback ports
+and volumes, so it can run alongside development:
+
+```bash
+pnpm release:build
+pnpm release:validate
+```
+
+`release:validate` checks Compose interpolation, builds tagged web/API/worker images, starts local
+PostgreSQL/Redis/Azurite support services, applies migrations explicitly, verifies health and the
+same-origin `/api/auth/me` proxy boundary, verifies non-root image users, and removes the temporary
+stack. It sets deterministic providers and performs no real model call.
+
+Use [production-local.env.example](../infra/docker/production-local.env.example) only for this
+credential-free validation. The [production.env.template](../infra/docker/production.env.template)
+lists the later platform-supplied configuration: database, Redis, private object storage and health
+endpoint, rate-limit key, browser origins, embedding/RAG provider settings and pricing, and agent
+provider. Deployed `staging`/`production` API settings reject missing values rather than falling
+back to local names. The web image resolves its internal `API_ORIGIN` per request, making the same
+image portable to a later internal Azure endpoint without exposing it to browser JavaScript.
 
 ### API and authentication behavior
 

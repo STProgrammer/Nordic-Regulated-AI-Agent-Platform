@@ -95,6 +95,23 @@ The default services are deliberately local-only: all published ports bind to `1
 | Redis      | `127.0.0.1:6379`                              | Opaque session and failed-login rate-limit state                       |
 | Azurite    | http://127.0.0.1:10000/                       | Local Azure Blob Storage emulator (account `devstoreaccount1`)         |
 
+## Production image validation
+
+Phase 32 adds portable, non-root production images for the web, API, and worker. They are validated
+locally without Azure resources, registry access, real model credentials, or external model calls:
+
+```bash
+pnpm release:build
+pnpm release:validate
+```
+
+The release Compose stack is separate from development (`docker-compose.production.yml`), uses
+loopback ports 3100 and 8100 by default, and cleans up its isolated volumes after validation.
+`infra/docker/production-local.env.example` is safe only for this local check.
+`infra/docker/production.env.template` documents the later deployment configuration contract; it
+contains placeholders only and must be copied outside source control. Azure provisioning, registry
+pushes, and deployment remain intentionally deferred.
+
 The API serves `/health/live`, `/health/ready`, `/openapi.json`, `/docs`, and `/redoc`. It exposes
 `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET/POST /api/users`,
 `GET/PATCH /api/users/{user_id}`, `PUT /api/users/{user_id}/roles`, `GET /api/roles`, and the

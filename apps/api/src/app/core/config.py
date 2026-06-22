@@ -121,6 +121,10 @@ class AppSettings(BaseSettings):
     )
     object_storage_connection_string: SecretStr | None = None
     object_storage_container: str = "nordic-local"
+    # A non-secret endpoint used only by readiness probes. Local/test may
+    # derive Azurite's endpoint; deployed environments must provide the
+    # concrete private-storage service endpoint explicitly.
+    object_storage_health_url: str | None = None
 
     # Parsing happens only in the worker. These independent bounds prevent a
     # valid upload from becoming an unbounded worker workload later.
@@ -298,6 +302,26 @@ class AppSettings(BaseSettings):
             raise ValueError("object_storage_connection_string is invalid")
         return value
 
+    @field_validator("object_storage_health_url")
+    @classmethod
+    def _validate_object_storage_health_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        candidate = value.strip().rstrip("/")
+        if not candidate:
+            return None
+        parsed = urlsplit(candidate)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("object_storage_health_url must be a non-secret http or https URL")
+        return candidate
+
     @field_validator(
         "embedding_api_key",
         "embedding_azure_endpoint",
@@ -375,6 +399,22 @@ class AppSettings(BaseSettings):
         ):
             raise ValueError("RAG input and output price rates must be configured together")
         if self.environment in {"staging", "production"}:
+            if self.database_url is None:
+                raise ValueError("database_url is required outside local and test")
+            if self.redis_url is None:
+                raise ValueError("redis_url is required outside local and test")
+            if self.object_storage_connection_string is None:
+                raise ValueError(
+                    "object_storage_connection_string is required outside local and test"
+                )
+            if self.object_storage_health_url is None:
+                raise ValueError("object_storage_health_url is required outside local and test")
+            if self.rate_limit_key_secret is None:
+                raise ValueError("rate_limit_key_secret is required outside local and test")
+            if self.embedding_api_key is None:
+                raise ValueError("embedding credentials are required outside local and test")
+            if self.embedding_provider == "azure_openai" and self.embedding_azure_endpoint is None:
+                raise ValueError("Azure embedding endpoint is required for azure_openai")
             if self.rag_completion_api_key is None:
                 raise ValueError("RAG completion credentials are required outside local and test")
             if (
@@ -502,11 +542,25 @@ class AppSettings(BaseSettings):
             f"BlobEndpoint=http://{host}:{port}/{account_name};"
         )
 
+    def object_storage_health_url_value(self) -> str:
+        """Return the private-storage liveness URL without deriving deployed defaults."""
+
+        if self.object_storage_health_url is not None:
+            return self.object_storage_health_url
+        if self.environment not in {"local", "test"}:
+            raise RuntimeError("Object storage health configuration is unavailable")
+        account_name = os.getenv("AZURITE_ACCOUNT_NAME", "devstoreaccount1")
+        host = os.getenv("AZURITE_HOST", "azurite")
+        port = os.getenv("AZURITE_BLOB_PORT", "10000")
+        return f"http://{host}:{port}/{account_name}"
+
     def rate_limit_hmac_key(self) -> bytes:
         """Return the private key used solely to derive non-sensitive Redis keys."""
 
         if self.rate_limit_key_secret is not None:
             return self.rate_limit_key_secret.get_secret_value().encode("utf-8")
+        if self.environment not in {"local", "test"}:
+            raise RuntimeError("Rate-limit key configuration is unavailable")
         return b"nordic-local-development-rate-limit-key"
 
 

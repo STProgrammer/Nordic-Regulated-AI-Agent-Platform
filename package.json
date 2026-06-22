@@ -34,7 +34,11 @@
     "dev:up": "docker compose --env-file .env.example up --build --wait --detach web api worker postgres redis azurite && docker compose --env-file .env.example up --detach azurite-init",
     "dev:down": "docker compose --env-file .env.example down",
     "dev:logs": "docker compose --env-file .env.example logs --follow",
-    "verify:local-stack": "bash scripts/verify_local_stack.sh"
+    "verify:local-stack": "bash scripts/verify_local_stack.sh",
+    "release:build": "docker compose --env-file infra/docker/production-local.env.example -f docker-compose.production.yml build --quiet web api worker",
+    "release:up": "docker compose --env-file infra/docker/production-local.env.example -f docker-compose.production.yml up --build --wait --detach web api worker postgres redis azurite && docker compose --env-file infra/docker/production-local.env.example -f docker-compose.production.yml up --detach azurite-init",
+    "release:down": "docker compose --env-file infra/docker/production-local.env.example -f docker-compose.production.yml down",
+    "release:validate": "bash scripts/validate_production_release.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
