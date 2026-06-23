@@ -35,4 +35,4 @@ requiring each boundary to become a separately deployed service before the roadm
 
 - [Architecture §6: Core services](../../specs/architecture.md#6-core-services)
 - [Architecture §12: File and folder structure](../../specs/architecture.md#12-file-and-folder-structure)
-- [Roadmap Phase 1](../../specs/roadmap.md#phase-1--repository-and-workspace-foundation)
+- [Roadmap Phase 1](../../specs/roadmap.md#phase-1--repository-and-workspace-foundation-done)

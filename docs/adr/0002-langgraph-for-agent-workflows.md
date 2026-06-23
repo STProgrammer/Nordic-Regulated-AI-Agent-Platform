@@ -35,4 +35,4 @@ introduced for controlled, organization-scoped, auditable, non-sensitive use cas
 - [Architecture §7: LangGraph workflow architecture](../../specs/architecture.md#7-langgraph-workflow-architecture)
 - [Architecture §8: LangMem usage](../../specs/architecture.md#8-langmem-usage)
 - [Architecture §20.2: LangGraph for agent workflows](../../specs/architecture.md#202-langgraph-for-agent-workflows)
-- [Roadmap Phase 16](../../specs/roadmap.md#phase-16--agent-orchestrator-foundation)
+- [Roadmap Phase 16](../../specs/roadmap.md#phase-16--agent-orchestrator-foundation-done)

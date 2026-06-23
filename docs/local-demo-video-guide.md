@@ -101,4 +101,5 @@ Do not use it when local data should be retained.
 - RAG-kallet og reviewer-godkjenningen utføres live i den lokale stakken. Det lokale RAG-svaret er
   deterministisk fixture-plumbing og må omtales slik.
 - Denne guiden er ikke en video-fil, en skydeployering eller en påstand om at Azure-ressurser er
-  provisjonert. Produksjons- og deploy-klargjøring beskrives separat i senere faser.
+  provisjonert. Se [deployment readiness](deployment-readiness.md) for den gjeldende, planlagte
+  skystatusen.

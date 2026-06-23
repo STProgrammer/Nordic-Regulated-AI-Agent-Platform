@@ -12,8 +12,8 @@ operationally straightforward.
 ## Decision
 
 Use PostgreSQL as the system of record and pgvector as the default semantic-search store. PostgreSQL
-full-text and keyword capabilities will support hybrid retrieval. Qdrant and OpenSearch remain
-optional, evidence-driven additions rather than baseline dependencies.
+full-text and keyword capabilities support hybrid retrieval. Qdrant and OpenSearch remain optional,
+evidence-driven additions rather than baseline dependencies.
 
 ## Consequences
 
@@ -34,4 +34,4 @@ optional, evidence-driven additions rather than baseline dependencies.
 - [Architecture §4.4: Retrieval and document intelligence](../../specs/architecture.md#44-retrieval-and-document-intelligence)
 - [Architecture §9: RAG architecture](../../specs/architecture.md#9-rag-architecture)
 - [Architecture §20.3–20.4](../../specs/architecture.md#203-postgresql-as-main-database)
-- [Roadmap Phase 4](../../specs/roadmap.md#phase-4--database-foundation-and-migrations)
+- [Roadmap Phase 4](../../specs/roadmap.md#phase-4--database-foundation-and-migrations-done)

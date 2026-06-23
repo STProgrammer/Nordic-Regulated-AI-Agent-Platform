@@ -11,9 +11,10 @@ secrets, images, and monitoring without making Kubernetes operations an early pr
 
 ## Decision
 
-Use Azure as the deployment target. Prefer Azure Container Apps ahead of AKS, supported later by
-Azure Database for PostgreSQL, Blob Storage, Key Vault, Container Registry, managed identity, and
-monitoring services. Infrastructure as code and deployment are deferred to Phases 33–35.
+Use Azure as the deployment target. Prefer Azure Container Apps ahead of AKS, supported by Azure
+Database for PostgreSQL, Blob Storage, Key Vault, Container Registry, managed identity, and
+monitoring services. Infrastructure as code and public deployment remain planned work; the current
+repository validates local production-image and configuration contracts only.
 
 ## Consequences
 
@@ -33,4 +34,4 @@ monitoring services. Infrastructure as code and deployment are deferred to Phase
 
 - [Architecture §5: Environment architecture](../../specs/architecture.md#5-environment-architecture)
 - [Architecture §20.5–20.6](../../specs/architecture.md#205-azure-as-deployment-target)
-- [Roadmap Phases 33–35](../../specs/roadmap.md#phase-33--infrastructure-as-code-for-azure)
+- [Deployment readiness and data modes](../deployment-readiness.md)

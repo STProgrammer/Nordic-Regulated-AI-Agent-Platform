@@ -254,7 +254,7 @@ Every phase must include at least one validation method. A phase is not complete
 * Explain the intended later Azure path: Azure Container Apps or App Service for Containers, Azure PostgreSQL, Azure Blob Storage, Key Vault, monitoring, image registry, migrations, HTTPS, health checks, backups, and smoke tests.
 * Validation: Clean/deployment-ready mode is documented and locally verifiable; production/release configuration remains valid; no secrets or unsafe data are present.
 
-## Phase 36 — Documentation and Portfolio Presentation
+## Phase 36 — Documentation and Portfolio Presentation (DONE)
 
 * Update README, setup instructions, local run instructions, test instructions, architecture summary, screenshots section, demo workflow explanation, limitations, and cloud deployment status.
 * Make it clear that the system is cloud-ready and deployment-ready, but public cloud deployment is planned rather than completed in this version.
@@ -265,4 +265,5 @@ Every phase must include at least one validation method. A phase is not complete
 * Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
 * Remove stale TODOs or clearly mark future work.
 * Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.
+* Run one more full-test if possible
 * Validation: Final checklist passes and the project is ready to show to employers.

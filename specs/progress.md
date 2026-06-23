@@ -40,6 +40,24 @@ implementation, tests, and validation checks pass within its defined scope.
 | 33    | Full Bug Fix and Full Test Pass          | DONE   |
 | 34    | Demo Data, Demo Scenario, and Local Demo Video Guide | DONE   |
 | 35    | Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes | DONE |
+| 36    | Documentation and Portfolio Presentation | DONE |
+
+## Phase 36 — Documentation and Portfolio Presentation (DONE)
+
+Completed on 2026-06-23.
+
+The reviewer-facing documentation now describes the implemented platform rather than historical phase
+slices. The root README provides the product narrative, architecture, local start, test path, safe
+demo workflow, limitations, and precise deployment status. A compact Mermaid architecture summary,
+current developer guide, synchronized web/evaluation/security/CI/Azure documentation, and a
+repository-relative Markdown link checker make the portfolio surface easier to review and maintain.
+No screenshots, placeholders, video assets, application behavior, Azure infrastructure, or demo data
+were added.
+
+Validation: workspace structure, targeted Markdown formatting, Ruff and strict mypy for the new
+link checker, repository-relative link/heading validation across 18 documentation files, and
+`git diff --check` passed. Local-stack, release-image, and browser validation were not rerun because
+this phase made no runtime changes.
 
 ## Phase 35 — Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes (DONE)
 

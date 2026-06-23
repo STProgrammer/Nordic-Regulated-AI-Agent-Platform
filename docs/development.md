@@ -1,561 +1,195 @@
-# Developer Guide
+# Developer guide
 
-## Scope of the current workspace
+This guide describes the current local workflow for the Nordic Regulated AI Agent Platform. It is
+for development, review, and synthetic demonstrations only; it is not a production deployment
+runbook. For the architecture, start with the [architecture summary](architecture-summary.md). For
+the exact cloud boundary, see [deployment readiness and data modes](deployment-readiness.md).
 
-This is the Phase 20 Drafting Graph slice, built on the Phase 16 typed LangGraph orchestration
-foundation and the secure Phase 10–15 document, parsing, indexing, and governed retrieval
-boundaries, plus the Case Management UI/backend, frontend shell, authentication/session/RBAC API,
-service layer, database schema, API shell, and local runtime. Docker Compose starts the Next.js web
-application, API process, Redis-backed Celery worker, PostgreSQL, Redis, Azurite, and an Azurite
-container initializer.
+## Prerequisites and installation
 
-The web application provides localized session UX, an accessible server-backed Case Inbox, Case
-submission, and Case Detail. It proxies same-origin `/api/...` requests to the API service, while
-the API remains the authorization authority for opaque server-side sessions, tenant isolation, RBAC,
-and Case Management. The API accepts one safe, supported document attached to an active case and
-stores raw bytes privately in Azurite. The worker validates the stored byte length and checksum,
-then extracts canonical text and page/section context asynchronously. Case Detail now lists safe
-metadata, displays lifecycle/governance state, and delegates source search to Phase 13; only a
-user-requested, server-bounded source context can display text. The protected answer API is now
-available, but there is still no browser upload, download, preview, raw-text browser, chat control,
-or model-answer page. Intake is a closed background workflow: it dispatches only a workflow UUID,
-reloads the case tenant-safely in the worker, persists default-deny state/node projections, and
-returns only allowlisted preliminary classification/risk/routing signals. Prompt content, case text,
-provider bodies, confidence numbers, trace data, and final approval decisions remain unavailable.
-
-## Required tools
-
-- Node.js 24.x
-- pnpm 11.8.x (the root `package.json` pins the selected package-manager release)
-- Python 3.12.x
-- uv 0.11.x
-- Docker Engine or Docker Desktop with Compose v2
-
-Use one primary workflow per ecosystem. Do not add npm, Yarn, Poetry, pipenv, or a second lockfile
-without an explicit architectural decision.
-
-## Install
-
-From the repository root:
+Install Node.js 24.x, pnpm 11.8.x, Python 3.12, uv 0.11.x, and Docker Engine or Docker Desktop with
+Compose v2. From the repository root:
 
 ```bash
 pnpm install --frozen-lockfile
 uv sync --all-packages --locked
 ```
 
-`pnpm` installs JavaScript quality tooling. `uv` creates the local Python environment and installs
-the locked API skeleton dependencies plus Python quality tools for the workspace.
+Use pnpm and uv as the only package-management workflows. Do not add npm, Yarn, Poetry, pipenv, or
+another lockfile without an architectural decision.
 
-## Local Docker lifecycle
+## Local stack and clean-data mode
 
-Start the standard local stack from a clean checkout:
+The standard Compose stack runs the Next.js web application, FastAPI API, Celery worker,
+PostgreSQL/pgvector, Redis, Azurite, and the one-shot blob-container initializer. Published ports
+bind to `127.0.0.1`; the worker has no public port.
 
 ```bash
 pnpm dev:up
+docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini upgrade head
+docker compose --env-file .env.example exec api python scripts/check_migrations.py
+docker compose --env-file .env.example exec api python scripts/check_clean_deployment_mode.py
+pnpm verify:local-stack
 ```
 
-The stack first waits for long-running services, then launches the one-shot private-container
-initializer separately so Compose does not mistake its successful exit for a failed health check:
+Normal startup does not migrate or seed. The clean/deployment-ready local baseline is a migrated
+database with no organizations, identities, cases, documents, workflow history, approvals, audit
+history, evaluation data, or memory data. `check_clean_deployment_mode.py` is meaningful only before
+an explicit fixture or demo seed is loaded.
+
+Useful local endpoints:
+
+| Surface           | URL                                |
+| ----------------- | ---------------------------------- |
+| Web application   | http://127.0.0.1:3000/             |
+| Swagger / OpenAPI | http://127.0.0.1:8000/docs         |
+| API liveness      | http://127.0.0.1:8000/health/live  |
+| API readiness     | http://127.0.0.1:8000/health/ready |
+
+The web application redirects to Bokmål (`/nb`) by default, supports English at `/en`, and proxies
+browser requests through same-origin `/api/...`. Session identifiers remain opaque HTTP-only
+cookies; the frontend does not read, store, or create them. For host-only web development while the
+API is available locally:
 
 ```bash
-docker compose --env-file .env.example up --build --wait --detach web api worker postgres redis azurite
-docker compose --env-file .env.example up --detach azurite-init
+API_ORIGIN=http://127.0.0.1:8000 pnpm --filter @nordic-regulated-ai-agent-platform/web dev
 ```
 
-It creates named `postgres_data`, `redis_data`, and `azurite_data` volumes. Normal shutdown retains
-those volumes:
+Normal shutdown retains local volumes:
 
 ```bash
 pnpm dev:down
 ```
 
-Only use this explicit reset command when removing all local database and object-storage data is
-intended:
+The following command removes this project's local PostgreSQL, Redis, and Azurite volumes. Use it
+only when discarding all local data is intended:
 
 ```bash
 pnpm dev:reset
 ```
 
-The default published ports bind to `127.0.0.1`: web 3000, API 8000, PostgreSQL 5432, Redis 6379,
-and Azurite blob 10000. The parser worker has no public port. Containers use Compose DNS names such
-as `postgres`, `redis`, and `azurite`; they must never use host `localhost` to reach each other.
+## Explicit synthetic fixtures and demo mode
 
-To customize a local port or default local value, copy the template and leave the copy untracked:
-
-```bash
-cp .env.example .env
-docker compose up --build --wait --detach
-```
-
-`.env.example` contains intentionally public local defaults. They are not production credentials and
-must not be reused outside this local stack. The verifier automatically prefers `.env` when it
-exists; for another environment-file path, run
-`COMPOSE_ENV_FILE=path/to/file pnpm verify:local-stack`.
-
-## Verify and inspect the local stack
-
-```bash
-pnpm verify:local-stack
-docker compose --env-file .env.example ps
-pnpm dev:logs
-```
-
-`verify:local-stack` is non-destructive. It waits for all long-running services to become healthy,
-checks the real Next.js web shell plus API/Azurite HTTP contracts through their loopback ports,
-verifies the Celery worker broker/consumer ping, verifies the API OpenAPI schema and Swagger
-documentation respond, runs `pg_isready`, checks that pgvector is available without enabling it,
-verifies Redis `PONG`, and confirms that the private configured Azurite blob container exists. It
-neither creates business data nor runs migrations, queue tasks, or external calls.
-
-The API exposes health endpoints plus local API documentation. The worker is an internal Celery
-consumer, and Compose marks it healthy only when `celery inspect ping` reaches its named worker:
-
-| Process | Interface                                                                           |
-| ------- | ----------------------------------------------------------------------------------- |
-| API     | `GET /health/live`, `GET /health/ready`, `GET /openapi.json`, `GET /docs`, `/redoc` |
-| Worker  | Internal Celery parser/index consumers and periodic reconciliation                  |
-
-The web root redirects to `/nb` and includes a stable `nordic-app-shell` marker used only for local
-stack verification. Its server-side `API_ORIGIN` is `http://api:8000` inside Compose, preserving
-same-origin browser `/api/...` calls and the HTTP-only cookie. For host web development, set
-`API_ORIGIN=http://127.0.0.1:8000` when starting the web package; never expose this as
-`NEXT_PUBLIC_*`.
-
-Liveness is dependency-free. Readiness checks PostgreSQL, Redis, and object storage and returns
-`503` with only safe dependency identifiers when a local dependency is unavailable; it never returns
-passwords, connection strings, exception details, or stack traces.
-
-## Production image and Compose validation
-
-The development Compose file remains the default developer workflow. Phase 32 adds a separate,
-production-mode local stack that builds non-root release images and uses different loopback ports
-and volumes, so it can run alongside development:
-
-```bash
-pnpm release:build
-pnpm release:validate
-```
-
-`release:validate` checks Compose interpolation, builds tagged web/API/worker images, starts local
-PostgreSQL/Redis/Azurite support services, applies migrations explicitly, verifies health and the
-same-origin `/api/auth/me` proxy boundary, verifies non-root image users, and removes the temporary
-stack. It sets deterministic providers and performs no real model call.
-
-Use [production-local.env.example](../infra/docker/production-local.env.example) only for this
-credential-free validation. The [production.env.template](../infra/docker/production.env.template)
-lists the later platform-supplied configuration: database, Redis, private object storage and health
-endpoint, rate-limit key, browser origins, embedding/RAG provider settings and pricing, and agent
-provider. Deployed `staging`/`production` API settings reject missing values rather than falling
-back to local names. The web image resolves its internal `API_ORIGIN` per request, making the same
-image portable to a later internal Azure endpoint without exposing it to browser JavaScript.
-
-### API and authentication behavior
-
-- **Configuration**: typed `AppSettings` read from the environment with the `NORDIC_API_` prefix
-  (see [.env.example](../.env.example)); database URLs are secret values and are never logged or
-  exposed, while local Compose derives its connection from `POSTGRES_*` variables.
-- **Logging**: `structlog`-based structured logs carrying only safe context (`service`,
-  `environment`, request id, method, route template, status, duration). Request bodies, headers,
-  query values, and raw exceptions are never logged.
-- **Request correlation**: every response carries an `X-Request-ID` header. A client-supplied id is
-  reused only when it passes a conservative character/length policy; otherwise a new id is
-  generated.
-- **Error contract**: all error paths return a single JSON envelope —
-  `{"error": {"code", "message", "request_id", "details"}}` — with neutral English messages for this
-  backend phase (Norwegian UI localization is Phase 7). Validation, unknown-route,
-  method-not-allowed, explicit API errors, and unexpected errors all use this shape and never leak
-  internals.
-- **Sessions and passwords**: local passwords use Argon2id and are never logged, returned, or
-  written to audit metadata. Login sets a finite HTTP-only, `SameSite=Lax` opaque cookie; its
-  identity is resolved from Redis and revalidated against active PostgreSQL identity/roles on every
-  protected request. Cookies are secure by default outside explicit local/test settings.
-- **Rate limiting**: `POST /api/auth/login` limits normalized-email and client-origin counters
-  through atomic Redis operations with HMAC-derived keys. It returns `429` and `Retry-After` when
-  blocked; a Redis failure fails the login closed with a safe `503`.
-- **Browser security**: Cookie-authenticated unsafe API requests require an exact configured
-  `Origin`. The normal same-origin web proxy supplies this automatically. CORS is disabled unless
-  exact origins are configured, and deployed environments must configure CSRF trusted origins.
-  Upload, retrieval/answer, and workflow-start routes use separate HMAC-keyed Redis limits and fail
-  closed if their security state is unavailable.
-- **Route boundaries**: Phase 12 exposes `POST /api/auth/login`, `POST /api/auth/logout`,
-  `GET /api/auth/me`, `GET/POST /api/users`, `GET/PATCH /api/users/{user_id}`,
-  `PUT /api/users/{user_id}/roles`, `GET /api/roles`, `POST/GET /api/cases`,
-  `GET/PATCH /api/cases/{case_id}`, `POST /api/cases/{case_id}/archive`, and the minimal Case-read
-  `GET /api/cases/assignees` option view. `POST /api/documents/upload` is an authenticated
-  `multipart/form-data` operation that attaches one validated raw document or pasted email to an
-  active current-organization case. `GET /api/documents/{document_id}` returns safe parser/indexing
-  metadata, `GET /api/documents?case_id={uuid}` returns a bounded case-scoped metadata page, and
-  `PATCH /api/documents/{document_id}/source-status` changes only the source-governance label for
-  Admin/Compliance Reviewer roles. `GET /api/documents/{document_id}/context?chunk_id={uuid}` is a
-  purpose-specific bounded source-context read with Phase 13 retrieval policy.
-  `POST /api/documents/{document_id}/reprocess` requests another asynchronous parse, and
-  `POST /api/documents/{document_id}/reindex` requests an authorized index replacement. User
-  operations are Admin-only; Case and document operations derive organization solely from the
-  authenticated principal and enforce backend RBAC. `POST /api/retrieval/search` is a protected,
-  case-contextual hybrid source search that returns bounded governed excerpts only.
-  `POST /api/retrieval/answer` is a protected direct RAG operation that uses approved sources only,
-  emits validated inline citation labels, or returns a normal safe refusal. All other product groups
-  remain operation-free until their own phases.
-
-### Observability and local metrics
-
-Phase 27 adds structured, content-free lifecycle logs and bounded metrics for API requests,
-retrieval, workflows and nodes, model usage, document parsing failures, deterministic evaluation
-results, approval decisions, and source-grounded refusals. Metrics never use organization, user,
-case, document, request, query, source, or error-text labels.
-
-The local Compose API enables the unauthenticated Prometheus endpoint at
-`http://127.0.0.1:8000/metrics`; production ingress must leave it disabled or restrict it to an
-internal scraper. Trigger an API request before checking its request metric:
-
-```bash
-curl -fsS http://127.0.0.1:8000/openapi.json >/dev/null
-curl -fsS http://127.0.0.1:8000/metrics | rg '^nordic_api_http_'
-```
-
-Set `NORDIC_API_OTLP_ENDPOINT` to an internal OTLP HTTP collector base URL to export safe trace
-spans. No collector, cloud-monitoring resource, client telemetry, or external-model call is needed
-for local automated validation. Celery task payloads remain UUID-only; trace context, when present,
-uses only W3C `traceparent`/`tracestate` task headers.
-
-### Secure document upload and private storage
-
-Use `POST /api/documents/upload` in local Swagger (`http://127.0.0.1:8000/docs`) only after the
-normal migration and synthetic-password seed workflow. Admin, Case Worker, and Manager roles may
-upload. Supply an active current-tenant `case_id` and exactly one of `file` or `email_text`, plus
-optional `title`, `source_status`, and `confidentiality_level` form fields. The endpoint accepts
-PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted email text, with a configured 25 MiB hard cap.
-
-The API validates extension, claimed type, content signature/UTF-8 structure, and OOXML package
-structure before private storage. It calculates a SHA-256 checksum from the exact stored bytes,
-persists only document metadata in PostgreSQL with parsing status `pending`, and appends one safe
-`document.uploaded` audit event. Responses deliberately omit the checksum, blob key, blob URL,
-credentials, and raw content. A rejected upload creates no successful document or audit record.
-
-### Asynchronous parsing, chunking, and re-indexing
-
-Every durable upload is dispatched after its database transaction commits. The Celery payload is the
-document UUID only; the worker obtains tenant ownership, private storage key, checksum, and file
-type from PostgreSQL. It reads raw bytes privately with a hard size cap, verifies size and SHA-256,
-parses PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted-email EML, and stores normalized
-extracted text only in `document_texts`. On a successful parse commit, the document becomes pending
-for a UUID-only indexing task. That task tokenizes only the canonical text inside trusted parser
-spans, generates validated 1536-dimensional embeddings, and atomically replaces the document's chunk
-rows. The public API never returns text, spans, chunks, vectors, blob keys, checksums, task ids,
-broker URLs, or parser/provider exceptions.
-
-Use `/docs` for a safe local verification after migration and synthetic login provisioning:
-
-1. Create or select a synthetic active Case and upload a harmless supported file through
-   `POST /api/documents/upload`.
-2. Poll `GET /api/documents/{document_id}` until `parsing_status` becomes `parsed` or `failed`.
-3. Poll the same safe metadata view until `indexing_status` becomes `indexed` or `failed`. Confirm
-   it includes only lifecycle fields (`language`, optional `page_count`, timestamps, and neutral
-   errors), never content, locations, chunks, vectors, storage keys, or provider information.
-4. Request `POST /api/documents/{document_id}/reprocess`; it returns `202` unless a worker is
-   actively processing the document, in which case it returns `409`.
-5. Once parsing is `parsed` and indexing is terminal, request
-   `POST /api/documents/{document_id}/reindex`. It returns `202`, retains the prior complete chunks
-   until replacement succeeds, and returns `409` while an index job is pending or active.
-
-The worker retries transient private-storage/database failures with bounded exponential delay. A
-periodic reconciler resubmits pending parser/index work and releases expired leases. Failed parsing
-never deletes the last-good `document_texts` record; failed indexing never deletes the last-good
-chunk set. Configure OpenAI or Azure OpenAI credentials only through environment variables. For a
-clearly labelled local/test plumbing check, `NORDIC_API_EMBEDDING_PROVIDER=deterministic` is allowed
-and gives repeatable non-semantic vectors only. It is not an embedding-quality or retrieval test.
-Case Detail now exposes safe document metadata and authorized source-governance/re-index
-affordances. Once a synthetic document has `parsing_status=parsed` and `indexing_status=indexed`, an
-authorized retrieval role can use the Evidence Panel or call `POST /api/retrieval/search` with a
-readable case id and query. Omitted `source_statuses` searches approved sources only; explicit
-draft/deprecated sources receive status warnings, while restricted/archived selection is
-backend-authorized. The context route applies the same policy and returns one fixed server-bounded
-window only after explicit user action. Physical archives and noncurrent index states are always
-excluded. `POST /api/retrieval/answer` uses that same governed service with no caller-owned source,
-provider, prompt, score, or context control. It selects bounded approved excerpts, records a
-tenant-scoped `rag_answer` run and terminal content-free audit event, then returns a cited answer or
-localized `needs_more_evidence` refusal. It is API-only and does not create a workflow-node record,
-case-status transition, or frontend answer UI. No endpoint or UI returns a raw document, vector,
-generic chunk list, download link, provider payload, or prompt.
-
-### Evidence workflow
-
-`POST /api/cases/{case_id}/workflows/run` accepts the closed selector `{"workflow":"evidence"}` for
-authorized case and retrieval roles. It queues only a workflow UUID; the worker reloads the current
-tenant, case, user roles, and source policy before running the ten-node Evidence graph. The graph
-uses server-owned bounded case context and approved sources only, persists run-local `[S#]`
-provenance, and returns either `completed`, `needs_more_evidence`, or a neutral failure. Its status
-projection omits case text, rewritten queries, excerpts, ranks, prompts, provider details, node
-traces, and errors. The Case Detail Evidence Package panel can open the existing authorized bounded
-source-context view for a persisted citation. It does not draft, answer, approve, or expose a
-user-adjustable retrieval form.
-
-### Extraction workflow
-
-`{"workflow":"extraction"}` uses only the latest completed, sufficient, non-contradictory Evidence
-package for the same current-tenant case. The worker rechecks the Evidence run and its currently
-approved source rows before invoking the fixed structured-output operation. It persists
-source-linked, closed-schema fields and exposes values only through the dedicated case field
-endpoint; workflow status contains aggregate counts and confidence bands only. Human edits validate
-against the existing field kind, retain the source link, set `human_edited`, and create a
-content-free audit event. Extraction does not retrieve again, set case risk, change lifecycle state,
-draft prose, or approve an output.
-
-### Drafting workflow
-
-`{"workflow":"drafting"}` accepts only an optional closed `output_language` (`nb` or `en`); the
-current Case language is the server-side default. It can run only from the latest completed,
-sufficient, non-contradictory Evidence package for the same current-tenant case. The six-node worker
-rechecks that package, validates every `[S#]` citation against the persisted approved sources, and
-requires each cited claim segment to occur in its cited Evidence excerpt. A citation/support failure
-becomes `needs_more_evidence`. The normal workflow status exposes only availability, language,
-citation counts, and closed reason codes. The original valid draft is stored once as a protected
-`agent_messages` record and is available only through `GET /api/cases/{case_id}/draft`, with stable
-source identifiers for the existing bounded context route. Case Detail labels it as an AI draft
-requiring later human review. There is intentionally no draft edit, approval, finalization, export,
-risk decision, or trace UI in this phase.
-
-### Risk and Compliance workflow
-
-`{"workflow":"risk_compliance"}` accepts no browser-owned risk facts, policy text, source ids, model
-settings, or override. It runs only after a completed protected Draft, a currently eligible Evidence
-package and provenance, and a completed Intake result are revalidated in a fresh worker session.
-Missing, stale, contradictory, or insufficient prerequisites produce a controlled
-`needs_more_evidence` terminal result and never create an assessment.
-
-The policy is fixed and deterministic: PII, sensitive-domain, high-impact-action, policy-conflict,
-or prompt-injection signals yield high risk and require later human approval; low confidence yields
-medium risk and also requires later human review; no active signal yields low risk. The assessment
-stores only the closed reason codes, final level, approval requirement, and safe next state. It
-updates `cases.risk_level` atomically with its one `risk_assessments` record.
-`GET /api/cases/{case_id}/risk-assessment` is a read-only, tenant/RBAC-protected presentation
-contract. It exposes no trace, draft text, source excerpt, score, policy rationale, reviewer action,
-or approval record. Phase 22 remains the owner of approval packets and human decisions.
-
-### Human approval workflow
-
-When a completed Phase 21 assessment has server-owned `requires_approval=true`, the worker creates a
-separate `human_approval` run. Its UUID-only worker task pins the current required risk assessment,
-the immutable protected Drafting message, and approved source references into one tenant-scoped
-review packet, then pauses at `waiting_for_human_review`. The case also moves to that state. A
-browser cannot start, bypass, or resume this workflow directly.
-
-Only active Admins and Compliance Reviewers can use `/api/approvals`. They may view the
-deterministic pending queue and its bounded review packet, assign/reassign a pending item, or submit
-one explicit approve, edit-and-approve, reject, or request-more-evidence decision. The service
-enforces tenant scope, role, current assignment, and high-risk separation of duties: the original
-Case Worker cannot approve their own required-review case even if they have an additional reviewer
-role. A decision writes only protected persistence and queues the approval workflow UUID; the worker
-later resolves it exactly once. An unchanged approval never alters the immutable AI draft.
-Edit-and-approve stores a separate human final text. Reject and request-more-evidence store no final
-approved text; neither automatically starts another Evidence or Drafting run.
-
-For a synthetic local demonstration, first run the documented Intake, Evidence, Extraction,
-Drafting, and Risk sequence for a synthetic case in `processing` state. Open
-`http://127.0.0.1:3000/nb/approvals` in a distinct active reviewer session once the case is waiting
-for review. Inspect only bounded risk reasons, original draft, extracted fields, and authorized
-source context; then exercise one controlled outcome. Repeat in English at
-`http://127.0.0.1:3000/en/approvals`. This phase does not send/export a result, expose a trace
-browser, or use real personal data or model credentials in automated validation.
-
-With the Compose stack running, this opt-in host-side adapter test provides live Azurite
-write/delete evidence without a cloud account (it creates and removes one synthetic object):
-
-```bash
-AZURITE_HOST=127.0.0.1 NORDIC_RUN_AZURITE_TEST=1 \
-  uv run pytest apps/api/tests/integration/test_azurite_storage.py
-```
-
-### Workflow trace and audit trail
-
-Phase 23 adds read-only investigation views, not a general observability console. A permitted Case
-reader can open a workflow trace from a workflow panel in Case Detail at
-`/nb/workflows/{workflow_run_id}/trace`; Admins, Compliance Reviewers, and Read-only Auditors can
-inspect their organization's filtered event list at `http://127.0.0.1:3000/nb/audit`. The equivalent
-English routes use `/en`. The API equivalents are `GET /api/workflows/{workflow_run_id}/trace`,
-`GET /api/audit/events`, and the case-read-protected `GET /api/cases/{case_id}/audit`.
-
-Use synthetic data only. Inspect lifecycle timing, retries, controlled error codes, model
-accounting, metadata-only tool calls, and currently authorized source references. A source context
-is fetched only after an explicit action through its existing governed route. Trace and audit
-responses deliberately exclude prompts, AI draft text, document/case text, source excerpts and
-scores, tool payloads/results, provider request/response bodies, credentials, cookies, tokens,
-storage keys, SQL, stack traces, IP addresses, and user-agent data. They do not export, replay,
-mutate, cancel, or resume workflows, and automated validation uses no external model or tool
-provider.
-
-### Database foundation workflow
-
-The PostgreSQL schema is owned by Alembic and is never mutated by normal API or worker startup. The
-`vector` extension and `pgcrypto` UUID generation are enabled by the baseline migration. Document
-chunk embeddings use a fixed `vector(1536)` contract; a future embedding model must use that
-dimension or introduce a reviewed dimensional migration.
-
-Start the normal stack first, then run all database commands explicitly inside the API container:
-
-```bash
-docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini upgrade head
-docker compose --env-file .env.example exec api python scripts/check_migrations.py
-docker compose --env-file .env.example exec api python scripts/seed_local.py
-```
-
-`scripts/check_migrations.py` reports only current and expected revision identifiers. It
-deliberately does not print a database URL or raw database errors. Settings prefer a secret
-`NORDIC_API_DATABASE_URL` with the `postgresql+asyncpg://` scheme when supplied; otherwise local
-Compose derives an internal URL from its `POSTGRES_*` variables. Alembic privately converts that URL
-to psycopg for migrations. Neither setting is logged or exposed through OpenAPI.
-
-`seed_local.py` creates a single fake Norwegian fixture organization, all five canonical role
-records, and fake `demo.invalid` identities. The default invocation remains password-free and
-creates no functional accounts. For a disposable local database, enter a synthetic password silently
-and pass only its environment-variable name to the command; the script never prints the value or its
-hash:
+Synthetic data is opt-in. Never use personal data, customer documents, real credentials, or
+production connection values. For basic local identities, provide a password only through the
+current shell and seed the disposable stack explicitly:
 
 ```bash
 read -r -s NORDIC_LOCAL_SEED_PASSWORD
 export NORDIC_LOCAL_SEED_PASSWORD
 docker compose --env-file .env.example exec -e NORDIC_LOCAL_SEED_PASSWORD api \
   python scripts/seed_local.py --password-env NORDIC_LOCAL_SEED_PASSWORD
+```
+
+The seed creates only synthetic `demo.invalid` identities and safe local fixtures. Unset the
+variable when finished:
+
+```bash
 unset NORDIC_LOCAL_SEED_PASSWORD
 ```
 
-The seed rejects this password-provisioning mode outside local/test environments. Never use a real
-or production password.
+For the portfolio scenario, follow the exact preparation, role handoff, and cleanup steps in the
+[Bokmål local demo and video guide](local-demo-video-guide.md). It uses explicit deterministic local
+providers only to demonstrate plumbing and citations; it does not make a hosted-model or retrieval-
+quality claim.
 
-On a disposable local database only, a current-baseline rollback and replay is:
+## Product surface
 
-```bash
-docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini downgrade base
-docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini upgrade head
-```
+The authenticated application includes case inbox/detail workflows, document metadata and
+governance, retrieval/evidence views, workflow traces, human approvals, audit views, evaluation
+results, and administrator controls including controlled memory. The API owns all authorization,
+organization isolation, state transitions, provider selection, and server limits. Swagger is the
+current detailed operation contract.
 
-This operation removes project tables and their data. It intentionally retains `pgcrypto` and
-`vector`, since either extension may predate the project schema or be used by an operator-managed
-schema. Azurite may contain synthetic raw uploads from local verification, and the worker consumes
-only document UUID jobs from the internal Redis queue.
+Security and governance boundaries include:
 
-### Internal repository and service layer
+- tenant-scoped RBAC and a separation of duties for high-risk approvals;
+- private raw document storage and bounded, governed source context;
+- cited retrieval/drafting paths with evidence-sufficiency gates;
+- content-minimized audit, trace, and logging projections; and
+- deterministic evaluation and local-only test providers without external AI credentials in CI.
 
-The Phase 5 modules under `apps/api/src/app/db/repositories/` own SQLAlchemy statements and receive
-an existing `AsyncSession`; they never create engines/sessions, commit, or roll back. The matching
-modules under `apps/api/src/app/services/` compose repository calls, validate typed internal
-commands, and use a narrow savepoint for safe persistence-conflict translation. Phase 6 route
-handlers parse/format HTTP while authentication and administration services coordinate the trusted
-identity, session, audit, and password operations.
+Read [security.md](security.md), [ai-evaluation.md](ai-evaluation.md), and
+[architecture-summary.md](architecture-summary.md) for the corresponding detail.
 
-Every tenant-scoped repository operation requires an explicit `organization_id` and includes it in
-its SQL predicate. An id in another organization follows the same not-found path as an absent id.
-Cases and documents exclude soft-archived records unless internal code explicitly asks for archived
-rows. List operations use immutable bounded pagination, model-owned sort allowlists, and
-deterministic UUID tie breakers. Never pass a user-supplied field name, direction, or SQL fragment
-to a repository.
+## Validation workflows
 
-`audit_events` are append-only. The Case Management service writes exactly one minimal case audit
-row for each successful submit, patch, or archive; the Document service writes exactly one
-`document.uploaded` event only after an object, metadata row, and audit row can all succeed in the
-caller-owned transaction. Reads and rejected commands write none. Event metadata contains only
-operational facts—never case descriptions, filenames, titles, document content, checksums, storage
-keys, credentials, authorization tokens, cookies, password data, raw request bodies, or raw
-exception text. Authentication dependencies derive organization only from a persisted principal. The
-tenant guard and repository predicates together hide cross-organization resources; role checks are
-backend policy, not frontend or OpenAPI-only behavior. Required high-risk review is enforced by the
-dedicated Phase 22 approval workflow; there is no generic case-status shortcut around it.
+### Fast repository checks
 
-### Controlled memory local walkthrough
-
-Controlled memory is a narrow, server-owned preference facility. It accepts only approved
-organization terminology, bounded Drafting presentation preferences, and case-independent process
-hints, plus the current user's `nb`/`en` UI-language preference. It is disabled by default for every
-organization. It never stores case/document/source text, contact data, links, secrets, or model
-instructions; it cannot alter retrieval, citations, risk, approvals, or case state.
-
-With the local stack running and a synthetic seed password provisioned, sign in as
-`per.eksempel+admin@demo.invalid` at `http://127.0.0.1:3000/nb/admin`. Enable controlled memory,
-create one short approved-terminology entry, and inspect only its typed safe fields. A later
-eligible deterministic Drafting run may consume bounded presentation context; inspect the existing
-Audit Trail or Workflow Trace for counts and closed outcome codes only. No page should display the
-stored term, LangGraph namespace, database URL, provider/store error, or protected workflow data.
-Disable memory, then run another eligible draft: normal evidence-grounded Drafting continues, but no
-memory entry is applied. Use only synthetic local content and remove the synthetic password from the
-shell when done.
-
-### Troubleshooting
-
-- If startup fails before containers run, use
-  `docker compose --env-file .env.example config --quiet` to find interpolation or Compose-version
-  errors.
-- If a host port is already in use, copy `.env.example` to `.env`, change the corresponding
-  `*_HOST_PORT`, and start with `docker compose up --build --wait --detach`.
-- Use `docker compose ps` and `docker compose logs <service>` to inspect a service. When using a
-  custom `.env`, omit `--env-file .env.example` so Compose loads that file automatically.
-- If a previous local volume is masking an initialization change, use the destructive reset command
-  above only after accepting that it removes local data.
-
-## Quality commands
+Run these after typical code or documentation changes:
 
 ```bash
 pnpm check:workspace
-pnpm format
 pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test:web
 pnpm test:api
+uv run python scripts/check_documentation_links.py
 ```
 
-`pnpm test:web` runs the deterministic Vitest/Testing Library shell tests without Docker or a live
-API. `pnpm test:api` runs the full backend test suite (`apps/api/tests`). `pnpm test:health` runs
-only the Phase 2 health-compatibility tests. The aggregate commands run both language toolchains
-where applicable. Equivalent direct Python checks are:
+`pnpm test:web` runs the deterministic Vitest/Testing Library suite. `pnpm test:api` runs the full
+backend test suite, including API and integration coverage where Docker/Testcontainers are
+available. The link checker validates repository-relative Markdown files and heading fragments in
+reviewer-facing documentation.
+
+### Deterministic evaluation and security checks
+
+These checks do not require an external model credential:
 
 ```bash
-uv run ruff format --check apps services packages scripts
-uv run ruff check apps services packages scripts
-uv run mypy apps services packages scripts
-uv run pytest apps/api/tests
+uv run python scripts/run_evals.py --dataset nordic-regulated-core-v1 --check
+pnpm security:check
 ```
 
-The database contract tests use an isolated `pgvector/pgvector:0.8.0-pg16` Testcontainers instance;
-Docker must be available for those PostgreSQL-specific assertions to execute. The focused suite also
-covers Phase 5 repository/service behavior plus Phase 6 password, session, rate-limit,
-authentication, RBAC, and OpenAPI contracts using synthetic `demo.invalid` data:
+The evaluation suite checks fixed synthetic behavior, not semantic answer quality or hosted-provider
+performance. Security checks scan code and dependencies and verify the reviewed secret baseline.
 
-```bash
-uv run pytest apps/api/tests/unit apps/api/tests/integration
-```
+### Browser and production-image validation
 
-Run `pnpm format` before committing formatting changes. All checks must pass before a phase is
-marked complete.
-
-### Browser smoke test
-
-The independent `pnpm test:e2e` command covers the focused human-approval journey against a running
-local Compose stack. It seeds one synthetic case already at completed drafting, approval-required
-risk, and pending human review; it then verifies reviewer approval and the case worker's terminal
-case view. Login UI, case submission, upstream workflow graphs, and inbox search are intentionally
-out of scope for this browser test. Install its project-managed browser once:
+Browser tests need a migrated, explicitly seeded local stack, deterministic local providers, and a
+synthetic password in the current shell. Install the project-managed browser once, then use the
+environment setup documented in the [local demo guide](local-demo-video-guide.md):
 
 ```bash
 pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium
+pnpm test:e2e
 ```
 
-On Linux, this command may ask for `sudo` to install browser libraries. Start Compose with
-`NORDIC_API_EMBEDDING_PROVIDER=deterministic` for this local-only plumbing test. After migrations
-and password provisioning, retain `NORDIC_LOCAL_SEED_PASSWORD` in the shell. The spec rejects
-missing setup without printing values, uses a local-only direct seed, transfers the fixture IDs to
-the browser test, establishes two browser sessions through the local API, and disables traces,
-video, and screenshots. Run `unset NORDIC_LOCAL_SEED_PASSWORD` after the test.
+Browser tests retain no normal screenshot, video, or trace artifacts. If a focused browser test
+fails twice after one relevant fix, stop and diagnose the concrete blocker rather than repeatedly
+rerunning the suite.
 
-## Working agreements
+Validate the credential-free production-image contract separately:
 
-- Keep application behavior within the roadmap phase that owns it. Phase 15 owns direct,
-  approved-source-only RAG answering. Phase 16 owns the generic LangGraph runtime, provider/prompt
-  ports, safe snapshots, and node persistence. Phase 17 owns only Intake's preliminary
-  classification/routing and low-confidence correction; evidence, final risk, approval, traces, and
-  evaluation remain later-phase work.
-- Use typed Python and strict TypeScript settings for new code.
-- Never commit `.env` files, secrets, production connection values, or personal data.
-- Keep public demo material synthetic, public, anonymized, or otherwise safe as described in
-  [sample-data guidance](../sample-data/README.md).
-- Record an architecture-impacting change in a new ADR or by updating the relevant ADR before
-  implementation.
+```bash
+pnpm release:build
+pnpm release:validate
+```
+
+This builds non-root production images, starts an isolated local Compose stack, applies migrations,
+checks clean runtime data, health probes, and the same-origin API proxy, then removes the temporary
+stack. It does not publish images or provision cloud infrastructure.
+
+## Troubleshooting
+
+- Check service state with `docker compose --env-file .env.example ps`.
+- Follow safe local logs with `pnpm dev:logs`; do not copy secrets or personal data into issue
+  reports.
+- Re-run `pnpm verify:local-stack` only against an already-running stack; it does not create
+  business data, migrate, dispatch work, or call external providers.
+- If migration state is unexpected, use `scripts/check_migrations.py` before considering a reset.
+- If a disposable demo leaves data behind, use `pnpm dev:reset` and restart the clean-data workflow.
+
+## Deployment and data safety
+
+The repository has local production-image validation and deployment configuration contracts, but no
+Azure deployment. Azure Container Apps is the preferred planned target, with PostgreSQL, Blob
+Storage, Key Vault, Container Registry, monitoring, HTTPS, backups, controlled migrations, and smoke
+tests. Treat [deployment readiness and data modes](deployment-readiness.md) as the authoritative
+status document.
+
+Keep credentials in ignored local files, CI secret stores, or a deployed secret manager. The tracked
+`.env.example` contains only intentionally public local-emulator values. Follow the
+[sample-data safety policy](../sample-data/README.md) for every fixture, screenshot, log excerpt, or
+demo artifact.

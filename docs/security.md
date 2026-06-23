@@ -17,8 +17,9 @@ rejected. Unsafe cookie-authenticated API requests must send an exact origin lis
 Swagger/OpenAPI endpoints unless explicitly enabled.
 
 Both the API and web shell set anti-framing, MIME-sniffing, referrer, permissions, and cross-origin
-isolation headers. Deployed API responses also set HSTS. TLS termination, public host routing, and
-deployment ingress configuration remain Phase 32+ responsibilities.
+isolation headers. API responses enable HSTS when deployed. TLS termination, public host routing,
+and deployment ingress configuration are planned cloud-operational work; no public environment is
+provisioned by this repository version.
 
 ## File handling
 
@@ -28,7 +29,7 @@ and OOXML archive paths, duplication, encryption, member size, and compression r
 objects are private, server-keyed, checksummed, and processed asynchronously; normal API responses
 never expose storage keys, raw files, checksums, or parsed text.
 
-This phase does not provide a malware-scanning service. Treat the format and archive checks as a
+The platform does not provide a malware-scanning service. Treat the format and archive checks as a
 defense-in-depth boundary, not an antivirus guarantee. A deployed environment needs a documented
 malware-scanning integration before accepting untrusted production documents.
 
@@ -51,7 +52,7 @@ localization false positives; it does not exclude tests from future scanning.
 
 Run the repository checks below after dependency changes. `pip-audit` and `pnpm audit` require
 current advisory data; high-severity JavaScript findings and any Python audit finding fail the
-command. Phase 31 will make these checks CI gates.
+command. These checks are CI quality gates.
 
 ```bash
 pnpm security:static

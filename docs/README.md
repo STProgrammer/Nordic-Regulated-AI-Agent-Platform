@@ -1,17 +1,27 @@
 # Documentation
 
-The canonical source of truth for product scope and technical direction is kept in
-[`specs/`](../specs/):
+Start with the [root README](../README.md) for the product overview, local quick start, current
+deployment status, and portfolio context.
+
+## Reviewer and operator guides
+
+- [Architecture summary](architecture-summary.md)
+- [Developer guide](development.md)
+- [Deployment readiness and data modes](deployment-readiness.md)
+- [Lokal demo og én-minutts videogjennomgang](local-demo-video-guide.md)
+- [Security guide](security.md)
+- [Continuous integration](ci.md)
+- [Deterministic AI evaluation](ai-evaluation.md)
+- [Architecture decision records](adr/README.md)
+
+## Canonical specifications
 
 - [Product requirements](../specs/PRD.md)
 - [Architecture](../specs/architecture.md)
 - [Roadmap](../specs/roadmap.md)
+- [Progress](../specs/progress.md)
 
-Implementation documentation is intentionally narrow so copies of the specifications do not drift:
-
-- [Developer guide](development.md)
-- [Lokal demo og videogjennomgang](local-demo-video-guide.md)
-- [Deployment readiness and data modes](deployment-readiness.md)
-- [Security guide](security.md)
-- [Deterministic AI evaluation](ai-evaluation.md)
-- [Architecture decision records](adr/README.md)
+The specifications define intended scope and architecture; the operational guides document the
+current implementation. For cloud status, treat
+[deployment readiness and data modes](deployment-readiness.md) as authoritative: Azure deployment is
+planned, not completed.

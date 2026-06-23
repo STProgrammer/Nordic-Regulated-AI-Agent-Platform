@@ -1,7 +1,8 @@
 # Deterministic AI Evaluation
 
-Phase 25 provides a synthetic-only regression signal. It is deliberately not a hosted-model judge,
-semantic-faithfulness score, language-quality score, latency report, or release gate.
+The platform provides a synthetic-only deterministic regression signal. It is deliberately not a
+hosted-model judge, semantic-faithfulness score, language-quality score, latency report, or release
+gate.
 
 ## Corpus and local check
 
@@ -50,8 +51,9 @@ the canonical dataset and stores a compact status, aggregate summary, numeric sc
 closed failure codes. Questions, prompts, raw evidence, model outputs, provider exceptions, and
 workflow snapshots are excluded from responses, audit metadata, and run/result records.
 
-For local stack inspection, run migrations explicitly, authenticate with the existing synthetic
-Admin fixture, then use the API documentation at `http://127.0.0.1:8000/docs`. The dedicated
-`evaluation` Celery queue is consumed by the standard local worker. There is no Phase 25 dashboard;
-charts, trends, exports, hosted judging, cost/latency analysis, and CI release gating are later
-work.
+For local stack inspection, run migrations explicitly, authenticate with an explicit synthetic Admin
+fixture, then use the evaluation dashboard or the API documentation at `http://127.0.0.1:8000/docs`.
+The dedicated `evaluation` Celery queue is consumed by the standard local worker. The dashboard
+presents the bounded persisted run/result projections; it does not expose prompts, raw evidence,
+provider payloads, or hosted-judge claims. Cost/latency observability is documented separately from
+this deterministic quality signal.

@@ -76,6 +76,7 @@ pnpm --filter @nordic-regulated-ai-agent-platform/web typecheck
 pnpm test:web
 uv run pytest services/agent_orchestrator/tests services/evaluation/tests
 uv run python scripts/run_evals.py --dataset nordic-regulated-core-v1 --check
+uv run python scripts/check_documentation_links.py
 pnpm security:check
 pnpm release:build
 pnpm release:validate
@@ -101,6 +102,6 @@ docker compose --env-file .env.example down --volumes --remove-orphans
 unset NORDIC_API_EMBEDDING_PROVIDER NORDIC_AGENT_ENVIRONMENT NORDIC_AGENT_PROVIDER NORDIC_LOCAL_SEED_PASSWORD
 ```
 
-If the focused browser smoke fails twice after one Phase 31 fix attempt, stop and report the blocker
-instead of repeatedly rerunning it. A manual browser fallback requires explicit approval before the
-phase can be marked complete.
+If a focused browser smoke test fails twice after one relevant fix attempt, stop and report the
+blocker instead of repeatedly rerunning it. A manual browser fallback requires explicit approval
+before a release-quality validation can be treated as complete.
