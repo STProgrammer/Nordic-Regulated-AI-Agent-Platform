@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from uuid import UUID
 
+from agent_orchestrator.types import WorkflowContext
 from app.core.config import AppSettings
 from app.db.models import (
     Approval,
@@ -18,6 +19,11 @@ from app.db.models import (
     WorkflowRun,
 )
 from app.db.session import dispose_database_engines, get_sessionmaker
+from app.services.approvals.service import ApprovalWorkflowService
+from app.services.auth.principal import Principal, RoleName
+from app.services.workflows.drafting import DraftingWorkflowService
+from app.services.workflows.extraction import ExtractionWorkflowService, load_eligible_evidence
+from app.services.workflows.risk import RiskWorkflowService, load_risk_prerequisites
 from sqlalchemy import select
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -38,10 +44,10 @@ async def _assert_demo_bundle(settings: AppSettings) -> None:
 
         assert fixture["case_worker_email"] == "kari.eksempel+caseworker@demo.invalid"
         assert fixture["reviewer_email"] == "ole.eksempel+reviewer@demo.invalid"
-        assert fixture["case_url"] == f"/nb/cases/{fixture['case_id']}"
-        assert fixture["approval_url"] == f"/nb/approvals/{fixture['approval_id']}"
-        assert fixture["trace_url"] == f"/nb/workflows/{fixture['trace_workflow_run_id']}/trace"
-        assert fixture["evaluation_url"] == (f"/nb/evaluations/runs/{fixture['evaluation_run_id']}")
+        assert fixture["case_url"] == f"/en/cases/{fixture['case_id']}"
+        assert fixture["approval_url"] == f"/en/approvals/{fixture['approval_id']}"
+        assert fixture["trace_url"] == f"/en/workflows/{fixture['trace_workflow_run_id']}/trace"
+        assert fixture["evaluation_url"] == (f"/en/evaluations/runs/{fixture['evaluation_run_id']}")
         assert "password" not in str(fixture).lower()
 
         case_id = UUID(str(fixture["case_id"]))
@@ -52,7 +58,8 @@ async def _assert_demo_bundle(settings: AppSettings) -> None:
         request = fixture["rag_answer_request"]
         assert isinstance(request, dict)
         assert request["case_id"] == str(case_id)
-        assert request["answer_language"] == "nb"
+        assert request["answer_language"] == "en"
+        assert request["question"] == "What must be documented before an answer can be used?"
 
         async with get_sessionmaker(settings)() as session:
             case = await session.get(Case, case_id)
@@ -63,9 +70,13 @@ async def _assert_demo_bundle(settings: AppSettings) -> None:
 
             assert case is not None
             assert case.domain == "public_sector"
+            assert case.language == "en"
+            assert case.title == "Synthetic accommodation request"
             assert case.status == "waiting_for_human_review"
             assert case.risk_level == "high"
             assert document is not None
+            assert document.language == "en"
+            assert document.title == "Synthetic case-handling procedure"
             assert document.parsing_status == "parsed"
             assert document.indexing_status == "indexed"
             assert document.source_status == "approved"
@@ -77,6 +88,54 @@ async def _assert_demo_bundle(settings: AppSettings) -> None:
             assert evaluation is not None
             assert evaluation.status == "completed"
             assert evaluation.pass_fail == "pass"
+
+            seeded_risk_run = await session.scalar(
+                select(WorkflowRun).where(
+                    WorkflowRun.case_id == case_id,
+                    WorkflowRun.workflow_name == "risk_compliance",
+                    WorkflowRun.status == "completed",
+                )
+            )
+            assert seeded_risk_run is not None
+            assert (
+                await ApprovalWorkflowService(session).create_required_run(
+                    WorkflowContext(
+                        workflow_run_id=seeded_risk_run.id,
+                        organization_id=case.organization_id,
+                        case_id=case_id,
+                        initiated_by_user_id=case.submitted_by_user_id,
+                        workflow_name=seeded_risk_run.workflow_name,
+                        workflow_version=seeded_risk_run.workflow_version,
+                    )
+                )
+                is None
+            )
+
+            principal = Principal(
+                user_id=case.submitted_by_user_id,
+                organization_id=case.organization_id,
+                display_name="Synthetic case worker",
+                preferred_language="en",
+                roles=frozenset({RoleName.CASE_WORKER}),
+            )
+            eligible_evidence = await load_eligible_evidence(
+                session, principal.organization_id, case_id
+            )
+            assert eligible_evidence is not None
+            assert eligible_evidence.workflow_run.id == trace_id
+            assert (
+                await load_risk_prerequisites(session, principal.organization_id, case_id)
+                is not None
+            )
+
+            extraction = await ExtractionWorkflowService(session, confidence_threshold=0.8).start(
+                principal, case_id
+            )
+            drafting = await DraftingWorkflowService(session).start(principal, case_id)
+            risk = await RiskWorkflowService(session).start(principal, case_id)
+            assert extraction.status == "queued"
+            assert drafting.status == "queued"
+            assert risk.status == "queued"
 
             source = await session.scalar(
                 select(RetrievedSource).where(RetrievedSource.workflow_run_id == trace_id)

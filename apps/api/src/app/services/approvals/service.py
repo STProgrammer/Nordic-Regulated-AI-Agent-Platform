@@ -103,7 +103,7 @@ class ApprovalWorkflowService:
         self._dispatcher = dispatcher
 
     async def create_required_run(self, risk_context: WorkflowContext) -> WorkflowRun | None:
-        """Create one server-selected review run after the exact completed risk run requires it."""
+        """Create one review run only when no current review is already awaiting action."""
 
         assessment = cast(
             RiskAssessment | None,
@@ -132,7 +132,7 @@ class ApprovalWorkflowService:
             ),
         )
         if existing is not None:
-            return existing
+            return None
         run = await self._workflows.create(
             WorkflowRunCreate(
                 organization_id=risk_context.organization_id,

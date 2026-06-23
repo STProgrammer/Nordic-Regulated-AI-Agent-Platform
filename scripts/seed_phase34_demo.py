@@ -49,14 +49,14 @@ CASE_WORKER_EMAIL = "kari.eksempel+caseworker@demo.invalid"
 REVIEWER_EMAIL = "ole.eksempel+reviewer@demo.invalid"
 _WORKFLOW_VERSION = "phase34-demo-v1"
 _DOCUMENT_CONTENT = (
-    "Dette er en utelukkende syntetisk rutine for Eksempelkommune. Saksbehandler skal "
-    "dokumentere samtykke og vurdere godkjente kilder før et svar kan brukes. Saken skal "
-    "sendes til menneskelig godkjenning når den gjelder personopplysninger eller et "
-    "offentlig vedtak. Den ansvarlige medarbeideren skal registrere kontrollene i saken."
+    "This is a synthetic procedure for Example Municipality. What must be documented before an "
+    "answer can be used? Consent and approved sources must be documented. The case must be sent "
+    "for human approval when it concerns personal data or an official decision. The responsible "
+    "employee must record the controls in the case."
 )
 _DRAFT_TEXT = (
-    "Det syntetiske saksutkastet skal ikke brukes før en Compliance Reviewer har kontrollert "
-    "kildegrunnlaget og godkjent utfallet. [S1]"
+    "The synthetic case draft must not be used until a Compliance Reviewer has reviewed the "
+    "source basis and approved the outcome. [S1]"
 )
 
 
@@ -92,12 +92,12 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
         case = Case(
             organization_id=organization.id,
             case_number=f"DEMO-34-{fixture_suffix}",
-            title="Syntetisk søknad om tilrettelegging",
+            title="Synthetic accommodation request",
             description=(
-                "Dette er en fiktiv, sikker demo-sak fra Eksempelkommune. Den inneholder "
-                "kun oppdiktede opplysninger og viser hvorfor menneskelig godkjenning kreves."
+                "This is a fictional, safe demo case from Example Municipality. It contains only "
+                "invented information and shows why human approval is required."
             ),
-            language="nb",
+            language="en",
             domain="public_sector",
             case_type="case_support",
             priority="high",
@@ -114,14 +114,14 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
             organization_id=organization.id,
             case_id=case.id,
             uploaded_by_user_id=case_worker.id,
-            title="Syntetisk rutine for saksbehandling",
-            original_filename="syntetisk-rutine-for-saksbehandling.txt",
+            title="Synthetic case-handling procedure",
+            original_filename="synthetic-case-handling-procedure.txt",
             file_type="txt",
             mime_type="text/plain",
             file_size_bytes=len(_DOCUMENT_CONTENT.encode("utf-8")),
             checksum_sha256=hashlib.sha256(_DOCUMENT_CONTENT.encode("utf-8")).hexdigest(),
             object_storage_key=f"synthetic/phase34/{fixture_suffix.lower()}.txt",
-            language="nb",
+            language="en",
             source_status="approved",
             confidentiality_level="internal",
             page_count=1,
@@ -138,7 +138,7 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
             document_id=document.id,
             chunk_index=0,
             page_number=1,
-            section_title="Godkjenning og kontroll",
+            section_title="Approval and control",
             content=_DOCUMENT_CONTENT,
             token_count=48,
             chunk_metadata={"synthetic": True, "fixture": "phase34-demo"},
@@ -167,12 +167,14 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
                 "workflow_version": _WORKFLOW_VERSION,
                 "state_schema_version": "v1",
                 "status": "completed",
-                "declared_language": "nb",
-                "detected_language": "nb",
+                "declared_language": "en",
+                "detected_language": "en",
                 "detected_language_confident": True,
                 "classification_case_type": "case_support",
                 "recommended_domain": "public_sector",
+                "low_confidence": False,
                 "pii_detected": True,
+                "prompt_injection_detected": False,
                 "preliminary_risk_level": "high",
                 "suggested_workflow": "evidence",
             },
@@ -188,9 +190,10 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
                 "workflow_version": _WORKFLOW_VERSION,
                 "state_schema_version": "v1",
                 "status": "completed",
-                "evidence_outcome": "sufficient",
+                "evidence_outcome": "completed",
                 "evidence_sufficient": True,
                 "contradiction_detected": False,
+                "citation_labels": ["S1"],
                 "evidence_source_count": 1,
                 "approved_source_count": 1,
                 "node_count": 3,
@@ -223,7 +226,7 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
                 "workflow_version": _WORKFLOW_VERSION,
                 "state_schema_version": "v1",
                 "status": "completed",
-                "target_language": "nb",
+                "target_language": "en",
                 "draft_available": True,
                 "citation_count": 1,
             },
@@ -310,12 +313,24 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
                     excerpt=_DOCUMENT_CONTENT,
                     citation_label="S1",
                 ),
+                RetrievedSource(
+                    organization_id=organization.id,
+                    case_id=case.id,
+                    workflow_run_id=drafting_run.id,
+                    document_id=document.id,
+                    chunk_id=chunk.id,
+                    rank=1,
+                    score=Decimal("0.02000000"),
+                    retrieval_method="hybrid",
+                    excerpt=_DOCUMENT_CONTENT,
+                    citation_label="S1",
+                ),
                 ExtractedField(
                     organization_id=organization.id,
                     case_id=case.id,
                     workflow_run_id=extraction_run.id,
                     field_name="next_action",
-                    field_value={"value": "Innhent menneskelig godkjenning før bruk."},
+                    field_value={"value": "Obtain human approval before use."},
                     confidence=Decimal("0.95000000"),
                     source_chunk_id=chunk.id,
                     human_edited=False,
@@ -327,7 +342,7 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
                     message_type="draft",
                     role="assistant",
                     content=_DRAFT_TEXT,
-                    structured_output={"language": "nb", "citation_labels": ["S1"]},
+                    structured_output={"language": "en", "citation_labels": ["S1"]},
                     model_provider="deterministic",
                     model_name="deterministic-local-workflow",
                     prompt_version_id=None,
@@ -385,7 +400,7 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
             user_id=admin.id,
             organization_id=organization.id,
             display_name=admin.display_name,
-            preferred_language="nb",
+            preferred_language="en",
             roles=frozenset({RoleName.ADMIN}),
         )
         evaluations = EvaluationService(session)
@@ -400,22 +415,22 @@ async def seed_phase34_demo(settings: AppSettings, *, local_password: str) -> di
 
         return {
             "approval_id": str(approval.id),
-            "approval_url": f"/nb/approvals/{approval.id}",
+            "approval_url": f"/en/approvals/{approval.id}",
             "case_id": str(case.id),
-            "case_url": f"/nb/cases/{case.id}",
+            "case_url": f"/en/cases/{case.id}",
             "case_worker_email": CASE_WORKER_EMAIL,
             "document_id": str(document.id),
             "evaluation_run_id": str(evaluation.evaluation_run_id),
-            "evaluation_url": f"/nb/evaluations/runs/{evaluation.evaluation_run_id}",
+            "evaluation_url": f"/en/evaluations/runs/{evaluation.evaluation_run_id}",
             "rag_answer_request": {
-                "answer_language": "nb",
+                "answer_language": "en",
                 "case_id": str(case.id),
-                "question": "Hva må dokumenteres før et svar kan brukes?",
+                "question": "What must be documented before an answer can be used?",
             },
             "reviewer_email": REVIEWER_EMAIL,
             "title": case.title,
             "trace_workflow_run_id": str(evidence_run.id),
-            "trace_url": f"/nb/workflows/{evidence_run.id}/trace",
+            "trace_url": f"/en/workflows/{evidence_run.id}/trace",
         }
 
 
