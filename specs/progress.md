@@ -39,6 +39,30 @@ implementation, tests, and validation checks pass within its defined scope.
 | 32    | Production Docker Images and Release Build | DONE   |
 | 33    | Full Bug Fix and Full Test Pass          | DONE   |
 | 34    | Demo Data, Demo Scenario, and Local Demo Video Guide | DONE   |
+| 35    | Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes | DONE |
+
+## Phase 35 — Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes (DONE)
+
+Completed on 2026-06-23.
+
+Migration-only startup is now a verified clean/deployment-ready mode: an operational checker fails
+unless every persisted application-data table is empty, including identities, prompts, cases,
+documents, workflows, approvals, audit history, evaluation data, and memory data. The local
+`dev:reset` command removes only this project's disposable Compose volumes; the Phase 34 guide now
+requires it after a demo. Synthetic seeds, E2E fixtures, and safe repository examples remain
+explicit local/test-only actions and are never invoked by startup, migrations, or release validation.
+
+The production API image includes the clean-data checker, and release validation runs it immediately
+after migrations. Deployment-readiness notes distinguish clean and explicit demo/test modes and
+document the planned Azure Container Apps/App Service, ACR, PostgreSQL, Blob Storage, Key Vault,
+monitoring, HTTPS, backups, migrations, and smoke-test path without claiming that a cloud deployment
+or any Azure resource exists.
+
+Validation: focused clean-mode and Phase 34 integration tests passed (3); targeted Ruff and mypy
+checks passed; repository formatting, lint, type checks, Compose configuration, and secret scan
+passed. A reset local stack migrated to head, reported zero runtime rows, and passed local-stack
+verification. `pnpm release:validate` passed with the clean-data assertion in the production API
+image. Final scope review and `git diff --check` passed.
 
 ## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide (DONE)
 

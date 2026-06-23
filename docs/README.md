@@ -11,6 +11,7 @@ Implementation documentation is intentionally narrow so copies of the specificat
 
 - [Developer guide](development.md)
 - [Lokal demo og videogjennomgang](local-demo-video-guide.md)
+- [Deployment readiness and data modes](deployment-readiness.md)
 - [Security guide](security.md)
 - [Deterministic AI evaluation](ai-evaluation.md)
 - [Architecture decision records](adr/README.md)

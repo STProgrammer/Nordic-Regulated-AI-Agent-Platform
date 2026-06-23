@@ -7,14 +7,15 @@ interface language.
 
 ## Current status
 
-Phases 1–33 are complete: the repository includes the authenticated Norwegian/English web
+Phases 1–35 are complete: the repository includes the authenticated Norwegian/English web
 application, document ingestion and governed retrieval, RAG citations, LangGraph workflows, human
 approval, trace/audit views, deterministic evaluation, observability, security hardening, CI, and
-production-image validation. Phase 34 adds a polished local portfolio walkthrough using only safe
-synthetic data. Follow the [Bokmål local demo and video guide](docs/local-demo-video-guide.md) to
-prepare the repeatable case, cited RAG request, workflow trace, reviewer approval, audit, and
-evaluation views. The local deterministic RAG mode demonstrates only grounding/citation plumbing; it
-does not make an external model or quality claim.
+production-image validation. The default migrated database is empty and deployment-ready; synthetic
+users, cases, documents, histories, and evaluation runs exist only after an explicit local/test seed
+command. Phase 34's polished local portfolio walkthrough remains available through the
+[Bokmål local demo and video guide](docs/local-demo-video-guide.md). See
+[deployment readiness and data modes](docs/deployment-readiness.md) for the clean baseline, demo
+reset procedure, and planned Azure path.
 
 ## Repository map
 
@@ -100,7 +101,8 @@ loopback ports 3100 and 8100 by default, and cleans up its isolated volumes afte
 `infra/docker/production-local.env.example` is safe only for this local check.
 `infra/docker/production.env.template` documents the later deployment configuration contract; it
 contains placeholders only and must be copied outside source control. Azure provisioning, registry
-pushes, and deployment remain intentionally deferred.
+pushes, and deployment remain intentionally deferred. Release validation applies migrations and then
+verifies that every application runtime-data table is empty before it checks service health.
 
 The API serves `/health/live`, `/health/ready`, `/openapi.json`, `/docs`, and `/redoc`. It exposes
 `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET/POST /api/users`,
@@ -185,20 +187,30 @@ submission at `/nb/cases/new`; other authenticated destinations remain placehold
 synthetic local-account workflow below before testing login; do not use a personal or production
 password.
 
-## Database migrations and synthetic local fixtures
+## Clean database mode and explicit synthetic fixtures
 
-Database setup is always explicit; normal API and worker startup never migrates or seeds data. With
-the local stack running, execute the commands inside the API container so the Compose-only
-PostgreSQL hostname is used without writing a connection string anywhere:
+Database setup is always explicit; normal API and worker startup never migrates or seeds data. The
+clean/deployment-ready default is a migrated database with **no** organizations, roles, users,
+prompts, cases, documents, workflow records, approvals, audit records, evaluation records, or memory
+records. For a deterministic fresh local baseline, reset the disposable Compose volumes, start the
+stack, then run only these commands inside the API container:
 
 ```bash
+pnpm dev:reset
+pnpm dev:up
 docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini upgrade head
 docker compose --env-file .env.example exec api python scripts/check_migrations.py
-docker compose --env-file .env.example exec api python scripts/seed_local.py
+docker compose --env-file .env.example exec api python scripts/check_clean_deployment_mode.py
 ```
 
-The default seed creates one clearly synthetic Norwegian organization, the five canonical role
-records, and fake `demo.invalid` identities without passwords. It is safe to run again because it
+Do **not** run a seed command for clean/deployment-ready mode. A deployed environment must provision
+its first administrator and any operational data through a secure, external deployment runbook; this
+repository does not ship a default administrator or credential.
+
+Synthetic identities and prompts are retained only as explicit test/demo fixtures. For a disposable
+local demo or automated-browser prerequisite, run the fixture seed after the clean baseline has been
+verified. It creates one clearly synthetic Norwegian organization, five canonical role records, and
+`demo.invalid` identities; it is never started automatically and is safe to run again because it
 uses stable organization, role, and email keys.
 
 For a disposable local database only, opt in to credentials without putting a password in source,
@@ -259,7 +271,7 @@ destructive and removes all local database and object-storage data; run it only 
 intended:
 
 ```bash
-docker compose --env-file .env.example down --volumes --remove-orphans
+pnpm dev:reset
 ```
 
 ## Safe demo data and configuration

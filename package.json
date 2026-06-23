@@ -33,6 +33,7 @@
     "security:check": "pnpm security:static && pnpm security:python-deps && pnpm security:node-deps && pnpm security:secrets",
     "dev:up": "docker compose --env-file .env.example up --build --wait --detach web api worker postgres redis azurite && docker compose --env-file .env.example up --detach azurite-init",
     "dev:down": "docker compose --env-file .env.example down",
+    "dev:reset": "docker compose --env-file .env.example down --volumes --remove-orphans",
     "dev:logs": "docker compose --env-file .env.example logs --follow",
     "verify:local-stack": "bash scripts/verify_local_stack.sh",
     "release:build": "docker compose --env-file infra/docker/production-local.env.example -f docker-compose.production.yml build --quiet web api worker",

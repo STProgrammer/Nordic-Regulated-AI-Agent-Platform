@@ -73,7 +73,7 @@ Only use this explicit reset command when removing all local database and object
 intended:
 
 ```bash
-docker compose --env-file .env.example down --volumes --remove-orphans
+pnpm dev:reset
 ```
 
 The default published ports bind to `127.0.0.1`: web 3000, API 8000, PostgreSQL 5432, Redis 6379,

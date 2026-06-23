@@ -34,6 +34,7 @@ COPY --from=builder --chown=app:app /workspace/apps/api/migrations /workspace/ap
 COPY --from=builder --chown=app:app /workspace/apps/api/src /workspace/apps/api/src
 COPY --from=builder --chown=app:app /workspace/services/agent_orchestrator/src /workspace/services/agent_orchestrator/src
 COPY --from=builder --chown=app:app /workspace/services/evaluation/src /workspace/services/evaluation/src
+COPY --from=builder --chown=app:app /workspace/scripts/check_clean_deployment_mode.py /workspace/scripts/check_clean_deployment_mode.py
 COPY --from=builder --chown=app:app /workspace/scripts/check_migrations.py /workspace/scripts/check_migrations.py
 
 USER app

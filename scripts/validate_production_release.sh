@@ -31,6 +31,7 @@ done
 
 "${compose[@]}" exec -T api alembic -c apps/api/alembic.ini upgrade head
 "${compose[@]}" exec -T api python scripts/check_migrations.py
+"${compose[@]}" exec -T api python scripts/check_clean_deployment_mode.py
 "${compose[@]}" exec -T worker sh -ec \
   'celery -A app.workers.celery_app:celery_app inspect ping -d "celery@$HOSTNAME" --timeout 2 | grep -q pong'
 

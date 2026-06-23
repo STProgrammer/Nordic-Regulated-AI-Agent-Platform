@@ -56,8 +56,12 @@ eller legges i videoen. Etter opptaket:
 
 ```bash
 unset NORDIC_LOCAL_SEED_PASSWORD
-pnpm dev:down
+pnpm dev:reset
 ```
+
+`pnpm dev:reset` is deliberately destructive for this local Compose project: it removes the seeded
+database, Redis, and Azurite volumes so the next startup returns to the clean migration-only mode.
+Do not use it when local data should be retained.
 
 ## Opptaksrekkefølge — omtrent 60 sekunder
 

@@ -34,7 +34,10 @@ def test_phase34_demo_seed_creates_a_safe_runnable_bundle(database_settings: App
 
 async def _assert_demo_bundle(settings: AppSettings) -> None:
     try:
-        fixture = await seed_phase34_demo(settings, local_password="Synthetic demo password 42")
+        fixture = await seed_phase34_demo(
+            settings,
+            local_password="Synthetic demo password 42",  # pragma: allowlist secret
+        )
 
         assert fixture["case_worker_email"] == "kari.eksempel+caseworker@demo.invalid"
         assert fixture["reviewer_email"] == "ole.eksempel+reviewer@demo.invalid"
