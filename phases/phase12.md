@@ -60,13 +60,13 @@ document being parsed or re-indexed must never yield a partly replaced chunk set
   approved production embedding choices are OpenAI or Azure OpenAI; a local
   deterministic adapter may exist only as an explicitly isolated test/local
   plumbing aid, never as a quality claim or deployed default.
-- Phase 4 already created `document_chunks` with `organization_id`,
+- Phase 4 already added `document_chunks` with `organization_id`,
   `document_id`, unique `(document_id, chunk_index)`, `page_number`,
   `section_title`, `content`, `token_count`, JSON metadata, and a non-null
-  `vector(1536)` embedding. It also created
+  `vector(1536)` embedding. It also added
   `ix_document_chunks_embedding_hnsw` with cosine operations and
   `ix_document_chunks_content_fts` using
-  `to_tsvector('simple', content)`. Reuse these exact foundations; do not create
+  `to_tsvector('simple', content)`. Reuse these exact foundations; do not add
   a second vector store, duplicate keyword index, or a parallel chunk table.
 - Phase 11 already provides canonical text in the one-row-per-document
   `document_texts` table. Its `extraction_metadata.locations` values are ordered
@@ -117,7 +117,7 @@ document being parsed or re-indexed must never yield a partly replaced chunk set
   source span.
 - Explicit configurable chunk size and overlap measured using the tokenizer that
   the selected embedding model uses. The overlap must be bounded below the
-  maximum chunk size and must not create duplicate, empty, out-of-order, or
+  maximum chunk size and must not add duplicate, empty, out-of-order, or
   unbounded chunks. A long source span may yield multiple chunks carrying the
   same source locator.
 - Compact chunk provenance metadata sufficient for later citation construction:
@@ -242,7 +242,7 @@ Every persisted chunk must satisfy all of the following:
 | `pending` | Worker conditionally claims document | `indexing` | One worker owns this index generation. Duplicate deliveries leave the state unchanged and return a safe no-op. |
 | `indexing` | All chunks/embeddings validate and replacement transaction commits | `indexed` | Atomically replace all document chunks, clear safe error, set `indexed_at`, and emit terminal audit event. |
 | `indexing` | Permanent tokenizer/content/provider/vector failure | `failed` | Persist only a neutral error summary; retain prior complete chunks if any; emit a safe failure event. |
-| `indexing` | Transient provider/database/worker failure | `pending` then bounded retry | Do not create partial rows. On exhausted retry, use the safe `failed` transition. |
+| `indexing` | Transient provider/database/worker failure | `pending` then bounded retry | Do not add partial rows. On exhausted retry, use the safe `failed` transition. |
 | `failed` or `indexed` | Authorized `reindex` request | `pending` | Keep old chunks until an atomically complete replacement succeeds; audit request and schedule/reconcile one UUID-only task. |
 | `indexing` | Duplicate task/re-index request | unchanged / `409` for request | Never allow concurrent replacements. |
 | any indexed state | Reprocess parse fails | unchanged | Preserve the last-good text and index exactly as Phase 11 preserves parsing output. |

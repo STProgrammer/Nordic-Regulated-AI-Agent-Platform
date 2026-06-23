@@ -111,7 +111,7 @@ image. Final scope review and `git diff --check` passed.
 
 Completed on 2026-06-23.
 
-Delivered a local/test-only Phase 34 scenario seed that creates a fresh synthetic public-sector
+Delivered a local/test-only Phase 34 scenario seed that provisions a fresh synthetic public-sector
 case with safe document metadata, approved retrieval evidence, workflow trace, high-risk pending
 human approval, and a completed deterministic evaluation run. It emits only safe fixture IDs,
 routes, and `demo.invalid` account names. Direct RAG now supports a strict local/test deterministic
@@ -330,7 +330,7 @@ Admin controls are tenant-scoped, auditable, and preserve archived history.
 Drafting reads only bounded, non-evidentiary presentation context after eligible Evidence has been
 revalidated. Explicit language remains authoritative, source/citation/risk/approval/case-state behavior
 is unchanged, and state/trace/audit projections contain only enabled/count/outcome metadata. The
-localized Admin surface exposes typed settings/inspection/create/revise/archive controls; the existing
+localized Admin surface exposes typed settings/inspection/add/revise/archive controls; the existing
 locale switcher updates only the current user's closed language preference and keeps working if that
 optional request is unavailable.
 
@@ -338,7 +338,7 @@ Validation: controlled-memory policy/store tests (3), Drafting regression tests 
 API/Auth/Audit/Trace/OpenAPI/router tests (24), Postgres persistence integration, and database
 foundation migration tests (5) passed; the web suite passed 29 tests. Workspace, format, lint, Ruff,
 mypy, and TypeScript checks passed. The rebuilt local stack migrated to `f24d9a7c4102`, passed
-`pnpm verify:local-stack`, and the focused Playwright journey passed with Admin enable/create,
+`pnpm verify:local-stack`, and the focused Playwright journey passed with Admin enable/add,
 metadata-only Drafting use, disablement, and non-Admin denial.
 
 ## Phase 23 — Workflow Trace and AI Audit Trail (DONE)
@@ -388,7 +388,7 @@ Delivered the closed, deterministic final-risk assessment slice:
 - Tenant/RBAC-protected start, status, and latest-assessment reads, UUID-only dedicated Celery
   dispatch, active-run protection, and atomic persistence of one RiskAssessment together with the
   case risk level. High risk always requires later human review, while this phase deliberately
-  creates no approval or action.
+  adds no approval or action.
 - A localized, read-only Case Detail panel that starts and polls the closed workflow, displays the
   final level/reasons/next state, and makes the future human-review requirement explicit without
   offering approval controls.
@@ -486,7 +486,7 @@ Delivered the first executable, tenant-safe LangGraph workflow slice:
 - The closed eight-node Intake graph: input validation, language detection, structured case-type and
   domain classification, PII and prompt-injection signals, preliminary risk, suggested next
   workflow, and durable result persistence. It neither launches a later workflow nor changes case
-  lifecycle state, creates approvals, or claims final risk.
+  lifecycle state, inserts approvals, or claims final risk.
 - Cookie-secured start/status/correction endpoints, a UUID-only Celery task on the dedicated
   `agent-orchestrator` queue, tenant-scoped run/node/model/audit persistence, and an atomic
   low-confidence human correction that accepts only closed case type/domain/reason values.
@@ -518,7 +518,7 @@ Delivered the protected direct RAG answer boundary:
   excerpts as untrusted reference material, normalizes safe usage metadata, and returns only a
   neutral `503` for provider or malformed-response failures. Completion credentials and configured
   prices stay secret-safe and are required for staging/production settings.
-- Each accepted request creates a `rag_answer` workflow run and persists selected source provenance,
+- Each accepted request records a `rag_answer` workflow run and persists selected source provenance,
   assistant output where a model ran, model usage/accounting, terminal state, and one content-free
   RAG audit event. No workflow-node rows, case-status changes, graph runtime, or answer UI were added.
 
@@ -582,7 +582,7 @@ Delivered the PostgreSQL 16 + pgvector persistence baseline:
 - Typed SQLAlchemy 2 models for all Architecture §10.2 entities, with PostgreSQL UUIDs, JSONB,
   INET, arrays, numerics, conservative foreign keys, tenant-reference constraints, soft-archival
   fields, and `lazy="raise"` relationships.
-- One Alembic baseline migration enabling `pgcrypto` and `vector`, creating all tables, named
+- One Alembic baseline migration enabling `pgcrypto` and `vector`, provisioning all tables, named
   indexes and constraints, a `vector(1536)` HNSW cosine index, a language-neutral GIN full-text
   index, and database triggers for UTC `updated_at` values. The downgrade/replay path retains
   shared PostgreSQL extensions safely.
@@ -793,7 +793,7 @@ Validation: `pnpm install --frozen-lockfile`, `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm check:workspace`, `pnpm test:web` (14 tests), and
 `pnpm test:api` (158 passed, 1 opt-in emulator test skipped) pass. The opt-in
 live Azurite adapter test passed, Compose migration/status checks passed, and
-`pnpm verify:local-stack` passed. A local synthetic Case Worker login created a
+`pnpm verify:local-stack` passed. A local synthetic Case Worker login registered a
 case and successfully uploaded pasted email text; metadata, one audit event,
 and one private object were confirmed, while an unsupported-file upload returned
 safe `415` and left no additional document/audit/object record.
@@ -895,7 +895,7 @@ Delivered the secure hybrid source-search foundation:
 - Backend-only retrieval RBAC that excludes Read-only Auditor, plus a safe,
   content-free `retrieval.search_completed` audit event for every successful
   search. No workflow is fabricated and no future retrieved-source, model,
-  answer, or citation rows are created.
+  answer, or citation rows are written.
 
 Validation: `uv lock --check`, Compose configuration validation, focused
 retrieval tests (14 unit, 1 PostgreSQL/pgvector/GIN integration, 3 API), full

@@ -103,7 +103,7 @@ the existing direct RAG answer path.
   tenant-safe links from workflow runs to cases and users. It has no runtime
   execution behavior yet.
 - `apps/api/src/app/services/workflows/service.py` currently offers only
-  scoped run creation/list/get. `apps/api/src/app/db/repositories/workflow.py`
+  scoped run addition/list/get. `apps/api/src/app/db/repositories/workflow.py`
   is persistence-only and currently lacks node-run/update helpers. Extend
   those layers, not route handlers, with the bounded persistence operations
   this phase proves.
@@ -123,7 +123,7 @@ the existing direct RAG answer path.
 
 ### 1. Typed agent-orchestrator package and public contracts
 
-Create an importable package structure under
+Add an importable package structure under
 `services/agent_orchestrator/src/agent_orchestrator/` with intentional public
 exports and narrow modules such as:
 
@@ -166,7 +166,7 @@ Define immutable Pydantic/dataclass command and result types for at least:
   optional future-result fields rather than unbounded `dict[str, Any]` state;
 - node execution metadata, a bounded retry policy, terminal execution outcome,
   controlled error/reason code, and safe timing/accounting metadata;
-- a model request/result contract whose request is created only by server graph
+- a model request/result contract whose request is added only by server graph
   code and whose result can be validated into a graph-owned Pydantic schema;
 - effective prompt metadata (id, name, version, organization scope) separate
   from prompt content; and
@@ -185,7 +185,7 @@ Build the reusable runtime that later graph modules call:
   a server-built graph, typed initial state, execution context, registered
   ports, and a fixed retry policy. It must make node transitions explicit and
   preserve the typed state at each boundary.
-- Establish one clear lifecycle: create/claim run, mark node started, invoke a
+- Establish one clear lifecycle: add/claim run, mark node started, invoke a
   node, validate its typed state update, mark node completed, retry only
   configured retryable failures, then mark run completed or failed. A failed
   node/run has a safe stable error code, never an exception string.
@@ -219,7 +219,7 @@ Define a persistence port in the agent package, then implement it in the API
 application where the SQLAlchemy models and transaction ownership already
 live. The adapter is responsible for:
 
-- creating a `WorkflowRun` in `queued`/`running` only after scoped case and
+- adding a `WorkflowRun` in `queued`/`running` only after scoped case and
   actor validation;
 - atomically staging a `WorkflowNodeRun` at node start, completing it with
   safe summaries/timing/retry count, and finalizing the parent run with terminal
@@ -233,7 +233,7 @@ live. The adapter is responsible for:
 - translating integrity/availability failures to existing or narrowly added
   neutral service errors without leaking SQL/provider exception content.
 
-Add the required repository/service methods for node create/finalize and run
+Add the required repository/service methods for node add/finalize and run
 finalize with explicit organization predicates. Do not add an unscoped
 `get-by-id`, arbitrary state JSON update, generic delete, or mutable audit
 operation. Do not introduce migrations merely for convenience: the Phase 4
@@ -411,7 +411,7 @@ All automated tests inject deterministic/fake providers.
 - The internal inert graph has explicit start/node/end behavior, validates
   typed state transitions, persists an ordered node lifecycle, and produces a
   completed terminal run with non-negative duration.
-- A retryable node creates one node record with correct retry count (or the
+- A retryable node adds one node record with correct retry count (or the
   documented per-attempt model), bounded attempts, and no duplicate terminal
   finalization.
 - A permanent failure finalizes node/run safely, leaves no raw exception in
@@ -438,7 +438,7 @@ All automated tests inject deterministic/fake providers.
 ## Validation steps
 
 Run the exact commands supported by the completed implementation (add a focused
-agent test script only if it is actually created):
+agent test script only if it is actually added):
 
 ```bash
 uv run pytest services/agent_orchestrator/tests
@@ -500,7 +500,7 @@ not mark the phase complete until the required stack validation is later run.
   snapshot capture explicitly.
 - **Persistence semantics:** do not expose a completed run before its parent
   and node records commit. Reuse the established async-session and engine
-  disposal patterns, especially for tests that create event loops.
+  disposal patterns, especially for tests that add event loops.
 - **Prompt ambiguity:** the current table does not itself establish a complete
   uniqueness policy for active versions. Define a deterministic lookup rule in
   code/tests; do not invent prompt administration or silently pick an

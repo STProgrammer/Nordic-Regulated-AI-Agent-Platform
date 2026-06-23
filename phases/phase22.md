@@ -2,7 +2,7 @@
 
 ## Phase objective
 
-Implement the durable human-in-the-loop approval boundary for AI-assisted case work. A completed Risk and Compliance assessment that requires approval must create a tenant-scoped review packet, pause the approval workflow, place the case in a reviewer queue, and prevent any final outcome until an authorized reviewer acts. Reviewers must be able to approve, edit and approve, reject, request more evidence, or reassign a pending review. Every action must be authorized, race-safe, auditable, and resume the paused workflow to the corresponding controlled outcome.
+Implement the durable human-in-the-loop approval boundary for AI-assisted case work. A completed Risk and Compliance assessment that requires approval must add a tenant-scoped review packet, pause the approval workflow, place the case in a reviewer queue, and prevent any final outcome until an authorized reviewer acts. Reviewers must be able to approve, edit and approve, reject, request more evidence, or reassign a pending review. Every action must be authorized, race-safe, auditable, and resume the paused workflow to the corresponding controlled outcome.
 
 This phase makes the human—not the model—the final decision-maker for sensitive or low-confidence work. It retains the immutable original AI draft separately from the final human-approved text and keeps all approval decisions within organization and RBAC boundaries.
 
@@ -20,7 +20,7 @@ This phase makes the human—not the model—the final decision-maker for sensit
 ## In-scope deliverables
 
 1. A typed Human Approval Graph and a durable interruption/resumption mechanism that persists a paused approval run and can safely resume it from one server-validated reviewer action.
-2. A review-packet creation flow for a case whose latest eligible risk assessment requires approval. It must bind the review to the protected original draft, its source references, latest eligible extracted fields, and risk assessment without trusting client-provided values.
+2. A review-packet addition flow for a case whose latest eligible risk assessment requires approval. It must bind the review to the protected original draft, its source references, latest eligible extracted fields, and risk assessment without trusting client-provided values.
 3. Approval persistence and migration support for a pending queue item, assignment/reassignment, decision state, reviewer metadata, immutable original AI draft, separately stored final human text, timestamps, and suitable tenant/query indexes.
 4. An organization-scoped approval service/repository and protected REST contracts for queue listing, review-packet detail, approve, edit-and-approve, reject, request-more-evidence, and reassign.
 5. Explicit backend authorization and separation-of-duties protections, including protection against self-approval of a high-risk case by its originating Case Worker and against an unauthorized/foreign/inactive assignee or reviewer.
@@ -71,14 +71,14 @@ Exact filenames may follow established module naming, but preserve the existing 
 1. Add an additive Alembic migration that evolves the placeholder `approvals` table into a pending-review record. It must be able to exist before a decision, record assignment/reassignment separately from the final decision actor, and enforce the tenant/case/workflow/user relationships with foreign keys and indexes.
 2. Keep the original AI text immutable and separate from final human text. Preserve the existing protected Phase 20 `AgentMessage` as the source of truth and pin the review to its drafting run. Persist the original text/snapshot needed for the durable approval record in `ai_draft`; persist only human-approved edited text in `final_text`. An unchanged approval has no human rewrite; it must not mutate the original AI draft.
 3. Store decision, reviewer user, optional reviewer comment, assignment history or safely modeled current assignment, and decision timestamps so the final record can be audited. Use nullable fields and database constraints that accurately model a pending review; never invent a reviewer or decision to satisfy an old non-null placeholder.
-4. Add a uniqueness/locking strategy that allows at most one active approval for the eligible approval workflow/case at a time, while retaining completed historical approval records. Add deterministic queue ordering and indexes for organization + active state + assignment + creation time.
+4. Add a uniqueness/locking strategy that allows at most one active approval for the eligible approval workflow/case at a time, while retaining completed historical approval records. Add deterministic queue ordering and indexes for organization + active state + assignment + addition time.
 5. Keep text and review-packet payloads out of generic workflow state snapshots and audit `event_data`. Snapshot only bounded lifecycle flags, IDs/counts, decision code, and safe reason codes needed for status projections.
 
 ### 3. Build the typed Human Approval Graph with durable interruption
 
 1. Add `approval_types.py` with a strict, server-constructed state that contains trusted identifiers and closed outcome codes only. Keep raw draft text, source excerpts, extracted-field values, comments, and final human text in protected persistence ports—not in graph state, Celery arguments, or snapshots.
 2. Implement `ApprovalGraph` with the architecture-prescribed responsibilities in their deterministic order:
-   - `prepare_review_packet` revalidates the current tenant-scoped prerequisites and creates/returns one durable pending approval record;
+   - `prepare_review_packet` revalidates the current tenant-scoped prerequisites and adds/returns one durable pending approval record;
    - `interrupt_for_human_review` persists the checkpoint, marks the workflow and case as waiting for human review, and returns without a terminal decision;
    - `handle_approval`, `handle_rejection`, `handle_edit`, and `handle_more_evidence_request` consume only a locked, server-validated decision command;
    - `resume_workflow` persists the matching terminal approval outcome and safe status projection.
@@ -96,14 +96,14 @@ Exact filenames may follow established module naming, but preserve the existing 
 6. Enforce separation of duties server-side for high-risk/mandatory-approval records. At minimum, a user who submitted or originated the protected high-risk AI workflow cannot approve that same case; do not rely on the Case Worker UI hiding a button. Define the exact trusted origin fields used by the policy, document the choice, and cover both multi-role and direct API attempts.
 7. On approve: retain the original draft, record the final reviewer decision, resolve the approval graph as `approved`, and move the case `waiting_for_human_review -> approved` transactionally.
 8. On edit-and-approve: validate and store the human final text separately from the original AI draft, record that this was an edit, resolve as `approved`, and move the case to `approved`. Do not overwrite the `AgentMessage`, its provenance, or citations.
-9. On reject: store the decision/comment, resolve the paused graph as `rejected`, and move the case to `rejected`. No final approved text is created.
+9. On reject: store the decision/comment, resolve the paused graph as `rejected`, and move the case to `rejected`. No final approved text is added.
 10. On request more evidence: store the decision/comment, resolve the paused graph as `needs_more_evidence`, and move the case there. Do not auto-run evidence/drafting or fabricate a final text; a later authorized workflow operation can produce new evidence.
-11. Record content-free, transactionally consistent audit events for creation/interrupt, assignment/reassignment, decision submitted, workflow resumed, and each terminal outcome. Preserve the audit actor, approval/resource IDs, case ID, workflow name/status, decision code, and safe reason codes only.
+11. Record content-free, transactionally consistent audit events for addition/interrupt, assignment/reassignment, decision submitted, workflow resumed, and each terminal outcome. Preserve the audit actor, approval/resource IDs, case ID, workflow name/status, decision code, and safe reason codes only.
 
 ### 5. Add protected API routes and worker composition
 
 1. Replace the Phase 22 approvals placeholder description with the real stable API boundary, retaining `/api/approvals` as the sole approval route group. Implement queue/list, one protected review-packet read, and explicit actions under it. Use the established `require_current_principal` dependency and response envelope/error model.
-2. Add only the smallest workflow start/action surface necessary to create a required approval checkpoint. It must be server-selected from the risk result rather than a client command to approve arbitrary cases. Do not add a browser-visible generic `resume` endpoint.
+2. Add only the smallest workflow start/action surface necessary to add a required approval checkpoint. It must be server-selected from the risk result rather than a client command to approve arbitrary cases. Do not add a browser-visible generic `resume` endpoint.
 3. Update orchestration dispatch and worker tasks to use UUID-only approval workflow messages, finite retries, scoped session reloads, locks/claims, safe failure states, and engine disposal. A worker failure must not turn a pending review into approval or expose error content.
 4. Ensure OpenAPI documents the protected operations, strict request fields, successful safe projections, and expected unauthorized/not-found/conflict/validation responses without leaking implementation details.
 
@@ -117,7 +117,7 @@ Exact filenames may follow established module naming, but preserve the existing 
 
 ### 7. Document the limited, verifiable Phase 22 operation
 
-1. Update the developer/local validation documentation with the synthetic-only flow: create an eligible case, run the prerequisite workflow sequence, reach `waiting_for_human_review`, use a distinct reviewer session, approve/edit/reject/request more evidence, and inspect only safe API/UI results.
+1. Update the developer/local validation documentation with the synthetic-only flow: add an eligible case, run the prerequisite workflow sequence, reach `waiting_for_human_review`, use a distinct reviewer session, approve/edit/reject/request more evidence, and inspect only safe API/UI results.
 2. State that human approval is required for records flagged by Phase 21 and that Phase 22 does not send/export/finalize external actions, expose a full trace, or use real personal data/model credentials for automated validation.
 
 ## Required tests
@@ -126,7 +126,7 @@ Exact filenames may follow established module naming, but preserve the existing 
 
 - The Human Approval Graph exposes the seven architecture-defined responsibilities in the documented order; state and decision types reject unknown keys, malformed IDs, invalid lifecycle transitions, raw text in state, and unsupported actions.
 - The graph persists an interrupt checkpoint and a safe `waiting_for_human_review` projection, then resumes exactly once for approve, edit-and-approve, reject, and request-more-evidence outcomes.
-- A stale/missing risk assessment, `requires_approval=False`, missing/invalid immutable draft, stale source provenance, archived case, or malformed resume command fails closed without queue creation or case approval.
+- A stale/missing risk assessment, `requires_approval=False`, missing/invalid immutable draft, stale source provenance, archived case, or malformed resume command fails closed without queue addition or case approval.
 - Existing non-approval graphs and the normal queued/running/completed/failed runtime lifecycle remain unchanged by the pause/resume extension.
 - Duplicate dispatch/resume delivery, retry after a worker error, and concurrent resume attempts cannot produce multiple decisions or multiple terminal transitions.
 
@@ -135,7 +135,7 @@ Exact filenames may follow established module naming, but preserve the existing 
 - Migration tests apply to an empty database and upgrade existing Phase 21 schema correctly; constraints/indexes support pending, assigned, and terminal approval records without breaking historical fields.
 - Queue and review packet enforce cookie authentication, tenant scoping, active approval-capable roles, case visibility, assignment restrictions, archived/missing behavior, and deterministic pagination/order.
 - Direct API attempts by Case Worker, Manager, Read-only Auditor, foreign tenant, inactive/unauthorized assignee, or an originator forbidden by high-risk separation-of-duties policy are rejected without disclosure or state changes.
-- Every action validates strict payloads and permissible state: approve has no replacement text; edit-and-approve requires bounded valid final text; reject/request-more-evidence do not create final text; reassign cannot decide or resume the workflow.
+- Every action validates strict payloads and permissible state: approve has no replacement text; edit-and-approve requires bounded valid final text; reject/request-more-evidence do not add final text; reassign cannot decide or resume the workflow.
 - Approve, edit-and-approve, reject, and request-more-evidence each atomically update approval, workflow, case status, and audit event. Repeated submission returns a safe conflict/no-op and never duplicates final text or audit decision records.
 - Original draft content/provenance remains unchanged after every action. An edited final text persists separately with reviewer/time/comment metadata; unchanged approve has no fabricated human edit.
 - Queue/read/action API responses exclude raw state snapshots, prompt/provider/model metadata, traces, unsafe source content, secrets, error internals, browser-controlled fields, and cross-tenant identifiers.
@@ -181,7 +181,7 @@ git diff --check
 Manual synthetic-only validation after the automated checks:
 
 1. Start the local stack and open `http://127.0.0.1:3000/nb/approvals` in a reviewer session.
-2. Create or use a synthetic case with a valid completed Evidence/Drafting/Risk sequence whose risk assessment requires approval. Confirm the case becomes `Waiting for Human Review` and appears exactly once in the queue.
+2. Add or use a synthetic case with a valid completed Evidence/Drafting/Risk sequence whose risk assessment requires approval. Confirm the case becomes `Waiting for Human Review` and appears exactly once in the queue.
 3. Open the review packet. Confirm it shows bounded risk reasons, original AI draft, source-context links, extracted fields, assignment state, and only a concise workflow status summary—no raw trace, secret, prompt, or provider data.
 4. With a distinct approval-capable reviewer, exercise approve and edit-and-approve. Confirm the original draft remains available unchanged, only the edited path stores separate final human text, and the case becomes `Approved`.
 5. Repeat with synthetic cases for reject and request-more-evidence; confirm `Rejected` and `Needs More Evidence` respectively, no final approved text, and no automatic fresh Evidence/Drafting run.
@@ -227,4 +227,4 @@ Manual synthetic-only validation after the automated checks:
 - The requirements call for reviewer context, while Phase 23 owns trace views. Keep Phase 22's packet bounded to decision-relevant lifecycle/provenance fields and safe source-context links; do not prematurely ship a raw trace endpoint or screen.
 - Do not weaken the case status policy to make the UI convenient. Approval transitions must remain reserved for the approval service, and `request_more_evidence` must not silently re-run prior graphs.
 - Use synthetic safe fixtures and deterministic/local providers only in automation. Do not log or manually paste cookies, credentials, raw drafts, source text, prompts, or provider configuration into test output or documentation.
-- This is a plan-generation task only. Do not mark roadmap/progress status, modify application source, or implement Phase 22 while creating this file.
+- This is a plan-generation task only. Do not mark roadmap/progress status, modify application source, or implement Phase 22 while adding this file.

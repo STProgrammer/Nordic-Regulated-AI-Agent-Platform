@@ -48,7 +48,7 @@ Useful local endpoints:
 
 The web application redirects to Bokmål (`/nb`) by default, supports English at `/en`, and proxies
 browser requests through same-origin `/api/...`. Session identifiers remain opaque HTTP-only
-cookies; the frontend does not read, store, or create them. For host-only web development while the
+cookies; the frontend does not read, store, or issue them. For host-only web development while the
 API is available locally:
 
 ```bash
@@ -81,7 +81,7 @@ docker compose --env-file .env.example exec -e NORDIC_LOCAL_SEED_PASSWORD api \
   python scripts/seed_local.py --password-env NORDIC_LOCAL_SEED_PASSWORD
 ```
 
-The seed creates only synthetic `demo.invalid` identities and safe local fixtures. Unset the
+The seed provisions only synthetic `demo.invalid` identities and safe local fixtures. Unset the
 variable when finished:
 
 ```bash
@@ -176,7 +176,7 @@ stack. It does not publish images or provision cloud infrastructure.
 - Check service state with `docker compose --env-file .env.example ps`.
 - Follow safe local logs with `pnpm dev:logs`; do not copy secrets or personal data into issue
   reports.
-- Re-run `pnpm verify:local-stack` only against an already-running stack; it does not create
+- Re-run `pnpm verify:local-stack` only against an already-running stack; it does not write
   business data, migrate, dispatch work, or call external providers.
 - If migration state is unexpected, use `scripts/check_migrations.py` before considering a reset.
 - If a disposable demo leaves data behind, use `pnpm dev:reset` and restart the clean-data workflow.

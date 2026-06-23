@@ -41,10 +41,10 @@ Phases 1–3 established the workspace, local Compose services (including `pgvec
    - audit_events, prompt_versions, model_usage_records;
    - eval_datasets, eval_cases, eval_runs, eval_results; and
    - memory_entries.
-3. Alembic configuration and an initial, reviewed migration that creates the required PostgreSQL extensions, tables, constraints, foreign keys, indexes, vector index, and full-text index. The downgrade must reverse only objects created by this migration in dependency-safe order.
+3. Alembic configuration and an initial, reviewed migration that adds the required PostgreSQL extensions, tables, constraints, foreign keys, indexes, vector index, and full-text index. The downgrade must reverse only objects added by this migration in dependency-safe order.
 4. Safe, typed database configuration and asynchronous session/transaction construction for the API process. Configuration must support local Compose and tests without leaking the database URL/password into logs, errors, OpenAPI, or committed files.
-5. An idempotent local seeding command that creates only safe synthetic organizations, the five required role records, and synthetic Norwegian demo identities/role assignments. It must not require a usable login flow or store plaintext passwords.
-6. Database integration tests that create an empty PostgreSQL+pgvector database, run migrations, validate schema invariants/extensions/indexes, exercise representative persistence relationships, run the seed command, and verify downgrade/re-upgrade behavior.
+5. An idempotent local seeding command that adds only safe synthetic organizations, the five required role records, and synthetic Norwegian demo identities/role assignments. It must not require a usable login flow or store plaintext passwords.
+6. Database integration tests that add an empty PostgreSQL+pgvector database, run migrations, validate schema invariants/extensions/indexes, exercise representative persistence relationships, run the seed command, and verify downgrade/re-upgrade behavior.
 7. Updated dependency lockfile, local development documentation, and migration/seed validation commands that accurately reflect the delivered database foundation.
 
 ## Out of scope
@@ -52,7 +52,7 @@ Phases 1–3 established the workspace, local Compose services (including `pgvec
 - Repository interfaces, service-layer CRUD, pagination/filtering/sorting helpers, organization-filtering queries, or audit-event helper APIs (Phase 5).
 - Password hashing, login/logout/current-user flows, sessions/tokens, RBAC authorization, tenant authorization checks, separation-of-duties rules, or rate limiting (Phase 6).
 - Real API operations in the existing route modules, request/response DTOs for domain entities, or frontend clients/UI.
-- Case number allocation, status-transition rules, assignment behavior, case search, and case audit-event creation (Phase 8).
+- Case number allocation, status-transition rules, assignment behavior, case search, and case audit-event addition (Phase 8).
 - File upload, blob-storage access, MIME validation, document parsing, chunk production, embeddings, re-indexing, or retrieval logic (Phases 10–13). This phase stores the future data shape only.
 - LangGraph graphs/nodes, task queues, model/provider calls, prompt execution, risk calculation, approval behavior, LangMem integration, evaluation runner/dashboard, exports, observability metrics, or cloud deployment.
 - Row-level security, production database roles, retention/deletion jobs, encryption-at-rest configuration, and database backup policy. Preserve data safely at schema level; the dedicated security/infrastructure phases own operational enforcement.
@@ -93,7 +93,7 @@ Phases 1–3 established the workspace, local Compose services (including `pgvec
 - `.env.example`, `docker-compose.yml`, and API Docker configuration only for safe database/migration command wiring needed by this phase
 - `README.md` and `docs/development.md`
 
-Keep models in the API persistence package. Do not create repositories/services, generic shared entity schemas, worker tasks, or service-owned database packages before their roadmap phases.
+Keep models in the API persistence package. Do not add repositories/services, generic shared entity schemas, worker tasks, or service-owned database packages before their roadmap phases.
 
 ## Implementation tasks
 
@@ -107,7 +107,7 @@ Keep models in the API persistence package. Do not create repositories/services,
 
 ### 2. Define common SQLAlchemy conventions
 
-1. Create one declarative metadata/base registry imported by Alembic. All model modules must be imported through one intentional registration point so autogeneration and tests see the complete schema.
+1. Add one declarative metadata/base registry imported by Alembic. All model modules must be imported through one intentional registration point so autogeneration and tests see the complete schema.
 2. Add reusable typed mixins/helpers for UUID IDs, UTC insertion/update timestamps, organization references where appropriate, and soft archival. Do not apply a mixin where architecture intentionally omits a field (for example, `roles`, `document_texts`, `workflow_node_runs`, `audit_events`, and evaluation result records have their explicitly specified timestamp shapes).
 3. Use PostgreSQL-native types deliberately: `UUID`, `JSONB`, `INET`, `ARRAY(TEXT)`, timezone-aware timestamps, `NUMERIC`, and pgvector `Vector(1536)`. Keep identifier/status/provider/role fields as bounded text unless the architecture explicitly requires a database enum; application validation evolves in later feature phases.
 4. Add explicit `ForeignKey`, `UniqueConstraint`, `CheckConstraint` only where they encode stated invariants, and named indexes/constraints so migrations and production diagnosis are stable. In particular, protect non-negative file sizes/tokens/durations/retries where applicable and constrain chunk indexes to non-negative values.
@@ -118,7 +118,7 @@ Keep models in the API persistence package. Do not create repositories/services,
 1. Implement `organizations` with unique slug, name, default language, JSONB retention policy/settings, timestamps, and nullable archival time.
 2. Implement `users` with organization FK, architecture-specified unique email, display name, nullable password hash and identity-provider fields, preferred language, active flag, optional last login, and timestamps. Keep password material opaque and do not add authentication behavior.
 3. Implement global `roles` and the tenant-aware `user_roles` association. Enforce the required composite uniqueness of `(user_id, role_id, organization_id)` and foreign keys so later RBAC cannot assign duplicates or cross-tenant membership accidentally.
-4. Implement `cases` with all architecture fields, including organization, case number, title/description, language/domain/type, priority/status/risk, submitter/assignee, optional due date/external reference, timestamps, and soft archival. Enforce a unique `(organization_id, case_number)` identity and create the required tenant/status, tenant/risk, tenant/case-number, and tenant/insertion-time indexes.
+4. Implement `cases` with all architecture fields, including organization, case number, title/description, language/domain/type, priority/status/risk, submitter/assignee, optional due date/external reference, timestamps, and soft archival. Enforce a unique `(organization_id, case_number)` identity and add the required tenant/status, tenant/risk, tenant/case-number, and tenant/insertion-time indexes.
 5. Keep case status/risk/priority values as schema-supported text at this stage. Do not write transition state machines or generate case numbers yet.
 
 ### 4. Implement governed document, text, and retrieval-storage models
@@ -126,7 +126,7 @@ Keep models in the API persistence package. Do not create repositories/services,
 1. Implement `documents` with the required organization/case/uploader links; file identity, size/checksum/storage key; language/source/confidentiality/parsing fields; timestamps; and archival timestamp. Add required organization/case, organization/source-status, and checksum indexes.
 2. Implement `document_texts` as extracted text plus JSONB extraction metadata and insertion timestamp. Make the document relationship one-to-one at the schema level so a parser reprocessing operation can update/replace deliberately in its owning phase rather than duplicate canonical document text.
 3. Implement `document_chunks` with organization/document references, chunk index, page/section provenance, content, token count, metadata, `vector(1536)` embedding, and timestamps. Enforce unique `(document_id, chunk_index)` to preserve chunk identity.
-4. In the initial migration, enable the required PostgreSQL extensions before creating dependent objects. Create a named pgvector approximate-nearest-neighbor index appropriate for cosine retrieval and a named GIN full-text index over the deterministic chunk-search expression. Choose index operations compatible with an initial empty-database migration; do not use `CONCURRENTLY` inside the transaction.
+4. In the initial migration, enable the required PostgreSQL extensions before adding dependent objects. Add a named pgvector approximate-nearest-neighbor index appropriate for cosine retrieval and a named GIN full-text index over the deterministic chunk-search expression. Choose index operations compatible with an initial empty-database migration; do not use `CONCURRENTLY` inside the transaction.
 5. Do not populate extracted text/chunks/embeddings in this phase. The tables, source provenance, and indexes must simply be ready for Phases 11–13.
 
 ### 5. Implement workflow, AI-trace, risk, and approval model group
@@ -135,7 +135,7 @@ Keep models in the API persistence package. Do not create repositories/services,
 2. Implement `workflow_node_runs` with workflow-run link, node identity/status/timing, JSONB input/output summaries, safe error summary, retry count, and required indexes. Do not store credentials, raw prompt secrets, or unrestricted raw state in summary columns.
 3. Implement `agent_messages`, `retrieved_sources`, and `extracted_fields` exactly as prescribed, including their organization/case/workflow/source links, structured JSONB payloads, prompt-version link, model accounting fields, citation data, confidence, and human-edited marker. Add the architecture-required retrieved-source indexes.
 4. Implement `risk_assessments` and `approvals` with the complete booleans/decision/risk reason/editable draft/final text data shape required by the PRD. Preserve both AI draft and final human text as separate fields; do not implement approval decisions or separation-of-duties logic.
-5. Use nullable foreign keys only where architecture says the relation can be absent. Any human-created/AI-created record must remain traceable to its organization and primary business case.
+5. Use nullable foreign keys only where architecture says the relation can be absent. Any human-added/AI-added record must remain traceable to its organization and primary business case.
 
 ### 6. Implement audit, prompt/model, evaluation, and controlled-memory model group
 
@@ -147,8 +147,8 @@ Keep models in the API persistence package. Do not create repositories/services,
 
 ### 7. Configure Alembic and write the baseline migration
 
-1. Create Alembic configuration local to `apps/api`, with `env.py` obtaining metadata and safe database configuration from the application database settings rather than storing credentials in `alembic.ini`.
-2. Generate the initial migration from reviewed metadata, then hand-review it. The migration must explicitly create extensions, tables, indexes, constraints, foreign keys, vector/full-text expressions, and any required server defaults; do not rely solely on an opaque autogenerated script.
+1. Add Alembic configuration local to `apps/api`, with `env.py` obtaining metadata and safe database configuration from the application database settings rather than storing credentials in `alembic.ini`.
+2. Generate the initial migration from reviewed metadata, then hand-review it. The migration must explicitly add extensions, tables, indexes, constraints, foreign keys, vector/full-text expressions, and any required server defaults; do not rely solely on an opaque autogenerated script.
 3. Order upgrades by dependency: extensions and tenant/identity roots first; cases/documents/workflows next; dependent trace/audit/evaluation/memory tables and indexes afterwards. Name all objects consistently.
 4. Implement `downgrade()` in exact reverse dependency order. It must remove schema objects and extensions only when safe for a fresh Phase 4 database; it must not drop a pre-existing extension owned outside this migration. Document the expected clean-local-database rollback use case.
 5. Add a focused migration checker/command that can report current revision versus head and fail cleanly on a pending/unapplied migration without exposing a connection string.
@@ -158,8 +158,8 @@ Keep models in the API persistence package. Do not create repositories/services,
 1. Implement `scripts/seed_local.py` (or a narrowly scoped equivalent) as an explicit command, never an import-time side effect and never a Compose/API startup action.
 2. Seed at least one synthetic Norwegian demo organization with `nb` as default/preferred language, safe retention/settings JSON, the five required global roles (`Admin`, `Compliance Reviewer`, `Case Worker`, `Manager`, `Read-only Auditor`), and synthetic Norwegian-named users linked to the relevant roles.
 3. Add a separate clearly synthetic isolated organization/user only when needed to make tenant-isolation fixtures unambiguous. All names, emails, external references, and data must be demonstrably fake and non-personal.
-4. Do not create a plaintext-password convention. Until Phase 6, use no password hash or a deliberately unusable synthetic identity marker; document that the seeded users are database fixtures, not functioning accounts.
-5. Make seeding idempotent using stable natural keys (organization slug, role name, seeded email/identity) and transactions. Re-running it must not create duplicate roles, memberships, or organizations.
+4. Do not add a plaintext-password convention. Until Phase 6, use no password hash or a deliberately unusable synthetic identity marker; document that the seeded users are database fixtures, not functioning accounts.
+5. Make seeding idempotent using stable natural keys (organization slug, role name, seeded email/identity) and transactions. Re-running it must not add duplicate roles, memberships, or organizations.
 
 ### 9. Document and integrate the local developer workflow
 
@@ -183,12 +183,12 @@ uv run pytest apps/api/tests/unit apps/api/tests/integration
 At minimum, tests must prove all of the following:
 
 - a fresh empty PostgreSQL+pgvector database upgrades successfully from base to Alembic head;
-- the migration creates the UUID-generation and vector extensions, all required tables, and named key indexes/constraints;
+- the migration adds the UUID-generation and vector extensions, all required tables, and named key indexes/constraints;
 - `document_chunks.embedding` has the documented dimension and both vector/full-text indexes are present and usable by PostgreSQL;
 - representative inserts exercise UUID/server timestamps, tenant FKs, one-to-one document text, unique document chunk positions, role membership uniqueness, case-number uniqueness within an organization, JSONB metadata, array tags, `INET`, and numeric values;
 - cross-tenant foreign-key/reference mistakes and duplicate constrained values fail safely at the database boundary;
 - the baseline downgrade returns an empty Phase 4 schema cleanly, and a subsequent upgrade recreates the same schema;
-- local seeding succeeds on an empty upgraded database, is idempotent, creates all five roles and synthetic Norwegian tenant data, and creates no plaintext password;
+- local seeding succeeds on an empty upgraded database, is idempotent, adds all five roles and synthetic Norwegian tenant data, and adds no plaintext password;
 - models/metadata import cleanly and session/engine construction does not connect at module import time;
 - application settings and migration failures never render a database URL/password in captured logs or exceptions.
 
@@ -261,7 +261,7 @@ Phase 4 is complete only when all of the following are true:
 - The migration includes a safe rollback path for the current baseline and upgrades cleanly again after rollback.
 - pgvector and full-text chunk indexes exist with a documented 1536-dimensional embedding contract, while retrieval/query behavior remains deferred.
 - The database/session configuration is typed, lazy, testable, and does not leak connection information; importing the API still does not require a live database connection.
-- Explicit local seeding creates only idempotent, synthetic Norwegian organization/role/user fixtures with no plaintext passwords or real personal data.
+- Explicit local seeding adds only idempotent, synthetic Norwegian organization/role/user fixtures with no plaintext passwords or real personal data.
 - Database integration tests and existing API tests pass, along with formatting, linting, strict type checks, and local Compose/health/OpenAPI validation.
 - Documentation gives accurate, explicit migration and seed commands, identifies destructive rollback/reset operations, and does not overstate unimplemented product behavior.
 - No work assigned to repository/service, auth/RBAC, case/document processing, RAG, LangGraph, approval, evaluation, security-hardening, frontend, or deployment phases has been implemented.
@@ -271,12 +271,12 @@ Phase 4 is complete only when all of the following are true:
 | Risk or dependency | Impact | Required handling in this phase |
 | --- | --- | --- |
 | Existing Compose PostgreSQL data volume already contains local state | Baseline migration/rollback can produce misleading results or destroy a developer's data. | Run rollback tests only against disposable test databases; clearly document volume-reset/destructive commands and never auto-downgrade on startup. |
-| PostgreSQL extension availability differs between local Docker and Azure Database for PostgreSQL | A local-only schema could fail in the deployment target. | Use supported `pgcrypto`/`vector` capabilities, create extensions explicitly/idempotently, and document Azure extension validation as an infrastructure follow-up. |
+| PostgreSQL extension availability differs between local Docker and Azure Database for PostgreSQL | A local-only schema could fail in the deployment target. | Use supported `pgcrypto`/`vector` capabilities, add extensions explicitly/idempotently, and document Azure extension validation as an infrastructure follow-up. |
 | Vector index requires a fixed dimension but no provider is selected yet | Future embeddings may be incompatible with the baseline index. | Adopt and document the explicit 1536 baseline; require a reviewed migration before any future provider changes dimension. |
 | Alembic async/sync driver confusion | Migrations or app sessions may fail despite valid credentials. | Keep an explicit async runtime URL and a private sync Alembic conversion/path; test both migration execution and async persistence. |
 | One oversized initial migration becomes difficult to review | Missing FK/index/nullable detail undermines future functionality. | Organize models by domain but hand-review the generated migration against Architecture §10.2 table-by-table; use deterministic names. |
 | Broad cascade deletes or mutable audit data conflict with regulated traceability | Evidence/history can disappear or be altered silently. | Use conservative FK deletion rules, append-only audit schema, soft archival where specified, and defer retention/privilege mechanics to their assigned phases. |
-| Seeding creates credentials or personal-looking data | Violates demo and privacy expectations. | Use clearly synthetic identities, no plaintext passwords, idempotent fixtures, and a test that inspects the seeded password fields. |
+| Seeding adds credentials or personal-looking data | Violates demo and privacy expectations. | Use clearly synthetic identities, no plaintext passwords, idempotent fixtures, and a test that inspects the seeded password fields. |
 | SQLite-backed tests miss PostgreSQL behavior | Extensions/indexes/types appear valid in tests but fail locally/production. | Require pgvector PostgreSQL integration tests; use SQLite only for narrow model-free unit tests if useful. |
 | Database wiring changes Phase 3 health/OpenAPI behavior | Existing local startup checks regress. | Keep migration/seeding explicit, preserve health routes/factories, and run existing API/local-stack tests as compatibility checks. |
 

@@ -2,7 +2,7 @@
 
 ## Phase objective
 
-Create a repeatable, safe local Docker Compose environment for the Nordic Regulated AI Agent Platform. A developer must be able to start the web entry point, API health service, worker readiness service, PostgreSQL with pgvector, Redis, and Azurite with one documented command, then verify that every required dependency is reachable and healthy.
+Add a repeatable, safe local Docker Compose environment for the Nordic Regulated AI Agent Platform. A developer must be able to start the web entry point, API health service, worker readiness service, PostgreSQL with pgvector, Redis, and Azurite with one documented command, then verify that every required dependency is reachable and healthy.
 
 This phase establishes the durable local-runtime contract that later API, frontend, database, document, workflow, and deployment phases will build upon. It does **not** implement product features, data models, authentication, a real frontend, background jobs, or cloud deployment.
 
@@ -10,12 +10,12 @@ This phase establishes the durable local-runtime contract that later API, fronte
 
 The product must be a deployable, traceable enterprise AI workflow platform rather than a collection of disconnected services. The PRD requires local Docker Compose support, health checks for API and worker services, asynchronous/background processing, PostgreSQL, Redis, object storage, secure configuration, and no committed secrets. The architecture selects PostgreSQL 16 with pgvector, Redis, Azurite for local object storage, FastAPI, and Docker Compose as the local development baseline.
 
-Phase 1 deliberately created only repository boundaries and static tooling. Phase 2 makes those boundaries runnable without prematurely implementing the Phase 3 API skeleton, Phase 4 database schema, Phase 7 Next.js UI, or later AI/document workflows. The health endpoints added here are a narrow infrastructure contract explicitly required by this phase; later phases extend those processes rather than replacing the local-service interface.
+Phase 1 deliberately added only repository boundaries and static tooling. Phase 2 makes those boundaries runnable without prematurely implementing the Phase 3 API skeleton, Phase 4 database schema, Phase 7 Next.js UI, or later AI/document workflows. The health endpoints added here are a narrow infrastructure contract explicitly required by this phase; later phases extend those processes rather than replacing the local-service interface.
 
 ## Relevant specification context and constraints
 
 - Local development uses Docker Compose and must include `frontend`, `api`, `worker`, `postgres`, `redis`, and `azurite`. Qdrant, OpenSearch, and mock notification services are optional architecture components and are not needed in this phase.
-- PostgreSQL is the system of record and pgvector is the default vector-search direction. Use a PostgreSQL 16 image with pgvector available, but defer extension creation, schema definition, migrations, seeds, and application data to Phase 4.
+- PostgreSQL is the system of record and pgvector is the default vector-search direction. Use a PostgreSQL 16 image with pgvector available, but defer extension addition, schema definition, migrations, seeds, and application data to Phase 4.
 - Redis is the future queue, cache, lock, and worker-coordination dependency. Do not introduce Celery tasks, queues, retries, or application jobs yet.
 - Azurite is the local Azure Blob Storage emulator. It must be reachable and provisioned with a known local development blob container, but no upload endpoint, document persistence, or sample document ingestion belongs here.
 - The API technology is FastAPI/Python 3.12. Public health endpoints are permitted by the PRD; all product routes, OpenAPI boundaries, structured configuration, logging, and error handling belong to Phase 3.
@@ -33,7 +33,7 @@ Phase 1 deliberately created only repository boundaries and static tooling. Phas
 5. PostgreSQL 16 with pgvector available, Redis, Azurite, and a one-shot Azurite container-provisioning helper using known local-only values.
 6. An expanded `.env.example` containing documented local ports, service names, database/object-store defaults, and no real secrets.
 7. Local-development documentation, lifecycle commands, endpoint table, cleanup guidance, and troubleshooting notes that accurately describe the current Phase 2 capabilities.
-8. Automated health-contract tests plus a script that verifies a running Compose stack without creating business data or relying on external services.
+8. Automated health-contract tests plus a script that verifies a running Compose stack without adding business data or relying on external services.
 9. Root convenience commands for bringing the local stack up/down, viewing logs, validating the Compose configuration, and verifying a running stack.
 
 ## Out of scope
@@ -43,7 +43,7 @@ Phase 1 deliberately created only repository boundaries and static tooling. Phas
 - Celery/Dramatiq/Arq setup, task definitions, queue processing, workflow execution, document parsing, embedding, retrieval, evaluation, or model-provider integration (later phases).
 - A Next.js application, user-facing localization, UI components, API client, browser tests, or authentication screens (Phase 7 onward).
 - Object-storage upload/download APIs, document metadata, antivirus/file validation, or parsing pipelines (Phases 10–11).
-- Qdrant, OpenSearch, Mailpit, or other optional local support services. Add them only in the phase that creates a concrete need and documents the operational cost.
+- Qdrant, OpenSearch, Mailpit, or other optional local support services. Add them only in the phase that adds a concrete need and documents the operational cost.
 - Production Dockerfiles, image publishing, image scanning, CI workflows, Azure resources, staging, production deployment, or real credentials (Phases 31–35).
 - Sample cases, local seed data, evaluation datasets, customer data, personal data, or any real secrets.
 
@@ -57,9 +57,9 @@ Phase 1 deliberately created only repository boundaries and static tooling. Phas
 | `postgres` | Future relational system of record; pgvector-capable | `127.0.0.1:5432` | Compose health check uses `pg_isready`; no schema or migration is applied |
 | `redis` | Future queue/cache/lock broker | `127.0.0.1:6379` | Compose health check requires `redis-cli ping` to return `PONG` |
 | `azurite` | Local Azure Blob Storage emulator | Blob: `http://127.0.0.1:10000` | Compose health check confirms the blob port accepts TCP connections |
-| `azurite-init` | One-shot local blob-container provisioning helper | No host port | Waits for Azurite health, idempotently creates the configured local blob container, then exits successfully |
+| `azurite-init` | One-shot local blob-container provisioning helper | No host port | Waits for Azurite health, idempotently adds the configured local blob container, then exits successfully |
 
-All services use explicitly versioned image tags or digests; never use `latest`. Persistent state uses named Compose volumes, so it is not accidentally created inside the repository. The documented destructive reset command must be separate from the normal shutdown command and warn that it removes local database and object-storage data.
+All services use explicitly versioned image tags or digests; never use `latest`. Persistent state uses named Compose volumes, so it is not accidentally added inside the repository. The documented destructive reset command must be separate from the normal shutdown command and warn that it removes local database and object-storage data.
 
 ## Likely files, folders, modules, and services affected
 
@@ -104,9 +104,9 @@ All services use explicitly versioned image tags or digests; never use `latest`.
 ### 2. Define the Compose topology and lifecycle
 
 1. Add root `docker-compose.yml` using a stable project name and a single private default network. Define `web`, `api`, `worker`, `postgres`, `redis`, `azurite`, and `azurite-init` exactly once.
-2. Use `postgres` based on a PostgreSQL 16 image with pgvector installed/available. Configure a named database volume, a non-production database/user/password supplied through local environment variables, and a `pg_isready` health check. Do **not** run `CREATE EXTENSION`, migrations, or seed SQL in this phase.
+2. Use `postgres` based on a PostgreSQL 16 image with pgvector installed/available. Configure a named database volume, a non-production database/user/password supplied through local environment variables, and a `pg_isready` health check. Do **not** run SQL extension statements, migrations, or seed SQL in this phase.
 3. Configure Redis with a named volume where persistence is enabled and a `redis-cli ping` health check. Do not configure task queues or application cache behavior.
-4. Configure Azurite with named storage, an explicit blob port, known non-secret local-only account values, and a TCP connection health check. Add `azurite-init` using the Azure CLI to create the configured blob container idempotently after Azurite becomes healthy. Do not place object data or credentials in the repository.
+4. Configure Azurite with named storage, an explicit blob port, known non-secret local-only account values, and a TCP connection health check. Add `azurite-init` using the Azure CLI to add the configured blob container idempotently after Azurite becomes healthy. Do not place object data or credentials in the repository.
 5. Expose the documented ports only on `127.0.0.1`. Set `restart` behavior appropriate for developer services, keep images version-pinned, and use `depends_on` conditions so API/worker start only after the infrastructure services are healthy.
 6. Add health checks for `web`, `api`, and `worker` with bounded start periods, retries, and timeouts. Health checks must not depend on a host-installed `curl`; use tooling available in each container image or a small, reviewed application-level probe.
 7. Provide a single documented startup command that works from a clean checkout after tool installation:

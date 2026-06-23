@@ -108,12 +108,12 @@ owned by Phase 21.
   `manual_review`) and a reason code. It must **not** invoke, enqueue, or
   pretend to have implemented that later workflow.
 - The graph sets an `approval_required` **preliminary intake flag** from the
-  intake policy, only to inform subsequent routing. It neither creates an
+  intake policy, only to inform subsequent routing. It neither adds an
   approval row nor changes case status to `waiting_for_human_review`; Phase 21
   and Phase 22 own final approval requirements and state transitions.
 - Do not alter a case lifecycle status simply because Intake has completed.
   The current lifecycle has no dedicated classification-review state, and
-  premature automatic status changes would silently create later workflow
+  premature automatic status changes would silently add later workflow
   semantics. A later orchestrator phase may use the persisted recommendation
   to choose explicit state transitions.
 
@@ -141,7 +141,7 @@ owned by Phase 21.
 - `apps/api/src/app/workers/tasks.py` already demonstrates the established
   Celery pattern: UUID-only payload, short-lived async session, explicit async
   engine disposal after `asyncio.run`, bounded retry, and content-free logs.
-  Follow that pattern for the Intake task rather than creating a second worker
+  Follow that pattern for the Intake task rather than adding a second worker
   process.
 - The Case Detail UI has truthful workflow/risk placeholders from Phase 9.
   Replace only the necessary intake portion with real data/action/correction
@@ -264,7 +264,7 @@ first graph. Keep contracts closed and documented in OpenAPI:
 
 | Operation | Required behavior |
 | --- | --- |
-| `POST /api/cases/{case_id}/workflows/run` | Cookie-authenticated, current-tenant case operation accepting exactly `{ "workflow": "intake" }`. It authorizes a user allowed to read/operate on the case, creates a queued run, records a safe queue audit event, and dispatches only its UUID. It rejects unsupported future workflow values and never accepts state, provider, prompt, model, tool, or queue controls. |
+| `POST /api/cases/{case_id}/workflows/run` | Cookie-authenticated, current-tenant case operation accepting exactly `{ "workflow": "intake" }`. It authorizes a user allowed to read/operate on the case, adds a queued run, records a safe queue audit event, and dispatches only its UUID. It rejects unsupported future workflow values and never accepts state, provider, prompt, model, tool, or queue controls. |
 | `GET /api/workflows/{workflow_run_id}` | Cookie-authenticated, tenant-scoped, safe status/result view for the current user's readable case. It returns run id/name/status/timestamps plus the allowlisted Intake result needed for a real Case Detail, never raw state snapshot, node inputs/outputs, model data, or error internals. Full trace remains Phase 23. |
 | `POST /api/workflows/{workflow_run_id}/intake/correction` | Cookie-authenticated, closed correction request for the latest low-confidence completed Intake result as described above. No generic workflow mutation endpoint. |
 
@@ -399,7 +399,7 @@ correct low-confidence Intake output:
   out-of-range, unknown-domain/type, extra-field, and malformed deterministic
   provider output, and never persists a free-form response.
 - PII fixtures detect supported safe categories without retaining matched text;
-  clean text remains unflagged. Injection-like fixtures create the expected
+  clean text remains unflagged. Injection-like fixtures add the expected
   signal codes without treating source text as executable instruction.
 - Every preliminary risk-policy branch and suggested-workflow mapping is
   table-tested, including priority, PII, injection, unknown language, low
@@ -422,7 +422,7 @@ correct low-confidence Intake output:
   dispatch/model/persistence fails.
 - A completed high-confidence run updates only the allowed Case fields and
   preserves submitted case values for a low-confidence run. No Intake path
-  changes case status, creates an approval, or launches a successor graph.
+  changes case status, adds an approval, or launches a successor graph.
 - Result/status endpoint exposes only allowlisted values. It never returns raw
   state snapshot, node summary contents beyond designed result fields, case
   input, prompt, provider payload, confidence score, token/cost, or raw error.
@@ -504,7 +504,7 @@ claim was made.
 - Valid results persist safely; high-confidence results update only allowed case
   classification fields, while low-confidence recommendations await human
   correction. No automatic case-status change, successor graph, final risk,
-  or approval is created.
+  or approval is added.
 - PII/injection and preliminary risk outputs are conservative, typed, audited
   signals with no raw sensitive content stored in state, logs, queue payloads,
   audit records, responses, or test artifacts.

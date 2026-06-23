@@ -6,7 +6,7 @@ Testing Library.
 
 Norwegian Bokmål (`/nb`) is the default locale; English is available at `/en`. Protected browser
 requests use relative, same-origin `/api/...` routes. The API owns the opaque HTTP-only session,
-organization scope, and RBAC policy, so this application never reads, stores, decodes, or creates a
+organization scope, and RBAC policy, so this application never reads, stores, decodes, or issues a
 session identifier.
 
 ## Current user surface

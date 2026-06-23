@@ -110,7 +110,7 @@ function DetailContent({
     ],
     [t('fields.externalReferenceDetail'), caseData.external_reference ?? t('identityUnavailable')],
     [
-      t('fields.created'),
+      t('fields.registered'),
       <time dateTime={caseData.inserted_at}>{formatTimestamp(caseData.inserted_at, locale)}</time>,
     ],
     [

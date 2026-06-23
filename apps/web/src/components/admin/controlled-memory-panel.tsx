@@ -67,7 +67,7 @@ export function ControlledMemoryPanel() {
         setNotice(t('updated'));
       } else {
         await actions.create.mutateAsync(input);
-        setNotice(t('created'));
+        setNotice(t('added'));
       }
       setEditor(initialEditor);
     } catch {
@@ -150,7 +150,7 @@ export function ControlledMemoryPanel() {
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">
-            {editor.entryId ? t('reviseTitle') : t('createTitle')}
+            {editor.entryId ? t('reviseTitle') : t('addTitle')}
           </h2>
           {editor.entryId ? (
             <Button onClick={() => setEditor(initialEditor)} type="button">
@@ -174,7 +174,7 @@ export function ControlledMemoryPanel() {
         </select>
         <EditorFields editor={editor} setField={setField} />
         <Button disabled={isBusy} type="submit">
-          {editor.entryId ? t('saveRevision') : t('create')}
+          {editor.entryId ? t('saveRevision') : t('add')}
         </Button>
       </form>
       <section aria-labelledby="memory-entries-title" className="space-y-3">

@@ -84,7 +84,7 @@ Phase 14 is deliberately the last user-interface layer before RAG answering:
 | `apps/api/src/app/api/routes/documents.py` and `schemas/documents.py` | Extend the protected metadata surface with case-scoped listing, source-status mutation, and bounded context—not raw download or generic chunk APIs. |
 | `apps/api/src/app/services/documents/service.py`, `db/repositories/document.py` | Keep routes thin; service owns policy, tenant/case/document relation checks, state transitions and audit coordination; repository owns parameterized persistence queries. |
 | `apps/api/src/app/services/auth/policy.py` | Add the smallest explicit document governance/context actions and role matrices. Preserve all existing Phase 10–13 policies. |
-| `apps/api/src/app/api/routes/retrieval.py`, `schemas/retrieval.py`, `services/retrieval/` | Consume the existing `POST /api/retrieval/search` contract unchanged. Do not create an answer endpoint or duplicate hybrid-search policy in the browser. |
+| `apps/api/src/app/api/routes/retrieval.py`, `schemas/retrieval.py`, `services/retrieval/` | Consume the existing `POST /api/retrieval/search` contract unchanged. Do not add an answer endpoint or duplicate hybrid-search policy in the browser. |
 | `apps/api/src/app/db/models/document.py` and existing migration | Reuse current document, document-text, and document-chunk state. No migration is expected. |
 
 ## In scope
@@ -159,7 +159,7 @@ Phase 14 is deliberately the last user-interface layer before RAG answering:
 - If a context-view audit is added, write a successful, content-free
   `document.source_context_viewed` event linked to the document/case with no
   chunk id or text in event data. List/detail metadata reads remain non-audited
-  as established by Phase 11. Do not create `retrieved_sources`, workflow,
+  as established by Phase 11. Do not add `retrieved_sources`, workflow,
   agent-message, model-usage, evaluation, risk, or approval rows.
 
 ### Frontend document and evidence experience
@@ -446,7 +446,7 @@ An empty Evidence Panel search remains a valid `200` result, not an error.
 ### Browser and manual tests
 
 - Extend the existing Playwright local-stack scenario using a synthetic
-  authenticated setup that creates/uses one case and one indexed safe document
+  authenticated setup that adds/uses one case and one indexed safe document
   through existing API/setup boundaries (not a new browser upload feature).
   Verify the Bokmål Case Detail document display, permitted re-index intent,
   approved-source evidence search, card rendering, and bounded context opening.

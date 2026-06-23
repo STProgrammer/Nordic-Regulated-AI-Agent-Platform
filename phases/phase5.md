@@ -32,7 +32,7 @@ PostgreSQL/pgvector schema for all core product records. Phase 5 puts an
 intentional application boundary in front of those models. Phase 6 will bind the
 authenticated current user and RBAC policies to this boundary. Phase 8 and later
 feature phases will add actual case/document/workflow API operations on top of
-the services created here.
+the services added here.
 
 ## Relevant specification context and constraints
 
@@ -75,7 +75,7 @@ the services created here.
    phases: organizations, users/roles, cases, documents, workflow runs, and
    audit events.
 2. A consistent transaction contract: repositories receive an existing
-   `AsyncSession`, never create engines or sessions, and never independently
+   `AsyncSession`, never add engines or sessions, and never independently
    commit or roll back request work. Services compose repository operations,
    flush intentionally, and use savepoints where needed to translate known
    database constraint errors safely.
@@ -86,7 +86,7 @@ the services created here.
    result, allowlisted filtering/sorting, deterministic default ordering, and
    no untrusted field names or ordering expressions in SQL.
 5. Thin service modules for the core repository groups. They provide typed
-   create/read/list/update/archive primitives appropriate to persistence
+   add/read/list/update/archive primitives appropriate to persistence
    infrastructure, validate tenant context, map not-found/conflict conditions to
    safe service errors, and leave feature-specific policies to their owning
    phases.
@@ -179,7 +179,7 @@ and documented.
 
 ### 1. Define the layering and transaction contract
 
-1. Create the repository package and document its rules in module docstrings:
+1. Add the repository package and document its rules in module docstrings:
    repositories own SQLAlchemy statements and persistence-only behavior;
    services own application-level composition, command validation, safe error
    mapping, and future audit orchestration; routes will later parse HTTP and
@@ -216,7 +216,7 @@ and documented.
    client-controlled query-string behavior in this phase. Audit events and other
    non-archivable records must not be forced through this predicate.
 4. Treat `organizations` as the tenant root rather than a tenant-scoped child:
-   expose only narrowly needed lookup/create/update persistence methods, with no
+   expose only narrowly needed lookup/add/update persistence methods, with no
    misleading organization predicate. Treat `roles` as global as specified by
    the architecture, while keeping `UserRole` mutations/queries explicitly
    organization-bound.
@@ -228,7 +228,7 @@ and documented.
 
 ### 3. Add safe pagination, filtering, and sorting helpers
 
-1. Create immutable, typed pagination input with a conservative default page
+1. Add immutable, typed pagination input with a conservative default page
    size, a documented maximum, and validation for negative offsets/invalid
    limits. Return a typed page result containing items, limit, offset, and a
    total count obtained from the same tenant/archival filter set.
@@ -258,12 +258,12 @@ and documented.
    organization-bounded user lookup/list/write methods and explicit global-role
    lookup. Preserve the Phase 4 composite tenant membership invariant; do not
    decide which roles may do what.
-3. Implement `CaseRepository` using the scoped base for create, get, required
+3. Implement `CaseRepository` using the scoped base for add, get, required
    get, bounded list, persistence-field update, and soft archive. It may persist
    values provided by a future service but must not generate case numbers, set
    status-transition policy, implement assignment behavior, or expose search.
 4. Implement `DocumentRepository` using the scoped base for metadata-level
-   create/get/list/update/archive primitives only. It must not read/write object
+   add/get/list/update/archive primitives only. It must not read/write object
    storage, parsed text, chunks, or embeddings.
 5. Implement `WorkflowRunRepository` for tenant-scoped workflow-run persistence
    and list/get operations needed by future orchestration. It must not execute a
@@ -303,7 +303,7 @@ and documented.
 6. Do not make generic persistence services automatically emit audit events in
    this phase. Future product commands must explicitly choose a meaningful event
    type and event payload; automatic writes for reads or incomplete low-level
-   updates would create misleading compliance evidence.
+   updates would add misleading compliance evidence.
 
 ### 6. Wire only reusable internal dependencies
 
@@ -325,13 +325,13 @@ and documented.
    sort keys/directions, deterministic tie-breaker behavior, rejection of
    unallowlisted sort/filter input, and safe service exception serialization.
 2. Reuse the pgvector PostgreSQL Testcontainers fixture from Phase 4 for
-   integration tests. Seed two synthetic organizations and otherwise create only
+   integration tests. Seed two synthetic organizations and otherwise add only
    synthetic `demo.invalid` users/cases/documents/workflow records.
-3. For each tenant-scoped core repository, prove that an organization can create
+3. For each tenant-scoped core repository, prove that an organization can add
    and retrieve its own record but cannot retrieve, list, update, or archive an
    identically addressed record from the other organization. Verify the outcome
    is a safe not-found result rather than a cross-tenant disclosure.
-4. Exercise basic create/get/list/update/archive behavior with valid model
+4. Exercise basic add/get/list/update/archive behavior with valid model
    values. Verify archived cases/documents are excluded by default, appear only
    through the explicit internal `include_archived` choice, and are not deleted.
 5. Verify pagination count and page contents are tenant-consistent; verify
@@ -463,7 +463,7 @@ Phase 5 is complete only when all of the following are true:
 - Soft-archivable core records are excluded by default and only included by an
   explicit internal option; audit events remain append-only.
 - Core services translate expected persistence conflicts/not-found conditions to
-  stable safe errors and do not expose SQL/connection details or create partial
+  stable safe errors and do not expose SQL/connection details or add partial
   writes.
 - Audit helper tests prove tenant scope, append-only behavior, safe structured
   data handling, and no audit rows from reads.
@@ -487,7 +487,7 @@ Phase 5 is complete only when all of the following are true:
 | Repository commits conflict with request transactions | Composite product actions can partially commit or be impossible to roll back. | Repositories never commit/rollback; services use flush/savepoints; retain `get_db_session()` as outer transaction owner. |
 | Broad IntegrityError handling leaks SQL or leaves a broken session | Safe error behavior and later requests become unreliable. | Translate only known errors inside scoped savepoints and test error content plus subsequent session usability. |
 | Generic filtering/sorting accepts raw caller input | SQL injection or unintended data exposure becomes possible. | Use typed allowlists and SQLAlchemy column expressions only; do not interpolate field names, directions, or filter fragments. |
-| Auto-auditing low-level repository operations creates misleading evidence or sensitive logs | The compliance record becomes noisy, incomplete, or unsafe. | Provide an explicit audit writer only; later product services select meaningful event types and minimal payloads. |
+| Auto-auditing low-level repository operations adds misleading evidence or sensitive logs | The compliance record becomes noisy, incomplete, or unsafe. | Provide an explicit audit writer only; later product services select meaningful event types and minimal payloads. |
 | Existing Phase 4 models have lazy relationships and tenant composite FKs | Naive repository code can cause `lazy="raise"` failures or cross-tenant reference errors. | Load relationships explicitly, validate scoped references, and keep integration tests on PostgreSQL/pgvector. |
 | Scope expands into Phase 6/8 feature logic | The foundation becomes harder to review and future phases lose clear ownership. | Keep routes operation-free and defer auth/RBAC, case workflow rules, search, upload, orchestration, and UI work exactly as listed above. |
 

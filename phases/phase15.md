@@ -42,10 +42,10 @@ Phases 12 through 14 already provide the prerequisites:
 
 The persistence schema already includes workflow_runs, retrieved_sources,
 agent_messages, and model_usage_records. The source/message rows require a
-workflow_run_id. For this phase, each direct answer request therefore creates a
+workflow_run_id. For this phase, each direct answer request therefore adds a
 real, bounded RAG execution record with workflow_name rag_answer. It represents
 the request that produced the durable answer evidence; it is not a fabricated
-graph run, creates no workflow-node rows, and does not introduce LangGraph.
+graph run, adds no workflow-node rows, and does not introduce LangGraph.
 Phase 16 will add the general orchestration service and its reusable graph
 persistence semantics on top of this honest record.
 
@@ -128,7 +128,7 @@ editing:
   should be introduced unless an implementation discovery proves an existing
   schema constraint prevents the documented Phase 15 record shape.
 - apps/api/src/app/db/repositories/workflow.py already has tenant-safe
-  WorkflowRun creation. New RAG-specific persistence must follow the existing
+  WorkflowRun addition. New RAG-specific persistence must follow the existing
   repository/service separation rather than adding SQL or model writes to the
   route.
 - apps/api/src/app/core/config.py, dependencies.py, errors.py, and
@@ -218,7 +218,7 @@ editing:
 
 ### 4. Durable RAG execution, source, message, usage, and audit records
 
-- Create one WorkflowRun for every accepted answer request before final result
+- Add one WorkflowRun for every accepted answer request before final result
   persistence. Use the fixed workflow_name rag_answer and a documented
   Phase-15 version value; set the caller as started_by_user_id and the current
   case/organization ids. Its allowed statuses are running, completed,
@@ -244,7 +244,7 @@ editing:
   failure summary where appropriate. A preliminary no-model refusal does not
   fabricate a model usage row.
 - Update WorkflowRun finished_at, duration_ms, total_tokens, total_cost_estimate,
-  status, and safe state snapshot consistently with the result. Never create a
+  status, and safe state snapshot consistently with the result. Never add a
   WorkflowNodeRun in this phase.
 - Append one content-free audit event for each final outcome:
   rag.answer_completed, rag.answer_refused, or rag.answer_failed. It links
@@ -383,7 +383,7 @@ scores as confidence, or any non-approved source.
 No new table is required for the baseline Phase 15 record shape. Confirm
 existing models and migration state instead of adding duplicate storage.
 
-| Record | When created | Required safe content |
+| Record | When added | Required safe content |
 | --- | --- | --- |
 | WorkflowRun | Every accepted answer request | Fixed RAG name/version, current tenant/case/caller, lifecycle timestamps/status, aggregate duration/tokens/cost, and content-free state snapshot. |
 | RetrievedSource | Every governed source selected for this run | Tenant/case/run/document/chunk references, rank, rank signal, normalized method name(s), bounded excerpt, and canonical S-number label. |
@@ -405,7 +405,7 @@ from normal application flows.
 | apps/api/src/app/services/auth/policy.py | Add the narrow RetrievalAction.ANSWER role rule; retain all existing source entitlements unchanged. |
 | apps/api/src/app/services/retrieval/types.py | Add small internal answer-command/result/citation/evidence-policy values without coupling them to Pydantic or ORM models. |
 | apps/api/src/app/services/retrieval/answering.py | New orchestration service that coordinates authorization, RetrievalService, deterministic sufficiency, context construction, generator invocation, citation validation, persistence, and safe audit events. |
-| apps/api/src/app/services/retrieval/generator.py | New bounded RAG-only generator protocol/adapter/result normalization and provider cleanup. Do not create the Phase 16 general provider package. |
+| apps/api/src/app/services/retrieval/generator.py | New bounded RAG-only generator protocol/adapter/result normalization and provider cleanup. Do not add the Phase 16 general provider package. |
 | apps/api/src/app/services/retrieval/citations.py | New pure canonical-label, inline-citation parsing/validation, answer-bound, and safe citation-response helpers. |
 | apps/api/src/app/services/retrieval/evidence.py | New pure preliminary sufficiency and evidence-context budget helpers. |
 | apps/api/src/app/db/repositories/rag_answer.py | New persistence-only repository for staging direct RAG run/source/message/model-usage records with no authorization or model logic. |
@@ -465,7 +465,7 @@ from normal application flows.
      Enforce configured maximum evidence-source count and total context
      characters with deterministic rank-order truncation.
    - Treat preliminary failure as a normal local refusal. Do not call a
-     generator, fabricate model usage, create case status changes, or use rank
+     generator, fabricate model usage, add case status changes, or use rank
      score as an evidence-confidence shortcut.
 
 4. Implement the narrow grounded generator seam.
@@ -508,7 +508,7 @@ from normal application flows.
      ORM record types. It must receive trusted domain values and explicit
      organization ids; it must not determine policy, construct prompts, or
      make provider calls.
-   - Create and flush the RAG WorkflowRun before source/message records need
+   - Add and flush the RAG WorkflowRun before source/message records need
      its id. Finalize it for completed, needs_more_evidence, or failed outcomes
      with consistent timestamps, aggregate accounting, and content-free state.
    - Persist every selected source with a canonical label and normalized
@@ -527,7 +527,7 @@ from normal application flows.
    - Add relational settings validation: context/evidence limits are positive
      and internally ordered, output bound is positive, price rates appear as a
      pair, and deterministic/test-only shortcuts cannot be selected in staging
-     or production. Avoid loading clients or secrets during settings creation.
+     or production. Avoid loading clients or secrets during settings addition.
    - Add dependency construction/overrides that make unit/API tests fully
      network-free. Preserve existing embedding-provider behavior and settings.
    - Update README/development docs after the endpoint and local sequence are
@@ -731,7 +731,7 @@ complete if any check fails.
   Retrieved sources, assistant output where applicable, provider usage,
   latency/tokens/cost where available, terminal status, and content-free audit
   event are consistent and tenant-scoped.
-- No direct RAG answer creates fake graph nodes, changes case status, bypasses
+- No direct RAG answer adds fake graph nodes, changes case status, bypasses
   approval/risk policy, exposes model/provider secrets, logs sensitive content,
   or adds frontend/chat/orchestration/evaluation features ahead of their
   roadmap phases.
@@ -745,14 +745,14 @@ complete if any check fails.
 
 | Risk, dependency, or assumption | Required mitigation |
 | --- | --- |
-| Direct RAG persistence rows require a workflow run before Phase 16 exists | Create one honest bounded rag_answer execution record, not a fake LangGraph run; do not create nodes/graph state/framework abstractions. |
+| Direct RAG persistence rows require a workflow run before Phase 16 exists | Add one honest bounded rag_answer execution record, not a fake LangGraph run; do not add nodes/graph state/framework abstractions. |
 | A retrieval rank signal could be misrepresented as answer confidence | Use only deterministic source-count/excerpt-availability checks in Phase 15 and never expose rank score as truth, faithfulness, or approval. |
 | A model can hallucinate a citation or provide unsupported text | Fixed grounding prompt, server-owned labels, structural citation membership/inline validation, and safe refusal suppress invalid output. Claim-level verification remains later work. |
 | Sources may contain prompt injection text | Treat excerpts as untrusted reference data in the fixed prompt; do not add hidden instruction-following from documents. Full detection/routing begins in Phase 17. |
 | Provider APIs, prices, and token fields vary | Hide SDK behavior behind the narrow injectable endpoint seam, record nullable usage only where unavailable, calculate Decimal cost from operator-configured rates, and never hard-code volatile prices. |
-| An external model call can fail after run creation | Persist a safe failed terminal record through the chosen transaction pattern, return neutral 503, and never return a success answer without durable state. |
+| An external model call can fail after run addition | Persist a safe failed terminal record through the chosen transaction pattern, return neutral 503, and never return a success answer without durable state. |
 | Real provider credentials are unavailable locally | Keep all automated tests fake/injected and network-free; document manual real-provider verification as optional runtime proof, not a reason to add an unsafe fallback. |
-| Retaining answer data can create privacy exposure | Store only the required assistant output/evidence provenance under existing tenant isolation; omit question/prompt content from audit/state snapshots and prohibit secrets in logs. |
+| Retaining answer data can add privacy exposure | Store only the required assistant output/evidence provenance under existing tenant isolation; omit question/prompt content from audit/state snapshots and prohibit secrets in logs. |
 | Existing .env.example is dirty before this plan | Preserve that unrelated user change. Any Phase 15 environment-example work must be additive, commented, non-secret, and carefully merged during implementation. |
 | A plan may tempt a frontend chat demo | Keep apps/web untouched. The existing Evidence Panel is source inspection, not generated-answer presentation; a user-facing answer flow belongs only when a later roadmap phase explicitly owns it. |
 

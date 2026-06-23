@@ -71,7 +71,7 @@ data.
 
 ## Existing baseline to extend
 
-Build on the current Phase 7/8 implementation. Do not create a parallel web
+Build on the current Phase 7/8 implementation. Do not add a parallel web
 application, a second API client, or frontend-only case state.
 
 | Existing component | Phase 9 use |
@@ -150,7 +150,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
   API, with server-backed text search, status/risk/assignee/domain/priority
   filters, deterministic pagination, and a clear-filters path.
 - An accessible Case submission form at `/{locale}/cases/new`, or an
-  equivalently routable focused page. It must create a case, preserve only safe
+  equivalently routable focused page. It must add a case, preserve only safe
   field input until submission completes, invalidate/update relevant queries,
   and navigate to the returned Case Detail page.
 - A protected dynamic Case Detail route at `/{locale}/cases/{caseId}` that
@@ -223,7 +223,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
 1. **Define the browser-side Case contract and query vocabulary.**
 
    - Translate the Phase 8 Pydantic response shapes into strict Zod schemas:
-     `CaseSummary`, `CaseDetail`, `CaseList`, create input/result, and any
+     `CaseSummary`, `CaseDetail`, `CaseList`, add input/result, and any
      approved assignee-option view. Validate UUIDs, nullable values, enum
      values, ISO calendar-date strings, and ISO timestamps before components
      receive data.
@@ -237,7 +237,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
      the HTTP boundary.
    - Add Case-specific TanStack Query keys. Include the complete normalized
      query in list keys, use a case-ID key for detail, invalidate list queries
-     after successful creation, and seed/invalidate the returned detail safely.
+     after successful addition, and seed/invalidate the returned detail safely.
    - Preserve the current `ApiFailure` contract. Components receive typed
      failures and localized messages, never unvalidated `unknown` response
      data or a raw backend error message.
@@ -338,7 +338,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
    - Display actual Phase 8 metadata with a definition list or equivalent
      semantic structure: case number, title, full description, status, domain,
      priority, case language, risk state, assignee, submitter identifier only
-     when it has a safe product label, due date, external reference, created,
+     when it has a safe product label, due date, external reference, added,
      and last-updated time. Do not make unknown IDs look like user names; use a
      neutral localized unavailable label until the narrow read model resolves a
      display name.
@@ -429,7 +429,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
 
 ### Frontend unit and component tests
 
-- Zod Case schemas accept complete valid list/detail/create responses and
+- Zod Case schemas accept complete valid list/detail/add responses and
   reject malformed UUIDs, enum values, dates, timestamps, envelopes, and
   unexpected response shapes without exposing raw body data.
 - Case client builds credentialed relative requests, omits blank filters,
@@ -442,7 +442,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
   pagination produce expected query state and API calls. The assignee selector
   uses human-readable allowed values and never exposes a UUID as user-facing
   copy.
-- Role-dependent create affordance is clear but no test treats it as the
+- Role-dependent add affordance is clear but no test treats it as the
   authorization boundary; API failures remain safe when roles change.
 - Submission form validates, has all labels/hints/error associations, sends
   only the permitted payload, disables double submit, handles safe field and
@@ -475,7 +475,7 @@ out of scope because Phase 8 has no typed unassigned-list filter.
   Bokmål inbox, follows the case link, and verifies the Case Detail heading and
   future-section placeholder.
 - The test does not depend on a pre-known case ID, a browser-readable session
-  value, a personal account, or a case created by a previous test run.
+  value, a personal account, or a case added by a previous test run.
 
 ## Validation steps
 
@@ -560,7 +560,7 @@ Phase 9 is complete only when all of the following are true:
   client-only authorization has been introduced.
 - The assignee filter is professional and tenant-safe. If a supporting
   Case-read endpoint was needed, it is minimal, typed, protected, tested, and
-  does not weaken the Admin-only Users API or create a general user directory.
+  does not weaken the Admin-only Users API or add a general user directory.
 - Vitest/Testing Library coverage and the new Playwright smoke scenario pass,
   along with formatting, lint, strict type checking, workspace, web build, API
   regression (when touched), and local-stack checks.
@@ -604,7 +604,7 @@ Phase 9 is complete only when all of the following are true:
 - **Playwright needs external runtime preparation.** Browser binaries and the
   Compose stack are not part of a deterministic unit-test run. Keep setup
   explicit, local-only credentials secret, and test data synthetic/unique.
-- **Existing worktree changes are user-owned.** This plan is created beside
+- **Existing worktree changes are user-owned.** This plan is added beside
   pre-existing Phase 7/8 and other edits. The implementation agent must inspect
   status before editing, preserve unrelated changes, and avoid broad rewrites.
 

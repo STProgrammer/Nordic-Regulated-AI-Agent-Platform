@@ -38,7 +38,7 @@ the synthetic case, document, workflow, approval, audit history, and evaluation 
 into normal local use.
 
 Repository fixtures, safe sample files, automated tests, and documentation remain tracked. They do
-not create runtime records until an explicit command or test invokes them.
+not write runtime records until an explicit command or test invokes them.
 
 ## Planned Azure deployment path
 

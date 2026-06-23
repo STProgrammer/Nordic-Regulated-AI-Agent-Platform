@@ -29,7 +29,7 @@ Phase 14: display documents and evidence in the UI
 ```
 
 The API, not the browser, must decide whether an upload is permitted, determine
-the authenticated organization/uploader, create the storage key, and persist
+the authenticated organization/uploader, add the storage key, and persist
 the result. Raw objects remain outside PostgreSQL; PostgreSQL remains the
 system of record for the document metadata and relationship to the case.
 
@@ -77,7 +77,7 @@ system of record for the document metadata and relationship to the case.
 | `apps/api/tests/` | Follow the existing API/unit/integration split and tenant fixtures. Add storage fakes through dependency injection; do not make ordinary unit/API tests require a live cloud account. |
 | `docs/development.md` | Update the endpoint inventory and precise safe local verification instructions only after implementation. |
 
-`DocumentService.create` and `DocumentRepository` currently provide only
+The document service and `DocumentRepository` currently provide only
 metadata persistence. They must not remain a public bypass around validation or
 object storage after this phase. All HTTP uploads need one validated service
 path.
@@ -92,7 +92,7 @@ path.
   `case_id`; the route derives organization and uploader from the session
   principal. The nullable model relationship remains available for later
   non-case source-ingestion work, but this public Phase 10 endpoint must not
-  create orphan documents.
+  add orphan documents.
 - A closed allowlist for PDF, DOCX, TXT, Markdown, CSV, XLSX, EML, and pasted
   email text; safe filename normalization; content/extension/MIME consistency
   checks; and a hard configured byte limit enforced while reading, not merely
@@ -100,7 +100,7 @@ path.
 - SHA-256 calculation from the exact accepted bytes; immutable raw-object
   storage in Azurite locally through an injected Azure-Blob-compatible adapter;
   a cloud configuration path using the same abstraction.
-- Persisted document metadata and a safe typed created-document response that
+- Persisted document metadata and a safe typed added-document response that
   deliberately omits `object_storage_key`, storage URLs, credentials, and raw
   content. Set parsing status to `pending`; Phase 10 does not enqueue or run a
   parser.
@@ -187,7 +187,7 @@ byte count, and SHA-256. The client `Content-Type` header is advisory only.
   request has no or a forged `Content-Length`. Drain/close request resources
   correctly on failure; do not retain partial objects.
 - Persist the SHA-256 of the exact stored bytes. It enables later duplicate
-  detection but must not create a Phase 10 deduplication shortcut or disclose
+  detection but must not add a Phase 10 deduplication shortcut or disclose
   whether another case has matching content.
 
 ### Storage and persistence boundary
@@ -207,7 +207,7 @@ byte count, and SHA-256. The client `Content-Type` header is advisory only.
    recorded only in the database and never in audit events, API responses,
    request logs, exceptions, or documentation examples.
 4. Validate and obtain the exact bounded bytes before durable storage. Write
-   the object first, then create document metadata and its audit row together
+   the object first, then add document metadata and its audit row together
    in the database transaction. If storage fails, write no metadata/audit row;
    if metadata/audit persistence fails after storage, make a best-effort,
    observable-but-safe deletion of the newly written object and return a safe
@@ -237,7 +237,7 @@ byte count, and SHA-256. The client `Content-Type` header is advisory only.
   title, filename, raw MIME header, checksum, object key, document text,
   request form, storage URL, credentials, cookies, or exception text. Failed
   validation, denied requests, missing cases, storage failure, and DB failure
-  create no success audit event.
+  add no success audit event.
 
 ## Likely files, folders, modules, and services affected
 
@@ -297,13 +297,13 @@ and document display belong to Phase 14.
 
 4. **Make `DocumentService` the transaction coordinator.**
 
-   - Replace HTTP-callable metadata-only creation with an upload command that
+   - Replace HTTP-callable metadata-only addition with an upload command that
      authorizes, confirms the active current-tenant case, allocates the
      document/key identity, invokes the validator/storage adapter, persists
      metadata, and writes the audit event.
    - Use the established `stage_write`/audit transaction conventions. On each
      failure path prove no partial document/audit row survives, and compensate a
-     just-created blob if database persistence cannot succeed.
+     just-added blob if database persistence cannot succeed.
    - Persist `parsing_status="pending"`; do not enqueue a worker or populate
      text/page/language fields. Keep model/repository operations typed and keep
      routes thin.
@@ -311,7 +311,7 @@ and document display belong to Phase 14.
 5. **Wire local configuration and documentation.**
 
    - Add Azure SDK dependency plus typed `AppSettings` and local `.env.example`
-     values. Reuse `azurite-init` and its empty named container; do not create a
+     values. Reuse `azurite-init` and its empty named container; do not add a
      second storage emulator or expose host credentials in an API response.
    - Update `docs/development.md` only with verified commands, endpoint
      behavior, container assumptions, and the Phase 10 boundary. Do not claim
@@ -371,7 +371,7 @@ and document display belong to Phase 14.
   `DocumentText`/`DocumentChunk` row.
 - Cross-organization and archived cases remain indistinguishable from missing
   ones; no document or audit record is written in either tenant.
-- A successful upload creates exactly one `document.uploaded` audit event with
+- A successful upload adds exactly one `document.uploaded` audit event with
   actor, organization, case, and document resource references, and its event
   data contains no content, filename/title, checksum, key, or secret.
 - The Azurite adapter test writes and deletes a synthetic object against the
@@ -410,7 +410,7 @@ docker compose --env-file .env.example exec api alembic -c apps/api/alembic.ini 
 
 For manual local validation, start the standard stack, run the normal
 migration/seed workflow with an ephemeral synthetic password, authenticate via
-`http://127.0.0.1:8000/docs`, create or select a synthetic current-tenant case,
+`http://127.0.0.1:8000/docs`, add or select a synthetic current-tenant case,
 and upload one harmless supported sample. Confirm only the safe response,
 metadata row, audit event, and private-container object existence; do not print
 the cookie, password, object key, account key, storage connection string, or
