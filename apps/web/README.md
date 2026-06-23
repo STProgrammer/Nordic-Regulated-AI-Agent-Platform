@@ -6,7 +6,7 @@ Vitest, and Testing Library.
 
 The default user-facing locale is Norwegian Bokmål (`/nb`); English is available at `/en`. Protected
 routes use only the Phase 6 auth API through relative `/api/...` requests. The backend issues and
-validates the opaque HTTP-only cookie, so this application never reads, stores, decodes, or creates
+validates the opaque HTTP-only cookie, so this application never reads, stores, decodes, or issues
 a session identifier.
 
 ## Commands

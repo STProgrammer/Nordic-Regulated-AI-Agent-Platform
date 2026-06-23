@@ -2,7 +2,7 @@
 
 This repository may contain only synthetic, public, anonymized, or otherwise demonstrably safe
 sample data. It must never contain real personal data, customer or citizen documents, employee
-records, credentials, tokens, private keys, production exports, or material that creates a deceptive
+records, credentials, tokens, private keys, production exports, or material that could support a deceptive
 claim about a real organization or outcome.
 
 Future synthetic evaluation and demo material belongs in the following domain boundaries:

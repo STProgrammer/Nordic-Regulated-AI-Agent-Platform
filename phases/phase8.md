@@ -3,7 +3,7 @@
 ## Phase objective
 
 Implement the first complete, protected Case Management API for the Nordic
-Regulated AI Agent Platform. Authenticated users must be able to create,
+Regulated AI Agent Platform. Authenticated users must be able to add,
 list, search, filter, retrieve, update, assign, transition, and archive cases
 within their own organization. Every state-changing action must be validated,
 backend-authorized, tenant-scoped, and recorded as a minimal append-only audit
@@ -19,7 +19,7 @@ The PRD describes the platform as a traceable enterprise workflow system, not
 a generic chat interface. Cases are the durable business records that later
 document ingestion, retrieval, LangGraph workflows, approvals, traces, and
 evaluations attach to. This phase establishes a reliable lifecycle before any
-AI or document action can create competing, ad-hoc case behavior.
+AI or document action can add competing, ad-hoc case behavior.
 
 The resulting API is the backend contract Phase 9 will consume for Case Inbox,
 case submission, and Case Detail. Later phases must extend this lifecycle
@@ -58,14 +58,14 @@ to `Case` from routes, workers, or graphs.
 
 ## Existing baseline to extend
 
-The implementation must build on these current components rather than creating
+The implementation must build on these current components rather than adding
 parallel case, identity, or audit systems:
 
 - `apps/api/src/app/db/models/case.py` already has tenant-scoped case fields,
   a unique `(organization_id, case_number)` constraint, user foreign-key
   constraints, status/risk/case-number indexes, timestamps, and soft archival.
 - `apps/api/src/app/db/repositories/case.py` already provides scoped get/list,
-  create, update, and archive primitives. It lacks Phase 8 filtering, search,
+  add, update, and archive primitives. It lacks Phase 8 filtering, search,
   clearable optional updates, lifecycle policy, and atomic archive-status
   behavior.
 - `apps/api/src/app/services/cases/service.py` already validates tenant-local
@@ -146,7 +146,7 @@ model may narrow access, but Phase 8 must not invent that data model.
 
 ### Request and response shapes
 
-Create `apps/api/src/app/api/schemas/cases.py` (and package exports where the
+Add `apps/api/src/app/api/schemas/cases.py` (and package exports where the
 current schema convention needs them) with closed Pydantic models and
 `extra="forbid"` for every write input.
 
@@ -160,7 +160,7 @@ current schema convention needs them) with closed Pydantic models and
 - optional `due_date`
 - optional `external_reference`
 
-It returns `201 Created` with a complete safe case view. The API must generate
+It returns `201` with a complete safe case view. The API must generate
 the case number, set status to `new`, derive the submitter and organization from
 the principal, and leave `case_type` and `risk_level` unset for later workflow
 phases.
@@ -267,10 +267,10 @@ status. The archive operation must be idempotence-safe in effect: an already
 archived record is no longer visible in normal scope and therefore returns the
 same safe `404` rather than disclosing archival state. A request that keeps the
 same status, jumps across the table, or attempts to patch `archived` is an
-`invalid_command`/`422` and must not create an audit event.
+`invalid_command`/`422` and must not add an audit event.
 
 The `approved` and `rejected` transitions require an Admin or Compliance
-Reviewer. Phase 8 does not create approval records, pause workflows, validate
+Reviewer. Phase 8 does not add approval records, pause workflows, validate
 AI evidence, or replace Phase 6's future high-risk separation-of-duties policy;
 those belong to Phases 17–22. Phase 22 must reuse or deliberately extend this
 status policy when it adds durable approval decisions.
@@ -281,7 +281,7 @@ For every successful state change, write one append-only `AuditEvent` in the
 same request-owned database transaction as the case mutation. Use these stable
 event types:
 
-- `case.created`
+- the case-submission audit event
 - `case.updated`
 - `case.status_changed`
 - `case.assignment_changed`
@@ -292,7 +292,7 @@ Set `organization_id`, `actor_user_id`, `case_id`, `resource_type="case"`, and
 operational facts such as the case number, changed field names, old/new status,
 and old/new assignee UUID strings. It must not include the title, description,
 external reference, request body, cookies, credentials, user email, raw errors,
-or any secret-bearing key. Reads must not create audit events.
+or any secret-bearing key. Reads must not add audit events.
 
 ## Out of scope
 
@@ -339,10 +339,10 @@ formatting helpers already accept ISO dates and will be consumed in Phase 9.
 
 1. **Define the case API vocabulary and schemas.**
 
-   - Create closed enums for case status, priority, domain, and language.
-   - Define separate create, patch, list-query, complete-case, and paginated
+   - Add closed enums for case status, priority, domain, and language.
+   - Define separate add, patch, list-query, complete-case, and paginated
      case-view models; reuse the established response envelope rather than
-     creating a special Case response format.
+     adding a special Case response format.
    - Keep write inputs intentionally small. Omit `organization_id`,
      `submitted_by_user_id`, `case_number`, `risk_level`, and `case_type` from
      caller-controlled models.
@@ -375,7 +375,7 @@ formatting helpers already accept ISO dates and will be consumed in Phase 9.
 3. **Implement the Case domain service.**
 
    - Evolve the existing `CaseService`; retain its tenant-aware repository and
-     user-reference behavior rather than creating a second service hierarchy.
+     user-reference behavior rather than adding a second service hierarchy.
    - Add explicit command/query dataclasses for submit, patch, list, and
      archive actions. Keep the current caller-owned transaction model: services
      and repositories never independently commit or roll back.
@@ -475,7 +475,7 @@ formatting helpers already accept ISO dates and will be consumed in Phase 9.
   respects archive exclusion, and works with pagination and deterministic sort.
 - Assignment rejects a foreign or inactive user; explicit null updates clear
   only the intended nullable fields.
-- The service creates a unique server-owned case number and safely handles a
+- The service adds a unique server-owned case number and safely handles a
   database uniqueness conflict without poisoning the request session.
 - Transition and archive operations update case state and append exactly the
   expected audit event in the same successful transaction. Failed validation,

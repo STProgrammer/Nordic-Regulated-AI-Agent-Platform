@@ -33,7 +33,7 @@ This phase turns the existing bounded operational records into an honest review 
 - LangMem memory, memory inspection, or memory usage logging (Phase 24).
 - Evaluation datasets/runners, evaluation dashboards, quality metrics dashboards, exports, enterprise integrations, notifications, or provider/model administration (Phases 25–28).
 - General structured logging, metrics aggregation, OpenTelemetry export, tracing backends, alerts, retention jobs, p95 dashboards, or a service-wide observability platform (Phase 27).
-- Raw LangGraph state export, replay, arbitrary rerun/cancel/resume controls, live event streaming, WebSockets, trace mutation/deletion, or audit-event creation from the browser.
+- Raw LangGraph state export, replay, arbitrary rerun/cancel/resume controls, live event streaming, WebSockets, trace mutation/deletion, or audit-event addition from the browser.
 - Prompt content/version-management views, model request/response bodies, AI draft text in the trace, document download/preview, generic chunk browsing, source excerpts, numerical retrieval scores, raw tool input/output, credentials, or exception/stack-trace diagnostics. Existing dedicated draft and authorized source-context routes retain their ownership.
 - Changing workflow decisions, risk/approval policy, approval packet semantics, case lifecycle transitions, source-governance rules, or model/provider behavior merely to improve trace presentation.
 
@@ -193,7 +193,7 @@ Run this checklist only if the focused browser E2E fails twice, or if the user e
 
 - An authorized current-tenant user can retrieve a complete, deterministic safe trace for a readable workflow run, covering its lifecycle/final state, nodes/retries/errors, actual tool calls, model metadata/accounting, and currently authorized source references without fabricating unavailable data.
 - Tool invocation metadata is durably recorded through a server-owned, bounded interface; it contains no raw payload/result content or secrets, and existing direct-service graphs truthfully show no tool calls.
-- Audit users can filter immutable audit events by the required dimensions within their own organization, and case-scoped audit reads honor case authorization. No API can create, update, delete, or cross tenant-browse audit events.
+- Audit users can filter immutable audit events by the required dimensions within their own organization, and case-scoped audit reads honor case authorization. No API can add, update, delete, or cross tenant-browse audit events.
 - Trace/audit DTOs and UI defensively exclude secrets, raw credentials, prompts, cookies/tokens, provider bodies, raw case/document/source text, storage information, exception traces, IP addresses, and user agents even when unsafe historical JSON is seeded.
 - The Workflow Trace and Audit Trail are accessible, localized in Bokmål and English, link safely from Case Detail/source context, have truthful loading/empty/error states, and do not use browser storage for protected data.
 - Required focused tests, affected static checks, migration/local-stack verification, and the focused final browser E2E pass. Conditional broader/full checks run only when their stated trigger applies. Only then may a later implementation turn mark Phase 23 `(DONE)` in `specs/roadmap.md` and update `specs/progress.md` if present.
@@ -206,4 +206,4 @@ Run this checklist only if the focused browser E2E fails twice, or if the user e
 - Make the two read policies explicit and test them separately: tenant-wide audit inspection is audit-role limited, while a safe per-run trace preserves case-read explainability. Neither policy may grant a mutation or bypass document/source governance.
 - Historical rows may lack optional accounting, node data, model records, or tool calls. The UI/API must represent unavailable/not-recorded values honestly and must not backfill or infer them from raw content.
 - Filtering can become a large-table hot path later. Add only evidence-based composite indexes and bounded pagination now; aggregation/retention/metrics work belongs to Phase 27.
-- Preserve the dirty Phase 22 worktree changes and do not alter approval behavior to create prettier traces. Use synthetic fixtures and deterministic/local providers only; never write secrets or real personal data to tests, docs, logs, screenshots, or trace records.
+- Preserve the dirty Phase 22 worktree changes and do not alter approval behavior to add prettier traces. Use synthetic fixtures and deterministic/local providers only; never write secrets or real personal data to tests, docs, logs, screenshots, or trace records.

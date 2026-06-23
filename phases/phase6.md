@@ -78,14 +78,14 @@ current-user variable, or unscoped queries.
 - The local seed currently deliberately contains password-free identities.
   Update it only through an explicit local-development-only password input so
   production secrets and a functional credential are never committed. Tests
-  must create their own synthetic accounts and hashes.
+  must add their own synthetic accounts and hashes.
 
 ## In-scope deliverables
 
 1. A typed password-security module using Argon2id to hash, verify, and, when
    needed, rehash passwords. It must validate a bounded password input before
    hashing and provide a precomputed/dedicated dummy-hash verification path so
-   unknown-email attempts do not create a simple timing oracle.
+   unknown-email attempts do not add a simple timing oracle.
 2. An injectable, typed Redis-backed auth-state abstraction with an opaque,
    cryptographically random session identifier, expiration, explicit
    invalidation, and an index or equivalent safe mechanism to invalidate a
@@ -111,7 +111,7 @@ current-user variable, or unscoped queries.
      incorrect-password accounts with the same public invalid-credentials
      result;
    - update `last_login_at` only after successful verification;
-   - create a fresh session only after successful verification;
+   - add a fresh session only after successful verification;
    - resolve an active current user and current role names from an opaque
      session on every protected request; and
    - clear a session on logout, expiration, account disablement, or invalid
@@ -126,7 +126,7 @@ current-user variable, or unscoped queries.
    Compliance Reviewer role and reject an approval when a high-risk (or
    `requires_approval`) case was submitted by the same principal. The policy
    should accept only trusted IDs/risk flags loaded by the future approval
-   service; it must not create approval routes or workflow behavior now.
+   service; it must not add approval routes or workflow behavior now.
 8. Auth dependencies and OpenAPI security documentation:
    - public `POST /api/auth/login`;
    - protected `POST /api/auth/logout` and `GET /api/auth/me`;
@@ -139,7 +139,7 @@ current-user variable, or unscoped queries.
    `GET /api/users`, `POST /api/users`, `GET /api/users/{user_id}`,
    `PATCH /api/users/{user_id}`, `GET /api/roles`, and
    `PUT /api/users/{user_id}/roles`. Use typed DTOs, bounded existing
-   pagination/sorting, and server-derived organization scope. Creation may set
+   pagination/sorting, and server-derived organization scope. Addition may set
    an initial local password; password replacement and deactivation must
    invalidate sessions. Do not return a password hash or credential material.
 10. Explicit audit events for successful authentication, logout, known-account
@@ -201,7 +201,7 @@ current-user variable, or unscoped queries.
   email lookup and deterministic role-name loading; no unscoped generic user
   access API.
 - `apps/api/src/app/services/identity/service.py` — password-aware admin user
-  creation/update, role replacement semantics if needed, and explicit session
+  addition/update, role replacement semantics if needed, and explicit session
   invalidation integration while retaining Phase 5 transaction rules.
 - `apps/api/src/app/services/auth/__init__.py`, `service.py`, `principal.py`,
   `policy.py`, and `store.py` — authentication command handling, principal
@@ -260,7 +260,7 @@ services unless a narrow compatibility change is necessary and recorded.
    add only documented, public local values to `.env.example`. Keep external
    production configuration secret-injected and do not print Redis connection
    strings.
-5. Extend application shutdown to close any lazily created Redis client once,
+5. Extend application shutdown to close any lazily added Redis client once,
    as the existing database pools do. Imports, health checks, OpenAPI
    generation, and configuration construction must remain network-free.
 
@@ -281,14 +281,14 @@ services unless a narrow compatibility change is necessary and recorded.
    accounts.
 4. When a valid legacy Argon2id parameter set needs rehashing, replace only the
    stored hash in the existing request transaction after successful verification.
-   Never create plaintext password columns or store passwords in seeds.
+   Never add plaintext password columns or store passwords in seeds.
 
 ### 3. Add volatile session and rate-limit adapters
 
 1. Define narrow protocols for `SessionStore` and `LoginRateLimiter` so unit/
    API tests can use deterministic fakes and production uses Redis. Do not let
    route modules issue Redis commands directly.
-2. Create a cryptographically random opaque session ID after a successful
+2. Add a cryptographically random opaque session ID after a successful
    password verification. Store only the trusted user ID, organization ID,
    issue/expiry metadata, and a bounded schema version in Redis with a TTL.
    The cookie is merely the opaque handle; do not trust claims from it.
@@ -318,7 +318,7 @@ services unless a narrow compatibility change is necessary and recorded.
    remain session-owned and never commit independently.
 3. Successful login must verify the account, refresh/re-hash when appropriate,
    update `last_login_at`, stage a minimal `auth.login_succeeded` event, and
-   create a new session. Logout must invalidate the presented session and stage
+   add a new session. Logout must invalidate the presented session and stage
    `auth.logout` with no session/cookie data.
 4. For an expected credential failure, record only a minimal failure event when
    the verified database user/organization is known. Arrange the handler/service
@@ -326,7 +326,7 @@ services unless a narrow compatibility change is necessary and recorded.
    the standard safe `401` envelope; do not let a raised expected error force
    the request transaction to roll back the event. Unknown-account attempts
    still receive the same response but have no invented tenant audit row.
-5. Administrator create/update/deactivate/password-reset/role-change actions
+5. Administrator add/update/deactivate/password-reset/role-change actions
    must emit minimal identity audit events. Validate every target user through
    the caller's organization-scoped service query; a UUID from another
    organization follows the same not-found response as a missing UUID.

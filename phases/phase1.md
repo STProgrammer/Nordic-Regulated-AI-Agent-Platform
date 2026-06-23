@@ -2,7 +2,7 @@
 
 ## Phase objective
 
-Create the durable monorepo foundation for the Nordic Regulated AI Agent Platform. The result of this phase is a clean, documented, tool-validated workspace with clear ownership boundaries for the web application, API, AI-oriented services, shared schemas, infrastructure, documentation, scripts, and safe sample data.
+Add the durable monorepo foundation for the Nordic Regulated AI Agent Platform. The result of this phase is a clean, documented, tool-validated workspace with clear ownership boundaries for the web application, API, AI-oriented services, shared schemas, infrastructure, documentation, scripts, and safe sample data.
 
 This phase establishes project conventions and architectural decisions. It does **not** implement a runnable product, Docker environment, API, database, frontend, or AI workflow.
 
@@ -10,7 +10,7 @@ This phase establishes project conventions and architectural decisions. It does 
 
 The final product is a Norwegian Bokmål-first, regulated-workflow platform whose AI actions must be source-grounded, auditable, privacy-aware, and subject to human approval. That requires a repository that can grow without mixing business logic, AI orchestration, infrastructure, or public demo data.
 
-The architecture defines a Next.js/TypeScript frontend, a FastAPI/Python API, separate agent-orchestration, retrieval, document-processing, and evaluation boundaries, PostgreSQL with pgvector, Redis-backed workers, Docker, GitHub Actions, and Azure deployment. Phase 1 creates the workspace and configuration boundaries for those choices; later phases introduce their runtime behavior in roadmap order.
+The architecture defines a Next.js/TypeScript frontend, a FastAPI/Python API, separate agent-orchestration, retrieval, document-processing, and evaluation boundaries, PostgreSQL with pgvector, Redis-backed workers, Docker, GitHub Actions, and Azure deployment. Phase 1 adds the workspace and configuration boundaries for those choices; later phases introduce their runtime behavior in roadmap order.
 
 ## Relevant constraints from the specifications
 
@@ -46,7 +46,7 @@ The architecture defines a Next.js/TypeScript frontend, a FastAPI/Python API, se
 
 ## Target repository layout
 
-Create and track the following boundaries. Empty folders should be kept intentionally (for example, with a narrowly placed `.gitkeep` or a local README) so a fresh clone communicates the intended architecture.
+Add and track the following boundaries. Empty folders should be kept intentionally (for example, with a narrowly placed `.gitkeep` or a local README) so a fresh clone communicates the intended architecture.
 
 ```text
 .
@@ -86,7 +86,7 @@ Within the future Python workspaces, establish the expected `src/`, test, and mo
 - `services/evaluation/src/evaluation/{datasets,metrics,runners,reports}`; and
 - `packages/shared_schemas/src/shared_schemas/`.
 
-Do not create named route, graph, model, database, parser, or UI implementation files merely as empty promises. Create only package markers and directories necessary for a valid workspace; later phases own functional modules.
+Do not add named route, graph, model, database, parser, or UI implementation files merely as empty promises. Add only package markers and directories necessary for a valid workspace; later phases own functional modules.
 
 ## Likely files and folders affected
 
@@ -134,9 +134,9 @@ Do not create named route, graph, model, database, parser, or UI implementation 
 
 ### 2. Establish the monorepo topology
 
-1. Create the `apps`, `services`, `packages`, `docs`, `infra`, `sample-data`, and `scripts` boundaries listed above.
+1. Add the `apps`, `services`, `packages`, `docs`, `infra`, `sample-data`, and `scripts` boundaries listed above.
 2. Add tracked placeholders only where Git would otherwise omit an essential empty directory. Prefer a scoped README over a broad collection of unexplained placeholder files.
-3. Create empty Python `src` package roots and tests directories that express the architecture's future ownership boundaries. A package marker is acceptable; it must contain no runtime behavior.
+3. Add empty Python `src` package roots and tests directories that express the architecture's future ownership boundaries. A package marker is acceptable; it must contain no runtime behavior.
 4. Add a minimal workspace manifest for every future deployable Python component and shared Python package. Use unique, predictable distribution names and Python 3.12 compatibility. Do not introduce application dependencies such as FastAPI, LangGraph, SQLAlchemy, Celery, or document parsers yet; those belong to their implementation phases.
 5. Add a minimal web workspace package manifest only to make the JavaScript workspace explicit. Do not initialize a Next.js application until Phase 7.
 
@@ -158,13 +158,13 @@ Do not create named route, graph, model, database, parser, or UI implementation 
 
 ### 4. Add safe configuration, Git hygiene, and editor consistency
 
-1. Create `.gitignore` covering local `.env` files while preserving `.env.example`, Python virtual environments and caches, Node dependencies and build output, coverage, logs, OS/editor artifacts, local object-storage data, and Terraform state/override files. Never ignore source, ADRs, lockfiles, or safe sample-data documentation by default.
+1. Add `.gitignore` covering local `.env` files while preserving `.env.example`, Python virtual environments and caches, Node dependencies and build output, coverage, logs, OS/editor artifacts, local object-storage data, and Terraform state/override files. Never ignore source, ADRs, lockfiles, or safe sample-data documentation by default.
 2. Add `.gitattributes` and `.editorconfig` to standardize UTF-8, LF line endings, final newlines, indentation, and Markdown/YAML/JSON formatting expectations across operating systems and editors.
 3. Add `.env.example` with only non-secret safe defaults or explanatory placeholders. At this phase, it must not imply that Docker services already exist. State that Phase 2 will add service-specific local variables.
 4. Document a simple rule: real `.env` files, credentials, tokens, connection strings, production values, and personal data are never committed. Keep all placeholders visibly non-production.
 5. If pre-commit hooks are added, configure only hooks that are available through the documented package managers and include an explicit non-interactive run command in the developer guide. Do not make the phase dependent on an undocumented globally installed tool.
 
-### 5. Create truthful repository documentation
+### 5. Add truthful repository documentation
 
 1. Add a concise root README that:
 
@@ -177,7 +177,7 @@ Do not create named route, graph, model, database, parser, or UI implementation 
    - avoids claiming an API, UI, Docker stack, authentication, RAG, or deployed demo exists.
 
 2. Add contributor/developer guidance with supported runtime versions, dependency-install commands, commands for formatting/linting/type checking, and the rule that architecture-impacting changes require an ADR or ADR update.
-3. Add a documentation index that distinguishes source-of-truth specifications in `specs/` from implementation documentation that will be added in later phases. Do not duplicate the PRD or architecture files into `docs/` at this stage; duplication would create drift.
+3. Add a documentation index that distinguishes source-of-truth specifications in `specs/` from implementation documentation that will be added in later phases. Do not duplicate the PRD or architecture files into `docs/` at this stage; duplication would add drift.
 4. Add `sample-data/README.md` that makes the safety policy practical: only synthetic/public/anonymized data, no real PII, no secrets, no customer documents, and no deceptive demo claims. Briefly describe the future domain folders without adding example cases yet.
 5. If no licence decision exists, say so plainly in the README as a release/documentation follow-up. Do not add fabricated legal language.
 
@@ -209,7 +209,7 @@ Use a consistent ADR template with: title, status (`Accepted`), date, context, d
 
 1. Add a small, dependency-free, non-destructive check under `scripts/` (shell or Python is acceptable) that verifies the required top-level workspace boundaries, root hygiene/configuration files, workspace manifests, documentation index, sample-data safety guide, and four ADRs exist.
 2. The check must provide actionable missing-path messages and exit non-zero on failure.
-3. It must not inspect secret contents, call external services, create files, or require Docker, a database, Node dependencies, or a network connection.
+3. It must not inspect secret contents, call external services, add files, or require Docker, a database, Node dependencies, or a network connection.
 4. Wire it into the documented root `check:workspace` command (or document exactly how the aggregate command invokes it).
 
 ### 8. Keep the foundation reviewable
@@ -265,7 +265,7 @@ Run the following from a clean checkout after installing the documented Node and
    - Remove only generated dependency/install artifacts (never tracked files) or use a clean clone.
    - Run the documented dependency installation commands.
    - Re-run the workspace, format, lint, and type-check commands successfully.
-   - Confirm installing dependencies does not modify `.env.example`, create secret-bearing files, or generate untracked runtime data.
+   - Confirm installing dependencies does not modify `.env.example`, add secret-bearing files, or generate untracked runtime data.
 
 6. **Manual architecture review**
 
@@ -278,7 +278,7 @@ Run the following from a clean checkout after installing the documented Node and
 Phase 1 is complete only when all of the following are true:
 
 - The tracked repository layout includes the specified application, service, shared-package, infrastructure, documentation, scripts, and safe sample-data boundaries.
-- The Python workspaces declare Python 3.12 compatibility and have coherent source/test locations; the web workspace is represented without prematurely creating the Next.js app.
+- The Python workspaces declare Python 3.12 compatibility and have coherent source/test locations; the web workspace is represented without prematurely adding the Next.js app.
 - Exactly one documented primary workflow exists for installing/running JavaScript tooling and one for Python tooling; configuration is not duplicated or contradictory.
 - Root format, lint, type-check, and workspace-contract commands are documented and pass from a fresh checkout.
 - `.gitignore`, `.gitattributes`, `.editorconfig`, and `.env.example` exist, are internally consistent, and contain no secret or production credentials.
@@ -298,7 +298,7 @@ Phase 1 is complete only when all of the following are true:
 | Empty directories disappear from Git | The intended architecture becomes invisible in a fresh clone. | Use minimal, meaningful tracked markers and verify them with the workspace-contract check. |
 | Spec duplication drifts over time | PRD/architecture copies could become stale and misleading. | Keep `specs/` canonical; link from docs rather than copying them in Phase 1. |
 | Placeholder configuration looks usable in production | Contributors could mistake examples for secure runtime settings. | Clearly label every placeholder, include no credentials, and defer service settings to Phase 2. |
-| Unsafe public demo content is added early | It creates privacy and repository-safety risk. | Add and enforce the sample-data guidance before any actual demo data is introduced. |
+| Unsafe public demo content is added early | It adds privacy and repository-safety risk. | Add and enforce the sample-data guidance before any actual demo data is introduced. |
 | Licence choice is unknown | Adding the wrong legal terms is difficult to unwind. | Do not invent a licence; document the decision as a follow-up until the owner selects one. |
 
 ## Notes for the implementation agent

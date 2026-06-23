@@ -82,7 +82,7 @@ The user-facing workflow remains deliberately narrow in this phase:
 | --- | --- |
 | `apps/api/src/app/db/models/document.py` | Reuse `Document`, `DocumentText`, and their one-text-record relationship. Add a migration only if an objectively necessary new persistence field/index is introduced; none is expected for the defined contract. |
 | `apps/api/src/app/db/repositories/document.py` | Add focused tenant-safe claim, state-transition, and text upsert operations. Keep raw-object operations out of the repository. |
-| `apps/api/src/app/services/documents/storage.py` | Extend the private storage protocol/adapter with a bounded read operation. It must not create URLs or disclose keys. |
+| `apps/api/src/app/services/documents/storage.py` | Extend the private storage protocol/adapter with a bounded read operation. It must not add URLs or disclose keys. |
 | `apps/api/src/app/services/documents/service.py` | Retain secure upload behavior, schedule parsing only after the upload is durable, coordinate user-requested reprocessing, and expose no direct raw content operation. |
 | `apps/api/src/app/services/documents/validator.py` | Keep Phase 10 validation as the first barrier; parsers must still fail closed if a stored object is inconsistent or malformed. |
 | `apps/api/src/app/workers/readiness.py` and `docker-compose.yml` | Replace the readiness-only runtime with the real parser worker while preserving an observable, non-sensitive worker health/readiness contract for local validation. |
@@ -190,11 +190,11 @@ The user-facing workflow remains deliberately narrow in this phase:
 | Current state | Event | Next state | Required effect |
 | --- | --- | --- | --- |
 | `pending` | Worker atomically claims job | `processing` | Clear a stale safe error; leave any prior `DocumentText` untouched. |
-| `processing` | Parse and persistence succeed | `parsed` | Atomically replace/create the single `DocumentText`, update language/page count, clear error, and emit safe success audit event. |
+| `processing` | Parse and persistence succeed | `parsed` | Atomically replace/add the single `DocumentText`, update language/page count, clear error, and emit safe success audit event. |
 | `processing` | Permanent parse/integrity error | `failed` | Record only a stable safe error code/summary, preserve an existing `DocumentText`, and emit safe failure audit event. |
 | `processing` | Transient storage/database/worker error | `pending` then bounded retry | Do not write a terminal parse result until retries are exhausted; on exhaustion use the safe `failed` transition. |
 | `failed` or `parsed` | Authorized reprocess request | `pending` | Clear previous error, preserve old text until a replacement succeeds, record request audit event, and schedule/reconcile one job. |
-| `processing` | Duplicate task or reprocess request | unchanged / `409` for request | Do not run concurrent parsing or create a second text record. |
+| `processing` | Duplicate task or reprocess request | unchanged / `409` for request | Do not run concurrent parsing or add a second text record. |
 
 `DocumentText` must never be deleted before its replacement has parsed and
 validated successfully. This is the key no-corruption rule for reprocessing.
@@ -260,7 +260,7 @@ or provider messages.
 
 2. **Build isolated, deterministic parser components.**
 
-   - Create a parser registry keyed exclusively by trusted persisted
+   - Add a parser registry keyed exclusively by trusted persisted
      `Document.file_type`; do not rediscover types from user data or trust a
      content-type header at this stage.
    - Implement each required parser using format-appropriate local libraries
@@ -294,13 +294,13 @@ or provider messages.
    - Add repository methods that load by `organization_id`/document ID, claim
      only `pending` work atomically, and update parser metadata within an
      explicit transaction. A duplicate/late task must become a harmless no-op.
-   - On success, atomically create or replace the unique `DocumentText` row and
+   - On success, atomically add or replace the unique `DocumentText` row and
      transition document metadata to `parsed`. Include parser/version,
      trustworthy text dimensions, language, and location spans in
      `extraction_metadata`.
    - On a permanent failure, write only the safe status/error on `Document`.
      Preserve any prior successful `DocumentText`, all raw upload metadata, and
-     Case state. Never create partial text rows.
+     Case state. Never add partial text rows.
    - Reprocess must reset a non-processing document to `pending`, clear its
      prior failure summary, and preserve its last-good text until a successful
      replacement. Add no schema migration unless this contract cannot be
@@ -312,7 +312,7 @@ or provider messages.
      `AppSettings`, an explicitly named parser queue, JSON-safe identifier-only
      task serialization, acknowledgement/retry configuration, and no eager mode
      in production-like runtime.
-   - Implement one task that creates its own settings/storage/database session,
+   - Implement one task that adds its own settings/storage/database session,
      invokes the parse coordinator, and closes resources deterministically. It
      must not reuse an API request session or accept text/key/checksum values
      from the caller.
@@ -416,8 +416,8 @@ or provider messages.
 - PostgreSQL Testcontainers tests prove one `DocumentText` row per document,
   tenant-safe lookup/claim/update, correct success/failure audit metadata, and
   atomic document-text/status changes.
-- A successful parse creates expected text/metadata and updates language/page
-  count/status. A failed initial parse creates no text; a failed reparse retains
+- A successful parse adds expected text/metadata and updates language/page
+  count/status. A failed initial parse adds no text; a failed reparse retains
   the prior text; neither alters the related Case or raw object metadata.
 - Worker coordinator tests use fake dispatcher/storage for deterministic
   behavior; an opt-in Azurite test reads a synthetic stored object through the
@@ -466,7 +466,7 @@ phase complete if any required check fails.
    pnpm verify:local-stack
    ```
 
-5. Follow the updated documented local workflow to create/use a synthetic Case,
+5. Follow the updated documented local workflow to add/use a synthetic Case,
    upload a safe file, poll the metadata-only document status until terminal,
    request reprocessing, and inspect only safe metadata/audit fields. Run the
    opt-in Azurite read test with a loopback endpoint if provided by the

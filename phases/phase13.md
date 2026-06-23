@@ -134,12 +134,12 @@ document-id selection deliberately narrows the corpus.
   Phase 15 and Phase 18.
 - Frontend document detail/list work, source context/download/preview, Evidence
   Panel rendering, source-status controls, or any UI action. Phase 14 owns these.
-- LangGraph, workflow creation/execution, workflow-node logging, prompts,
+- LangGraph, workflow addition/execution, workflow-node logging, prompts,
   LangMem, risk/approval routing, or fake workflow runs. These start at Phase 16.
 - Reranking models, cross encoders, LLM query expansion, translation,
   synonym/ontology systems, Qdrant, OpenSearch, Elasticsearch, caching, or
   evaluation dashboards.
-- Changing retrieved_sources, creating a retrieval-results table, weakening
+- Changing retrieved_sources, adding a retrieval-results table, weakening
   workflow foreign keys, or persisting a direct search as AI evidence.
 - Source-status mutation, per-document ACL administration, document archive
   APIs, browser-supplied vectors/scores/SQL, synchronous indexing, or exposing
@@ -225,7 +225,7 @@ query with no eligible results returns 200 and an empty list.
 
 | Area | Expected change |
 | --- | --- |
-| apps/api/src/app/services/retrieval/__init__.py | Create the narrow Phase 13 retrieval package and intentional public exports. |
+| apps/api/src/app/services/retrieval/__init__.py | Add the narrow Phase 13 retrieval package and intentional public exports. |
 | apps/api/src/app/services/retrieval/types.py | Internal request/context, rewritten query, candidate, merge, warning, and safe-result values. Keep ORM/API schemas out. |
 | apps/api/src/app/services/retrieval/rewriting.py | Deterministic injectable rewriter protocol/implementation; no model or prompt. |
 | apps/api/src/app/services/retrieval/merging.py | Pure candidate deduplication, fixed reciprocal-rank fusion, stable ordering, warning helpers. |
@@ -267,7 +267,7 @@ than quietly expanding scope.
 
    - Define a QueryRewriter protocol and default implementation that normalizes
      Unicode whitespace/control characters, bounds post-normalization length,
-     preserves meaningful terms, and creates semantic plus full-text forms.
+     preserves meaningful terms, and adds semantic plus full-text forms.
    - Use only a parameterized PostgreSQL-safe constructor such as
      websearch_to_tsquery(simple, bound value), or a proven equivalent. Do not
      concatenate user terms into to_tsquery or accept a query DSL. Empty lexemes
@@ -285,7 +285,7 @@ than quietly expanding scope.
      handled like a restricted source.
    - Require a current-tenant readable case. For a future internal workflow
      caller, verify that workflow run and case share organization and case before
-     using the run as audit resource reference. Do not create workflow runs,
+     using the run as audit resource reference. Do not add workflow runs,
      expose workflow input, or add orchestration.
    - Validate selected document ids in the current tenant without leaking a
      foreign id. Repeat all lifecycle/status/entitlement predicates in both
@@ -382,7 +382,7 @@ than quietly expanding scope.
 - Case/workflow context and audit persistence: direct API-style search writes a
   case-linked safe event; verified internal workflow context uses workflow
   resource reference; mismatched/foreign contexts fail. Assert no
-  retrieved_sources or other future evidence/model rows are created.
+  retrieved_sources or other future evidence/model rows are added.
 - Transaction/error behavior: no audit event survives a failed retrieval;
   availability failures stay neutral; an empty authorized result still writes one
   safe completion audit event.
@@ -442,7 +442,7 @@ phase complete if any required check fails.
        pnpm verify:local-stack
 
 5. Follow the updated synthetic flow in the API docs: log in with a transient
-   local account, create/select a synthetic case, wait for a synthetic document
+   local account, add/select a synthetic case, wait for a synthetic document
    to become indexed, and call POST /api/retrieval/search. Confirm approved
    sources return bounded results; default search excludes non-approved and
    re-indexing sources; authorized explicit deprecated results carry warnings;
@@ -473,7 +473,7 @@ phase complete if any required check fails.
   authorization.
 - Successful searches write one minimal content-free audit event linked to the
   case and, for verified internal context, workflow-run resource. No fake
-  workflow/evidence/model rows are created and no query/source/vector/provider
+  workflow/evidence/model rows are added and no query/source/vector/provider
   data reaches ordinary logs, audit records, or errors.
 - The API exposes no raw document, full chunk, chunk metadata/offset, embedding,
   storage data, checksum, credential, task id, provider detail, citation,

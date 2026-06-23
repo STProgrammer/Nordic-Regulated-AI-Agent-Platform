@@ -100,7 +100,7 @@ pages in this phase.
 
 ## Out of scope
 
-- Case creation, inbox data, filtering, detail views, case status changes, or
+- Case addition, inbox data, filtering, detail views, case status changes, or
   case API implementation (Phases 8–9).
 - Document upload, document display, evidence rendering, retrieval, RAG,
   LangGraph workflows, risk decisions, workflow traces, approvals, audit data,
@@ -200,7 +200,7 @@ defect is discovered and separately justified.
    loading/unauthenticated/error states, account/logout controls, and each
    honest placeholder page. Norwegian text is the source/default; avoid
    scattered hard-coded UI strings in components.
-3. Create a shared locale module that maps route locale to `Intl` locale (at
+3. Add a shared locale module that maps route locale to `Intl` locale (at
    least `nb-NO` and `en`) and exposes date, number, and currency formatting
    helpers for later features. Do not invent case-specific dates, numbers, or
    financial values just to exercise the helpers.
@@ -209,18 +209,18 @@ defect is discovered and separately justified.
    page where a localized counterpart exists. It must not claim to save the
    choice to a user profile because no self-preference API exists yet.
 
-### 3. Create the shared accessible layout and destination routes
+### 3. Add the shared accessible layout and destination routes
 
 1. Build the locale layout with semantic landmarks, a visible-on-focus skip
    link, meaningful page title metadata, a responsive navigation pattern, and
    a clear current-page indicator that does not rely on colour alone.
-2. Create the authenticated application shell with navigation for **Cases**,
+2. Add the authenticated application shell with navigation for **Cases**,
    **Approvals**, **Evaluations**, **Admin**, and **Audit**, an account summary,
    language control, and logout action. The labels, page titles, empty states,
    and status text must use the locale catalog.
 3. Add a compact mobile navigation equivalent that remains keyboard-operable;
    do not hide primary destinations solely because of viewport size.
-4. Create localized protected placeholder pages under each route. They should
+4. Add localized protected placeholder pages under each route. They should
    state that the relevant product area arrives in its roadmap phase and offer
    no disabled controls that imply data or permissions exist. The root
    authenticated route may redirect to the Cases placeholder as the future
@@ -396,7 +396,7 @@ defect is discovered and separately justified.
   must be selected as a mutually compatible set for Node 24 and the existing
   ESLint/TypeScript toolchain. Resolve this once in the committed lockfile.
 - **No product endpoints yet:** Only auth endpoints are real. Placeholder pages
-  must remain intentional so the shell does not create a misleading impression
+  must remain intentional so the shell does not add a misleading impression
   that case, audit, or evaluation data is available.
 - **Security boundary:** Frontend redirects and navigation improve UX but do
   not authorize anything. Future routes must keep using Phase 6 backend

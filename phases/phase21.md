@@ -4,7 +4,7 @@
 
 Deliver the asynchronous Risk and Compliance Graph that performs the platform's final, deterministic compliance assessment of an eligible case workflow. It must consolidate trustworthy prior signals, revalidate the draft/evidence boundary, assign a final `low`/`medium`/`high` risk level, record closed risk reasons and an approval requirement, persist a tenant-scoped `risk_assessments` record, and show a truthful localized assessment on Case Detail.
 
-This phase is a risk-routing boundary. It may say that a draft needs more evidence or mandatory human review, but it must not create an approval, pause/resume a graph for a reviewer, let a human edit or finalize a draft, or expose an audit trace.
+This phase is a risk-routing boundary. It may say that a draft needs more evidence or mandatory human review, but it must not add an approval, pause/resume a graph for a reviewer, let a human edit or finalize a draft, or expose an audit trace.
 
 ## Relevant context and constraints
 
@@ -28,7 +28,7 @@ This phase is a risk-routing boundary. It may say that a draft needs more eviden
 ## Out of scope
 
 - Changing Intake classification, PII/injection detection, Evidence retrieval/reranking/contradiction ownership, Extraction editing, Draft generation, citation validation, or direct-RAG behavior.
-- Reviewer queues or packets; creating `approvals` rows; approval/rejection/reassignment/request-more-evidence actions; graph interrupts/checkpoints/resume; human draft edits; final approved output; case lifecycle decisions beyond the safe risk-level projection.
+- Reviewer queues or packets; adding `approvals` rows; approval/rejection/reassignment/request-more-evidence actions; graph interrupts/checkpoints/resume; human draft edits; final approved output; case lifecycle decisions beyond the safe risk-level projection.
 - A general policy-management UI/API, organization-specific editable rules, policy-document ingestion/search, LangMem, evaluation, export, notifications, trace/audit UI, streaming, cancellation, or external integrations.
 - Any client-controlled risk override, free-text policy reason, raw model rationale, numeric score/cost/token display, or browser storage of protected workflow/draft content.
 
@@ -46,7 +46,7 @@ This phase is a risk-routing boundary. It may say that a draft needs more eviden
 
 1. **Define the trusted prerequisite and policy boundary.** Establish a server-side loader for the case, latest completed protected Drafting run, its eligible Evidence package/source provenance, latest relevant Intake result, and only the bounded Extraction facts that the fixed policy needs. Define whether an absent, stale, contradictory, insufficient, source-incomplete, or otherwise ineligible prerequisite becomes `needs_more_evidence` before the graph executes. Never reconstruct these facts from browser input or a raw state snapshot.
 
-2. **Make risk types closed and portable.** Add typed enums/models for the workflow identifier/version, final risk level, safe next state, closed reason codes, and assessment result. Include reason codes covering PII/sensitive-domain policy, weak evidence, contradictory evidence, missing required source, Intake low confidence, high-impact action, policy conflict, and prompt injection. Reject extra fields, arbitrary policy IDs, user-authored reasons, unknown risk levels, and raw text. Reuse the established `CaseRiskLevel` semantics rather than creating a competing risk vocabulary.
+2. **Make risk types closed and portable.** Add typed enums/models for the workflow identifier/version, final risk level, safe next state, closed reason codes, and assessment result. Include reason codes covering PII/sensitive-domain policy, weak evidence, contradictory evidence, missing required source, Intake low confidence, high-impact action, policy conflict, and prompt injection. Reject extra fields, arbitrary policy IDs, user-authored reasons, unknown risk levels, and raw text. Reuse the established `CaseRiskLevel` semantics rather than adding a competing risk vocabulary.
 
 3. **Write and test one deterministic policy matrix.** Document in code which trusted signals each check consumes, which reason codes it may emit, which combinations force `needs_more_evidence`, and which combinations force `high` plus `requires_approval=True`. At minimum, high risk must require approval; no path may make a required-approval case appear safe. Treat unresolved/invalid policy input conservatively. Sensitive-domain and high-impact classification must be derived from existing server-owned closed case/draft/extraction categories, never an LLM's unbounded interpretation of draft text.
 
@@ -57,9 +57,9 @@ This phase is a risk-routing boundary. It may say that a draft needs more eviden
    - `check_policy_conflict` applies the fixed local policy matrix to existing classifications and validated metadata; it does not introduce document search or free-form legal/compliance advice.
    - `check_prompt_injection_result` consumes the persisted Intake signal rather than re-parsing user/document content.
    - `assign_final_risk` combines closed signals/reasons deterministically and produces one final level and safe next state.
-   - `decide_approval_requirement` derives an irreversible-for-this-run boolean from final risk/reasons and safe next state. It only records the requirement; it creates no approval or interrupt.
+   - `decide_approval_requirement` derives an irreversible-for-this-run boolean from final risk/reasons and safe next state. It only records the requirement; it adds no approval or interrupt.
 
-5. **Persist results atomically and idempotently.** Create a `risk_compliance` workflow run/version with normal safe node records. For completed assessments, insert exactly one tenant/case/run-bound `RiskAssessment`, store only closed reason codes/booleans, and project the final level to `Case.risk_level` in the same transaction. Persist `needs_more_evidence` or failed terminal states safely when prerequisites or execution fail; do not overwrite an independent case status, original draft, Evidence result, or prior assessment. Duplicate delivery/retry must not create duplicate assessments or contradictory case-risk updates.
+5. **Persist results atomically and idempotently.** Add a `risk_compliance` workflow run/version with normal safe node records. For completed assessments, insert exactly one tenant/case/run-bound `RiskAssessment`, store only closed reason codes/booleans, and project the final level to `Case.risk_level` in the same transaction. Persist `needs_more_evidence` or failed terminal states safely when prerequisites or execution fail; do not overwrite an independent case status, original draft, Evidence result, or prior assessment. Duplicate delivery/retry must not add duplicate assessments or contradictory case-risk updates.
 
 6. **Expose only closed lifecycle and assessment reads.** Extend the existing start union and workflow-status DTO/Zod contract with the one risk workflow identifier and an allowlisted risk result summary. Add a distinct tenant/RBAC-protected latest-assessment read endpoint/DTO if needed to return final level, closed localized reason codes, `requires_approval`, safe next state, and run identifier without leaking trace/snapshot/input data. Enforce cookie auth, appropriate case-read/start authorization, organization isolation, strict request bodies, UUID validation, one active risk run per case, archived/missing safety, and UUID-only task payloads. Do not add any risk PATCH/override or approval endpoint.
 
@@ -82,8 +82,8 @@ This phase is a risk-routing boundary. It may say that a draft needs more eviden
 ### Persistence, API, worker, and audit tests
 
 - Closed start/status/assessment-read contracts enforce cookie auth, role/case authorization, tenant isolation, UUID validation, strict payloads, archived/missing safety, eligible Draft/Evidence prerequisites, and one-active-run policy.
-- A successful run creates exactly one correctly scoped `RiskAssessment`, safe `risk_reasons`, node/run records, audit events, and `cases.risk_level` projection. Foreign tenant and unauthorized readers cannot infer an assessment.
-- `needs_more_evidence`, dispatch failure, worker failure, duplicate delivery, stale prerequisites, and transaction failure do not create partial assessments, alter original drafts/Evidence/approval data, or leave a misleading case risk level.
+- A successful run adds exactly one correctly scoped `RiskAssessment`, safe `risk_reasons`, node/run records, audit events, and `cases.risk_level` projection. Foreign tenant and unauthorized readers cannot infer an assessment.
+- `needs_more_evidence`, dispatch failure, worker failure, duplicate delivery, stale prerequisites, and transaction failure do not add partial assessments, alter original drafts/Evidence/approval data, or leave a misleading case risk level.
 - Queue payloads contain only the run UUID. Worker revalidation, retry/idempotency, broker failure, and async-engine/session disposal are covered.
 - Status/read DTOs expose only final level, closed reasons, approval requirement, safe next state, and designed availability/count data; they exclude snapshots, node traces, source excerpts, model/prompt data, raw policy analysis, numeric score/cost/token values, and exceptions.
 - Content-free risk audit events are transactionally consistent, and all earlier Intake/Evidence/Extraction/Drafting, direct-RAG, authorization, and Case suites remain green.
@@ -127,6 +127,6 @@ Manual synthetic-only check: at `http://127.0.0.1:3000/nb/cases`, open a case wi
 
 - Treat the fixed policy matrix as a safety boundary, not a score-tuning exercise. Prefer a conservative `needs_more_evidence`/review-required outcome to guessing from absent or ambiguous input.
 - Do not duplicate upstream ownership: revalidate Evidence and consume Intake signals, but do not rerun retrieval, PII detection, injection detection, or free-form contradiction analysis in this graph.
-- Preserve the Phase 20 original draft as immutable. This phase records assessment/routing only; Phase 22 will create the approval packet, reviewer decision, and any distinct final human text.
+- Preserve the Phase 20 original draft as immutable. This phase records assessment/routing only; Phase 22 will add the approval packet, reviewer decision, and any distinct final human text.
 - Keep `risk_reasons` a small versioned closed-code structure. It is a safe explanation surface, not a storage location for evidence, legal analysis, prompts, or raw model output.
 - Do not mark Phase 21 `(DONE)` or edit `specs/roadmap.md` / `specs/progress.md` while generating this plan. A later implementation turn may update status only after all required validation passes.

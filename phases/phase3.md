@@ -10,7 +10,7 @@ The result must be a professional, testable API shell that later phases can exte
 
 The PRD requires typed APIs with OpenAPI documentation, safe error handling, structured logs, authenticated and organization-scoped product routes, and health checks. The architecture assigns the API service responsibility for authentication, RBAC, case, document, workflow, approval, retrieval, evaluation, audit, and administrative endpoints, while also requiring clear frontend/backend/service boundaries.
 
-Phase 2 created the local Compose runtime and a narrow FastAPI health contract. Phase 3 makes the API application itself production-shaped: configuration is centralized and injectable, startup behavior is explicit, errors are safe and predictable, and stable route ownership is visible in the repository. Phase 4 then adds database models and migrations; Phases 5–6 add repositories, services, authentication, and authorization; the feature phases add real operations to the route modules created here.
+Phase 2 added the local Compose runtime and a narrow FastAPI health contract. Phase 3 makes the API application itself production-shaped: configuration is centralized and injectable, startup behavior is explicit, errors are safe and predictable, and stable route ownership is visible in the repository. Phase 4 then adds database models and migrations; Phases 5–6 add repositories, services, authentication, and authorization; the feature phases add real operations to the route modules added here.
 
 ## Relevant specification context and constraints
 
@@ -32,12 +32,12 @@ Phase 2 created the local Compose runtime and a narrow FastAPI health contract. 
 4. A centralized, versionable API response/error schema and exception-handler layer for expected API errors, request validation failures, HTTP 404/405-style failures, and unexpected server errors.
 5. Central dependency providers for settings and request context, designed for FastAPI overrides in tests and later service/repository dependencies.
 6. A route registry and route modules for auth, users, cases, documents, workflows, approvals, retrieval, evaluations, audit, and admin, all mounted by the application factory with stable prefixes and OpenAPI tags.
-7. Backend unit/API tests for application creation, configuration injection, health-contract compatibility, OpenAPI/docs availability, router registry, response/error serialization, validation handling, request IDs, and safe unexpected-error behavior.
+7. Backend unit/API tests for application addition, configuration injection, health-contract compatibility, OpenAPI/docs availability, router registry, response/error serialization, validation handling, request IDs, and safe unexpected-error behavior.
 8. Updated locked dependencies, local-stack verification where useful, and developer documentation that accurately explains the Phase 3 API shell and its validation commands.
 
 ## Out of scope
 
-- SQLAlchemy models, database sessions, Alembic configuration/migrations, pgvector extension creation, seed data, repositories, and integration tests against a database (Phases 4–5).
+- SQLAlchemy models, database sessions, Alembic configuration/migrations, pgvector extension addition, seed data, repositories, and integration tests against a database (Phases 4–5).
 - Login/logout/current-user behavior, password hashing, sessions/tokens, rate limiting, RBAC, organization isolation, or separation-of-duties enforcement (Phase 6).
 - Case, user, document, workflow, approval, retrieval, evaluation, audit, or admin business endpoints and their persistence (Phases 5, 8, 10–28).
 - Returning fake `501 Not Implemented` CRUD/auth endpoints or placeholder data. A route module is a code ownership boundary, not a claim that a feature works.
@@ -89,7 +89,7 @@ Phase 2 created the local Compose runtime and a narrow FastAPI health contract. 
 - `docs/development.md`
 - `.env.example` only if new safe, clearly documented application-level configuration values are necessary
 
-Do not create database, service, worker-job, frontend, or cloud files merely to resemble the full target folder tree.
+Do not add database, service, worker-job, frontend, or cloud files merely to resemble the full target folder tree.
 
 ## API skeleton design contract
 
@@ -121,7 +121,7 @@ Do not create database, service, worker-job, frontend, or cloud files merely to 
 
 ### 3. Structured logs and request context
 
-1. Add one idempotent logging configuration function called during application creation/lifespan. Use `structlog` with the standard-library logging bridge as appropriate for Uvicorn/FastAPI.
+1. Add one idempotent logging configuration function called during application addition/lifespan. Use `structlog` with the standard-library logging bridge as appropriate for Uvicorn/FastAPI.
 2. Bind safe process context to every application event: timestamp, log level, service name, environment, and event name. In request handling, bind a generated or validated correlation/request ID; return it in the configured response header.
 3. Accept a client-supplied request ID only when it meets a conservative length/character policy; otherwise replace it with a generated UUID-like identifier. Do not reflect untrusted values blindly into logs or headers.
 4. Log method, route template/status, duration, and safe error code. Do not log request bodies, authorization/cookie headers, query values by default, response bodies, exception strings, secrets, or connection URLs.
@@ -141,9 +141,9 @@ Do not create database, service, worker-job, frontend, or cloud files merely to 
 
 ### 5. Dependencies and stable route ownership
 
-1. Create `app.api.dependencies` for typed settings/request-context providers and shared future dependency placeholders. Dependencies must not perform database I/O, create clients, or enforce authentication yet.
-2. Create an aggregate API router, conventionally mounted at `/api`, which owns and includes the ten feature-group routers. Keep one source-of-truth registry containing each group name, tag, module, and prefix so implementation and tests cannot drift.
-3. Create an importable module for each group with a correctly configured `APIRouter` and an accurate tag/description:
+1. Add `app.api.dependencies` for typed settings/request-context providers and shared future dependency placeholders. Dependencies must not perform database I/O, add clients, or enforce authentication yet.
+2. Add an aggregate API router, conventionally mounted at `/api`, which owns and includes the ten feature-group routers. Keep one source-of-truth registry containing each group name, tag, module, and prefix so implementation and tests cannot drift.
+3. Add an importable module for each group with a correctly configured `APIRouter` and an accurate tag/description:
    - `auth`
    - `users`
    - `cases`
@@ -182,7 +182,7 @@ Do not create database, service, worker-job, frontend, or cloud files merely to 
 
 1. Add `app.api.schemas.common` for the shared success/error Pydantic models and reusable documented error-response declarations.
 2. Add `app.core.errors` for explicit API exception types and handler registration. Ensure handler code has access to the request correlation ID but never serializes raw exceptions.
-3. Add middleware that creates/binds a request ID, measures duration, emits one safe completion event, and places the ID on every response. Ensure it does not interfere with health probe timeouts or readiness JSON.
+3. Add middleware that adds/binds a request ID, measures duration, emits one safe completion event, and places the ID on every response. Ensure it does not interfere with health probe timeouts or readiness JSON.
 4. Register handlers in the application factory. Test validation, unknown-route, explicit-domain-error, and unexpected-error cases through a temporary test-only route or focused app fixture; do not add production placeholder routes merely to make handlers testable.
 
 ### 5. Establish the API router registry
@@ -201,7 +201,7 @@ Do not create database, service, worker-job, frontend, or cloud files merely to 
 
 ### 7. Update local validation and truthful documentation
 
-1. Extend `scripts/verify_local_stack.sh` only if it can non-destructively check the API OpenAPI JSON and Swagger page while retaining all Phase 2 health/dependency checks. Do not start services, migrate databases, or create data in the verifier.
+1. Extend `scripts/verify_local_stack.sh` only if it can non-destructively check the API OpenAPI JSON and Swagger page while retaining all Phase 2 health/dependency checks. Do not start services, migrate databases, or add data in the verifier.
 2. Update `README.md` and `docs/development.md` from “health-only API” to the accurate Phase 3 state: documented API skeleton, health endpoints, common error contract, and future route ownership—but no product operations/auth/database schema.
 3. Document exact commands for unit/API tests, static checks, OpenAPI validation, and local Compose verification. Do not claim that an API group is functional just because its module is present.
 4. Review the diff for secret values, overly broad environment logging, generated files, unnecessary scope expansion, and changed Phase 2 health semantics.
@@ -303,12 +303,12 @@ Phase 3 is complete only when all of the following are true:
 | Risk or dependency | Impact | Required handling in this phase |
 | --- | --- | --- |
 | Breaking the Phase 2 health contract while refactoring `main.py` | Docker health checks and local startup can regress. | Keep health router/models stable; run existing tests first and retain them as compatibility tests. |
-| Configuration created as global import-time state | Tests become order-dependent and environment changes require restart surprises. | Use an injectable factory/dependency with an explicit cache reset or override seam. |
+| Configuration added as global import-time state | Tests become order-dependent and environment changes require restart surprises. | Use an injectable factory/dependency with an explicit cache reset or override seam. |
 | Verbose structured logs leak regulated or secret data | Violates security/privacy requirements before product data even exists. | Log only allowlisted metadata; never bind request bodies, headers, query values, or raw exceptions. Test redaction/absence explicitly. |
 | Generic error handling hides readiness behavior or returns a different public shape | Operators and Compose checks cannot distinguish safe dependency failure. | Preserve health-specific models and test `503` readiness output independently. |
 | Empty router modules appear to be incomplete or lead to fake endpoints | Future phases inherit misleading API contracts. | Use a documented registry/module ownership pattern and explicitly prohibit `501`/placeholder business operations. |
 | OpenAPI documentation overstates delivered functionality | Portfolio/review users may believe unimplemented controls exist. | Use truthful metadata; document only health routes and structural API boundaries until actual operations are delivered. |
-| Adding database/auth/security tooling early | Expands scope and creates difficult-to-remove temporary architecture. | Add only `pydantic-settings` and `structlog` if needed; defer all other dependencies to their assigned phases. |
+| Adding database/auth/security tooling early | Expands scope and adds difficult-to-remove temporary architecture. | Add only `pydantic-settings` and `structlog` if needed; defer all other dependencies to their assigned phases. |
 | FastAPI/structlog integration produces duplicate handlers or context | Tests and production logs become noisy or ambiguous. | Make configuration idempotent, isolate setup in one module, and test repeated app construction. |
 
 ## Notes for the implementation agent

@@ -124,7 +124,7 @@ package or `needs_more_evidence`; it does not answer, draft, approve, or expose 
 
 The closed `{"workflow":"extraction"}` operation uses only a completed eligible Evidence package for
 that case. It produces bounded source-linked structured observations and permits typed edits to the
-latest Extraction result; it never creates a new search, changes case risk/lifecycle, drafts text,
+latest Extraction result; it never starts a new search, changes case risk/lifecycle, drafts text,
 or approves an output.
 
 The closed `{"workflow":"drafting"}` operation also requires that Evidence package and may accept
@@ -138,7 +138,7 @@ provider, or override input. It revalidates the completed protected Draft, curre
 provenance, and Intake signals in the worker. Its fixed policy matrix routes missing or stale
 prerequisites to `needs_more_evidence`; PII, sensitive-domain, high-impact, policy-conflict, and
 prompt-injection signals produce high risk; low confidence produces a review-required medium result.
-Every high-risk result requires later human approval, but this phase creates no approval, reviewer
+Every high-risk result requires later human approval, but this phase adds no approval, reviewer
 queue, interrupt, or final text. The safe assessment read is
 `GET /api/cases/{case_id}/risk-assessment`.
 
@@ -162,7 +162,7 @@ in an untracked local environment file. Those stable vectors are non-semantic an
 as a claim of embedding or retrieval quality. Use an explicit OpenAI or Azure OpenAI configuration
 for real embedding behavior; keys and endpoints stay out of tracked files.
 
-`azurite-init` is a one-shot helper, not a long-running service. It creates the configured empty
+`azurite-init` is a one-shot helper, not a long-running service. It provisions the configured empty
 local blob container idempotently and then exits successfully.
 
 Verify an already-running stack without adding business data:
@@ -197,7 +197,7 @@ docker compose --env-file .env.example exec api python scripts/check_migrations.
 docker compose --env-file .env.example exec api python scripts/seed_local.py
 ```
 
-The default seed creates one clearly synthetic Norwegian organization, the five canonical role
+The default seed provisions one clearly synthetic Norwegian organization, the five canonical role
 records, and fake `demo.invalid` identities without passwords. It is safe to run again because it
 uses stable organization, role, and email keys.
 
@@ -225,7 +225,7 @@ pnpm test:e2e
 ```
 
 On Linux, the browser dependency installation may require an interactive `sudo` prompt.
-`pnpm test:e2e` requires `NORDIC_LOCAL_SEED_PASSWORD`. It creates a unique synthetic case directly
+`pnpm test:e2e` requires `NORDIC_LOCAL_SEED_PASSWORD`. It registers a unique synthetic case directly
 in the completed-drafting, approval-required risk, and pending-human-review state, then verifies
 only the reviewer approval and the case worker's terminal-state view. It establishes browser
 sessions through the local API instead of exercising login UI, and disables browser screenshots,

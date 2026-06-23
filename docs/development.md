@@ -43,7 +43,7 @@ pnpm install --frozen-lockfile
 uv sync --all-packages --locked
 ```
 
-`pnpm` installs JavaScript quality tooling. `uv` creates the local Python environment and installs
+`pnpm` installs JavaScript quality tooling. `uv` sets up the local Python environment and installs
 the locked API skeleton dependencies plus Python quality tools for the workspace.
 
 ## Local Docker lifecycle
@@ -62,7 +62,7 @@ docker compose --env-file .env.example up --build --wait --detach web api worker
 docker compose --env-file .env.example up --detach azurite-init
 ```
 
-It creates named `postgres_data`, `redis_data`, and `azurite_data` volumes. Normal shutdown retains
+It provisions named `postgres_data`, `redis_data`, and `azurite_data` volumes. Normal shutdown retains
 those volumes:
 
 ```bash
@@ -105,7 +105,7 @@ checks the real Next.js web shell plus API/Azurite HTTP contracts through their 
 verifies the Celery worker broker/consumer ping, verifies the API OpenAPI schema and Swagger
 documentation respond, runs `pg_isready`, checks that pgvector is available without enabling it,
 verifies Redis `PONG`, and confirms that the private configured Azurite blob container exists. It
-neither creates business data nor runs migrations, queue tasks, or external calls.
+neither writes business data nor runs migrations, queue tasks, or external calls.
 
 The API exposes health endpoints plus local API documentation. The worker is an internal Celery
 consumer, and Compose marks it healthy only when `celery inspect ping` reaches its named worker:
@@ -230,7 +230,7 @@ The API validates extension, claimed type, content signature/UTF-8 structure, an
 structure before private storage. It calculates a SHA-256 checksum from the exact stored bytes,
 persists only document metadata in PostgreSQL with parsing status `pending`, and appends one safe
 `document.uploaded` audit event. Responses deliberately omit the checksum, blob key, blob URL,
-credentials, and raw content. A rejected upload creates no successful document or audit record.
+credentials, and raw content. A rejected upload writes no successful document or audit record.
 
 ### Asynchronous parsing, chunking, and re-indexing
 
@@ -246,7 +246,7 @@ broker URLs, or parser/provider exceptions.
 
 Use `/docs` for a safe local verification after migration and synthetic login provisioning:
 
-1. Create or select a synthetic active Case and upload a harmless supported file through
+1. Add or select a synthetic active Case and upload a harmless supported file through
    `POST /api/documents/upload`.
 2. Poll `GET /api/documents/{document_id}` until `parsing_status` becomes `parsed` or `failed`.
 3. Poll the same safe metadata view until `indexing_status` becomes `indexed` or `failed`. Confirm
@@ -274,7 +274,7 @@ window only after explicit user action. Physical archives and noncurrent index s
 excluded. `POST /api/retrieval/answer` uses that same governed service with no caller-owned source,
 provider, prompt, score, or context control. It selects bounded approved excerpts, records a
 tenant-scoped `rag_answer` run and terminal content-free audit event, then returns a cited answer or
-localized `needs_more_evidence` refusal. It is API-only and does not create a workflow-node record,
+localized `needs_more_evidence` refusal. It is API-only and does not write a workflow-node record,
 case-status transition, or frontend answer UI. No endpoint or UI returns a raw document, vector,
 generic chunk list, download link, provider payload, or prompt.
 
@@ -297,7 +297,7 @@ package for the same current-tenant case. The worker rechecks the Evidence run a
 approved source rows before invoking the fixed structured-output operation. It persists
 source-linked, closed-schema fields and exposes values only through the dedicated case field
 endpoint; workflow status contains aggregate counts and confidence bands only. Human edits validate
-against the existing field kind, retain the source link, set `human_edited`, and create a
+against the existing field kind, retain the source link, set `human_edited`, and record a
 content-free audit event. Extraction does not retrieve again, set case risk, change lifecycle state,
 draft prose, or approve an output.
 
@@ -321,7 +321,7 @@ risk decision, or trace UI in this phase.
 settings, or override. It runs only after a completed protected Draft, a currently eligible Evidence
 package and provenance, and a completed Intake result are revalidated in a fresh worker session.
 Missing, stale, contradictory, or insufficient prerequisites produce a controlled
-`needs_more_evidence` terminal result and never create an assessment.
+`needs_more_evidence` terminal result and never write an assessment.
 
 The policy is fixed and deterministic: PII, sensitive-domain, high-impact-action, policy-conflict,
 or prompt-injection signals yield high risk and require later human approval; low confidence yields
@@ -334,7 +334,7 @@ or approval record. Phase 22 remains the owner of approval packets and human dec
 
 ### Human approval workflow
 
-When a completed Phase 21 assessment has server-owned `requires_approval=true`, the worker creates a
+When a completed Phase 21 assessment has server-owned `requires_approval=true`, the worker establishes a
 separate `human_approval` run. Its UUID-only worker task pins the current required risk assessment,
 the immutable protected Drafting message, and approved source references into one tenant-scoped
 review packet, then pauses at `waiting_for_human_review`. The case also moves to that state. A
@@ -359,7 +359,7 @@ source context; then exercise one controlled outcome. Repeat in English at
 browser, or use real personal data or model credentials in automated validation.
 
 With the Compose stack running, this opt-in host-side adapter test provides live Azurite
-write/delete evidence without a cloud account (it creates and removes one synthetic object):
+write/delete evidence without a cloud account (it stores and removes one synthetic object):
 
 ```bash
 AZURITE_HOST=127.0.0.1 NORDIC_RUN_AZURITE_TEST=1 \
@@ -405,9 +405,9 @@ deliberately does not print a database URL or raw database errors. Settings pref
 Compose derives an internal URL from its `POSTGRES_*` variables. Alembic privately converts that URL
 to psycopg for migrations. Neither setting is logged or exposed through OpenAPI.
 
-`seed_local.py` creates a single fake Norwegian fixture organization, all five canonical role
+`seed_local.py` provisions a single fake Norwegian fixture organization, all five canonical role
 records, and fake `demo.invalid` identities. The default invocation remains password-free and
-creates no functional accounts. For a disposable local database, enter a synthetic password silently
+provisions no functional accounts. For a disposable local database, enter a synthetic password silently
 and pass only its environment-variable name to the command; the script never prints the value or its
 hash:
 
@@ -437,7 +437,7 @@ only document UUID jobs from the internal Redis queue.
 ### Internal repository and service layer
 
 The Phase 5 modules under `apps/api/src/app/db/repositories/` own SQLAlchemy statements and receive
-an existing `AsyncSession`; they never create engines/sessions, commit, or roll back. The matching
+an existing `AsyncSession`; they never initialize engines/sessions, commit, or roll back. The matching
 modules under `apps/api/src/app/services/` compose repository calls, validate typed internal
 commands, and use a narrow savepoint for safe persistence-conflict translation. Phase 6 route
 handlers parse/format HTTP while authentication and administration services coordinate the trusted
@@ -471,7 +471,7 @@ instructions; it cannot alter retrieval, citations, risk, approvals, or case sta
 
 With the local stack running and a synthetic seed password provisioned, sign in as
 `per.eksempel+admin@demo.invalid` at `http://127.0.0.1:3000/nb/admin`. Enable controlled memory,
-create one short approved-terminology entry, and inspect only its typed safe fields. A later
+add one short approved-terminology entry, and inspect only its typed safe fields. A later
 eligible deterministic Drafting run may consume bounded presentation context; inspect the existing
 Audit Trail or Workflow Trace for counts and closed outcome codes only. No page should display the
 stored term, LangGraph namespace, database URL, provider/store error, or protected workflow data.
