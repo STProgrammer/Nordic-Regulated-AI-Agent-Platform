@@ -4,6 +4,7 @@
   },
   "common": {
     "loading": "Loading secure session …",
+    "navigationLoading": "Opening page …",
     "retry": "Try again",
     "current": "current"
   },
