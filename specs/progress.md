@@ -62,6 +62,11 @@ run, so the user completed and confirmed the documented manual browser fallback.
 and `pnpm release:validate` passed with clean runtime data, health, proxy, worker, and non-root checks.
 Final scope review and `git diff --check` passed.
 
+Post-completion dependency correction on 2026-06-23: upgraded `next-intl` from 4.3.5 to 4.13.0 and
+applied the pnpm-workspace PostCSS 8.5.15 override for Next's transitive dependency. The production
+Node audit now reports no known vulnerabilities; frozen installation, web tests, lint, type checks,
+production build, and production Compose release validation passed.
+
 ## Phase 36 — Documentation and Portfolio Presentation (DONE)
 
 Completed on 2026-06-23.

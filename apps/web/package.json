@@ -21,7 +21,7 @@
     "@tailwindcss/postcss": "4.1.13",
     "@tanstack/react-query": "5.66.8",
     "next": "15.5.18",
-    "next-intl": "4.3.5",
+    "next-intl": "4.13.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-hook-form": "7.63.0",

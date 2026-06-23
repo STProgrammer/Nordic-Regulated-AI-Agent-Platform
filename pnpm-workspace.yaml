@@ -1,6 +1,11 @@
+overrides:
+  postcss: 8.5.15
+
 packages:
   - apps/web
 allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': true
   '@tailwindcss/oxide': true
   esbuild: true
   sharp: false
