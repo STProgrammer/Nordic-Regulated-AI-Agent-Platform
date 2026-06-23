@@ -167,7 +167,7 @@ function TraceContent({ locale, trace }: { locale: AppLocale; trace: WorkflowTra
       <TraceSection title={t('toolCalls')}>
         {trace.tool_calls.length ? (
           <TraceTable
-            headings={[t('name'), t('status'), t('duration'), t('retries'), t('errorCode')]}
+            headings={[t('name'), t('status'), t('duration'), t('retriesLabel'), t('errorCode')]}
           >
             {trace.tool_calls.map((call) => (
               <tr key={call.tool_call_id}>

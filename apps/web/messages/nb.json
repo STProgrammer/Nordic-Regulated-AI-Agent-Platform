@@ -566,6 +566,7 @@
     "finalStateEmpty": "Ingen trygg sluttilstand ble registrert.",
     "nodes": "Noder og forsøk",
     "retries": "{count, plural, =0 {Ingen nye forsøk} one {# nytt forsøk} other {# nye forsøk}}",
+    "retriesLabel": "Nye forsøk",
     "inputSummary": "Inndataoppsummering",
     "outputSummary": "Utdataoppsummering",
     "noNodes": "Ingen nodeforsøk ble registrert.",

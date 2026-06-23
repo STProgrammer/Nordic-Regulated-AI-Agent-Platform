@@ -62,6 +62,11 @@ strict mypy passed; repository format, lint, and type checks passed; and the det
 Compose stack migrated and passed `pnpm verify:local-stack`. Final scope review and `git diff --check`
 passed.
 
+Post-completion correction on 2026-06-23: the root locale layout now suppresses one-level hydration
+warnings caused by browser extensions mutating `<html>` before React hydrates, and the workflow trace
+tool-call table uses a non-plural retry-column label. The complete web unit suite passed (51), along
+with web lint, type check, and formatting validation.
+
 ## Phase 33 — Full Bug Fix and Full Test Pass (DONE)
 
 Revalidated on 2026-06-23 at commit `79640c6` after the later worker snapshot and web API-client

@@ -566,6 +566,7 @@
     "finalStateEmpty": "No safe final state was recorded.",
     "nodes": "Nodes and attempts",
     "retries": "{count, plural, =0 {No retries} one {# retry} other {# retries}}",
+    "retriesLabel": "Retries",
     "inputSummary": "Input summary",
     "outputSummary": "Output summary",
     "noNodes": "No node attempts were recorded.",

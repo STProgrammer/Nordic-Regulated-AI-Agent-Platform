@@ -39,7 +39,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const messages = await getMessages();
 
   return (
-    <html lang={locale as AppLocale}>
+    <html lang={locale as AppLocale} suppressHydrationWarning>
       <body data-app-shell="nordic-regulated-ai-shell">
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>{children}</QueryProvider>
