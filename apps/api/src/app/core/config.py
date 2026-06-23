@@ -20,7 +20,7 @@ LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 LogFormat = Literal["console", "json"]
 CookieSameSite = Literal["lax", "strict", "none"]
 EmbeddingProviderName = Literal["openai", "azure_openai", "deterministic"]
-RagCompletionProviderName = Literal["openai", "azure_openai"]
+RagCompletionProviderName = Literal["openai", "azure_openai", "deterministic"]
 
 
 class AppSettings(BaseSettings):
@@ -376,6 +376,11 @@ class AppSettings(BaseSettings):
             )
         if self.embedding_provider == "deterministic" and self.environment not in {"local", "test"}:
             raise ValueError("deterministic embeddings are permitted only in local or test")
+        if self.rag_completion_provider == "deterministic" and self.environment not in {
+            "local",
+            "test",
+        }:
+            raise ValueError("deterministic RAG completion is permitted only in local or test")
         if self.retrieval_default_result_limit > self.retrieval_max_result_limit:
             raise ValueError(
                 "retrieval_default_result_limit must not exceed retrieval_max_result_limit"

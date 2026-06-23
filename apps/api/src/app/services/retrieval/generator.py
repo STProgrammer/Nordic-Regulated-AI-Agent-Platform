@@ -1,4 +1,4 @@
-"""Narrow OpenAI/Azure completion seam used only by Phase-15 direct RAG answers."""
+"""Narrow completion seam used only by Phase-15 direct RAG answers."""
 
 from __future__ import annotations
 
@@ -91,6 +91,38 @@ class FailingRagAnswerGenerator:
         return None
 
 
+class DeterministicRagAnswerGenerator:
+    """Local/test-only citation-plumbing generator for reproducible demonstrations.
+
+    It deliberately reuses one server-selected excerpt rather than attempting to
+    emulate a model.  The resulting answer is suitable for exercising the same
+    source and citation validation path as a configured provider, but it is not
+    evidence of answer quality, semantic retrieval quality, or model behavior.
+    """
+
+    async def generate(self, request: RagGenerationRequest) -> RagGenerationResult:
+        source = request.evidence[0]
+        excerpt = source.excerpt.strip()
+        prefix = (
+            "Det lokale demosvaret bygger på den godkjente kilden: "
+            if request.language is AnswerLanguage.NB
+            else "The local demonstration answer is grounded in the approved source: "
+        )
+        return RagGenerationResult(
+            answer=f"{prefix}{excerpt} [{source.citation_label}]",
+            refused=False,
+            language=request.language,
+            provider="deterministic",
+            model_name="deterministic-local-rag",
+            token_input=None,
+            token_output=None,
+            latency_ms=0,
+        )
+
+    async def aclose(self) -> None:
+        return None
+
+
 class _OpenAIChatRagAnswerGenerator:
     """Shared official-SDK implementation for one configured completion deployment."""
 
@@ -173,6 +205,8 @@ def build_rag_answer_generator(settings: AppSettings) -> RagAnswerGenerator:
 
     provider = settings.rag_completion_provider
     model_name = settings.rag_completion_model
+    if provider == "deterministic":
+        return DeterministicRagAnswerGenerator()
     api_key = settings.rag_completion_api_key
     if api_key is None:
         return FailingRagAnswerGenerator(provider=provider, model_name=model_name)

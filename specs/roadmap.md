@@ -238,7 +238,7 @@ Every phase must include at least one validation method. A phase is not complete
 - Re-run the full validation suite after fixes.
 - Validation: All required checks pass from a clean checkout/local stack; no known blocker or high-severity issue remains.
 
-## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide
+## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide (DONE)
 
 * Add safe synthetic demo data for a polished local portfolio demo of Norwegian regulated workflows.
 * Add one focused demo scenario showing login, case inbox, document handling, evidence, RAG with citations, agent workflow, risk/compliance, human approval, audit/evaluation/observability where appropriate.

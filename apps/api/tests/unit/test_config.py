@@ -341,6 +341,21 @@ def test_rag_limits_pricing_and_production_credentials_are_validated() -> None:
         AppSettings(environment="production")
 
 
+def test_deterministic_rag_completion_is_local_test_only() -> None:
+    assert (
+        AppSettings(rag_completion_provider="deterministic").rag_completion_provider
+        == "deterministic"
+    )
+    assert (
+        AppSettings(
+            environment="test", rag_completion_provider="deterministic"
+        ).rag_completion_provider
+        == "deterministic"
+    )
+    with pytest.raises(ValidationError):
+        _deployed_settings(rag_completion_provider="deterministic")
+
+
 def test_engine_construction_is_lazy() -> None:
     settings = AppSettings(
         database_url=SecretStr(

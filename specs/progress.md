@@ -38,6 +38,29 @@ implementation, tests, and validation checks pass within its defined scope.
 | 31    | CI Pipeline                             | DONE   |
 | 32    | Production Docker Images and Release Build | DONE   |
 | 33    | Full Bug Fix and Full Test Pass          | DONE   |
+| 34    | Demo Data, Demo Scenario, and Local Demo Video Guide | DONE   |
+
+## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide (DONE)
+
+Completed on 2026-06-23.
+
+Delivered a local/test-only Phase 34 scenario seed that creates a fresh synthetic public-sector
+case with safe document metadata, approved retrieval evidence, workflow trace, high-risk pending
+human approval, and a completed deterministic evaluation run. It emits only safe fixture IDs,
+routes, and `demo.invalid` account names. Direct RAG now supports a strict local/test deterministic
+provider that reuses server-selected approved evidence and validates the same citation path without
+external calls, token/cost claims, or production availability.
+
+The Bokmål local-demo guide gives exact setup, screen order, talk track, role handoff, and honesty
+labels for pre-seeded versus live behavior. The focused browser scenario covers the same path. Its
+second automated attempt stopped on an ambiguous trace selector under the E2E retry policy; the user
+then manually confirmed the full login, document, cited RAG, trace, approval, audit, evaluation, and
+metrics journey. The selector was narrowed afterward without a third browser retry.
+
+Validation: focused RAG/config/persistence/demo-seed tests passed (38); Ruff formatting/lint and
+strict mypy passed; repository format, lint, and type checks passed; and the deterministic local
+Compose stack migrated and passed `pnpm verify:local-stack`. Final scope review and `git diff --check`
+passed.
 
 ## Phase 33 — Full Bug Fix and Full Test Pass (DONE)
 

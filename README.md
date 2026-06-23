@@ -7,24 +7,14 @@ interface language.
 
 ## Current status
 
-This repository is at **Phases 16–17: Agent Orchestrator Foundation and Intake Graph**. The Next.js
-web application provides Norwegian Bokmål by default, optional English, localized login/logout,
-opaque HTTP-only session integration, and accessible authenticated navigation. Authorized users can
-submit a synthetic case, find it in the server-backed Case Inbox, and open its Case Detail view.
-Case Detail now shows safe document metadata, parsing/indexing/source-governance state, permitted
-re-indexing intent, governed source search, and explicitly opened bounded source context. Direct RAG
-answering is available as a protected API operation only; there is deliberately no answer/chat page
-yet. Case Detail also provides a closed Intake action and a safe preliminary result while it remains
-in the current view. Intake uses typed LangGraph nodes, persisted safe state/node records,
-server-owned prompts/providers, and a low-confidence human correction. It is not final risk,
-approval, a trace viewer, or a trigger for a later workflow. The web application still does not
-upload, download, preview, or browse raw documents.
-
-The protected Case API supports organization-scoped submission, listing, detail, lifecycle updates,
-assignment, filtering, search, archiving, and minimal append-only audit events. Its Case-read-only
-`GET /api/cases/assignees` view exposes only display names and ids of active users assigned to
-visible current-organization cases, so the inbox can filter by a human-readable assignee without
-turning the Admin-only Users API into a directory.
+Phases 1–33 are complete: the repository includes the authenticated Norwegian/English web
+application, document ingestion and governed retrieval, RAG citations, LangGraph workflows, human
+approval, trace/audit views, deterministic evaluation, observability, security hardening, CI, and
+production-image validation. Phase 34 adds a polished local portfolio walkthrough using only safe
+synthetic data. Follow the [Bokmål local demo and video guide](docs/local-demo-video-guide.md) to
+prepare the repeatable case, cited RAG request, workflow trace, reviewer approval, audit, and
+evaluation views. The local deterministic RAG mode demonstrates only grounding/citation plumbing; it
+does not make an external model or quality claim.
 
 ## Repository map
 
