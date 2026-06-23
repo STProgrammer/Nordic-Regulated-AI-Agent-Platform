@@ -5,8 +5,13 @@ work. The platform combines source-governed document handling, RAG with citation
 workflows, human approval, auditability, deterministic evaluation, and Norwegian Bokmål as the
 default interface language.
 
+> **Video walkthrough:** Watch the [silent product demo on YouTube](https://youtu.be/K7mHEu7hxpg).
+> It uses synthetic local data and shows the English interface; the application also supports
+> Norwegian Bokmål.
+
 > **Deployment status:** the repository is locally validated and deployment-ready by design. It has
-> no public cloud deployment, Azure resources, registry-published images, domain, or live demo URL.
+> no public cloud deployment, Azure resources, registry-published images, domain, or live
+> application URL.
 > See [deployment readiness and data modes](docs/deployment-readiness.md) for the exact boundary.
 
 ## What this demonstrates
