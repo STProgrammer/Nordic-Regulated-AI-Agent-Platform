@@ -33,9 +33,8 @@ are deployment-runbook responsibilities; no default account, password, or demo t
 
 `scripts/seed_local.py`, E2E fixture scripts, and `scripts/seed_phase34_demo.py` remain available
 for local/test use only. They are never invoked by Compose startup, migrations, production image
-startup, or release validation. The Phase 34 demo guide requires `pnpm dev:reset` after recording so
-the synthetic case, document, workflow, approval, audit history, and evaluation run cannot persist
-into normal local use.
+startup, or release validation. Run `pnpm dev:reset` after recording so the synthetic case,
+document, workflow, approval, audit history, and evaluation run cannot persist into normal local use.
 
 Repository fixtures, safe sample files, automated tests, and documentation remain tracked. They do
 not write runtime records until an explicit command or test invokes them.

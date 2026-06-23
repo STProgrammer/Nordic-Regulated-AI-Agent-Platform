@@ -88,10 +88,8 @@ variable when finished:
 unset NORDIC_LOCAL_SEED_PASSWORD
 ```
 
-For the portfolio scenario, follow the exact preparation, role handoff, and cleanup steps in the
-[Bokmål local demo and video guide](local-demo-video-guide.md). It uses explicit deterministic local
-providers only to demonstrate plumbing and citations; it does not make a hosted-model or retrieval-
-quality claim.
+Deterministic local providers are suitable only for plumbing and citation checks; they do not make a
+hosted-model or retrieval-quality claim.
 
 ## Product surface
 
@@ -148,8 +146,8 @@ performance. Security checks scan code and dependencies and verify the reviewed 
 ### Browser and production-image validation
 
 Browser tests need a migrated, explicitly seeded local stack, deterministic local providers, and a
-synthetic password in the current shell. Install the project-managed browser once, then use the
-environment setup documented in the [local demo guide](local-demo-video-guide.md):
+synthetic password in the current shell. Install the project-managed browser once, then start the
+local stack and provision the required synthetic credentials:
 
 ```bash
 pnpm --filter @nordic-regulated-ai-agent-platform/web exec playwright install --with-deps chromium

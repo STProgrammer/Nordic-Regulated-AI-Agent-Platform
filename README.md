@@ -61,14 +61,6 @@ Startup does not migrate or seed data. The normal baseline is a migrated databas
 application data. Use the [developer guide](docs/development.md) for the clean-data check, synthetic
 local fixtures, shutdown/reset guidance, and host-only web development.
 
-## Safe local demo
-
-The [Bokmål local demo and video guide](docs/local-demo-video-guide.md) provides a reproducible
-one-minute walkthrough of login, case/document review, evidence, a cited RAG answer, workflow trace,
-human approval, audit history, and evaluation results. It uses only explicit, synthetic
-`demo.invalid` accounts and data. The guide also explains which steps are pre-seeded and which run
-live in the local stack.
-
 ## Test and validation commands
 
 Run the normal repository checks after installing dependencies:
@@ -104,18 +96,11 @@ path is Azure Container Apps (or App Service for Containers), PostgreSQL, Blob S
 Container Registry, monitoring, HTTPS, backups, migrations, and smoke tests. It remains a plan, not
 a completed deployment.
 
-## Screenshots
-
-No static screenshots, placeholders, or video assets are committed yet. The synthetic local demo
-guide is the current presentation path and is designed to let a reviewer reproduce the relevant UI
-safely on their own machine.
-
 ## Documentation
 
 - [Developer guide](docs/development.md)
 - [Architecture summary](docs/architecture-summary.md)
 - [Deployment readiness and data modes](docs/deployment-readiness.md)
-- [Local demo and video guide (Bokmål)](docs/local-demo-video-guide.md)
 - [Security guide](docs/security.md) and [security policy](SECURITY.md)
 - [CI guide](docs/ci.md) and [deterministic evaluation guide](docs/ai-evaluation.md)
 - [Product requirements](specs/PRD.md), [architecture](specs/architecture.md), and

@@ -238,12 +238,11 @@ Every phase must include at least one validation method. A phase is not complete
 - Re-run the full validation suite after fixes.
 - Validation: All required checks pass from a clean checkout/local stack; no known blocker or high-severity issue remains.
 
-## Phase 34 — Demo Data, Demo Scenario, and Local Demo Video Guide (DONE)
+## Phase 34 — Demo Data and Demo Scenario (DONE)
 
 * Add safe synthetic demo data for a polished local portfolio demo of Norwegian regulated workflows.
 * Add one focused demo scenario showing login, case inbox, document handling, evidence, RAG with citations, agent workflow, risk/compliance, human approval, audit/evaluation/observability where appropriate.
-* Add a short local demo video guide with screen order and talking points for a strong one-minute employer-focused demo.
-* Validation: The demo scenario runs locally with safe synthetic data, and the video guide is specific enough to follow without improvising.
+* Validation: The demo scenario runs locally with safe synthetic data.
 
 ## Phase 35 — Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes (DONE)
 
@@ -262,7 +261,7 @@ Every phase must include at least one validation method. A phase is not complete
 
 ## Phase 37 — Final Repository Quality Review (DONE)
 
-* Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
+* Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, screenshots or placeholders, and portfolio readiness.
 * Run one more full-test if possible
 * Remove stale TODOs or clearly mark future work.
 * Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.

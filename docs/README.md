@@ -8,7 +8,6 @@ deployment status, and portfolio context.
 - [Architecture summary](architecture-summary.md)
 - [Developer guide](development.md)
 - [Deployment readiness and data modes](deployment-readiness.md)
-- [Lokal demo og én-minutts videogjennomgang](local-demo-video-guide.md)
 - [Security guide](security.md)
 - [Continuous integration](ci.md)
 - [Deterministic AI evaluation](ai-evaluation.md)
