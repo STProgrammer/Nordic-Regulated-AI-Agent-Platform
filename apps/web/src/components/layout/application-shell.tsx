@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { PropsWithChildren } from 'react';
 
 import { LanguageSwitcher } from '@/components/layout/language-switcher';
+import { NavigationFeedback } from '@/components/layout/navigation-feedback';
 import { Button } from '@/components/ui/button';
 import type { AppLocale } from '@/i18n/routing';
 import { authApi } from '@/lib/api/auth';
@@ -77,6 +78,7 @@ export function ApplicationShell({ children, user }: PropsWithChildren<{ user: C
 
   return (
     <div className="nordic-canvas min-h-screen text-slate-950">
+      <NavigationFeedback />
       <a
         className="sr-only fixed left-4 top-4 z-50 rounded-lg bg-white px-4 py-3 font-semibold text-slate-950 shadow-lg focus:not-sr-only"
         href="#main-content"

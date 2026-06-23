@@ -45,6 +45,19 @@ describe('authenticated shell', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows an accessible progress indicator while an internal link navigation is pending', async () => {
+    mockedAuthApi.getCurrentUser.mockResolvedValue(currentUser);
+    const user = userEvent.setup();
+    renderWithProviders(<PlaceholderPage area="cases" />);
+
+    await screen.findByRole('heading', { name: 'Saksinnboks' });
+    const approvalsLink = screen.getByRole('link', { name: 'Godkjenninger' });
+    approvalsLink.addEventListener('click', (event) => event.preventDefault(), { once: true });
+    await user.click(approvalsLink);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Åpner side …');
+  });
+
   it('redirects an unauthenticated route to the localized login page with a safe return path', async () => {
     mockedAuthApi.getCurrentUser.mockRejectedValue(
       new ApiFailure({ code: 'authentication_required', status: 401 }),

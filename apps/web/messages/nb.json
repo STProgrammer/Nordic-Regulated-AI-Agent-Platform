@@ -4,6 +4,7 @@
   },
   "common": {
     "loading": "Laster sikker økt …",
+    "navigationLoading": "Åpner side …",
     "retry": "Prøv på nytt",
     "current": "aktiv"
   },
