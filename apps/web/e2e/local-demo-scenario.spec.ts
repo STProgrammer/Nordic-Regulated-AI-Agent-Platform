@@ -178,7 +178,7 @@ test('the synthetic local demo covers the case, cited RAG, trace, approval, audi
     expect(audit.status()).toBe(200);
     await adminPage.goto(fixture.evaluation_url);
     await expect(adminPage.getByTestId('evaluation-run-detail')).toBeVisible();
-    await expect(adminPage.getByText('Fullført', { exact: true })).toBeVisible();
+    await expect(adminPage.getByTestId('evaluation-run-status')).toHaveText('Fullført');
     const metrics = await adminPage.request.get('http://127.0.0.1:8000/metrics');
     expect(metrics.status()).toBe(200);
     expect(await metrics.text()).toContain('nordic_api_http');

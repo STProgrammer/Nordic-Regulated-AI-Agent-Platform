@@ -8,6 +8,7 @@ import { ProtectedPage } from '@/components/auth/protected-page';
 import { EvaluationMetrics } from '@/components/evaluation/evaluation-metrics';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { HorizontalTableScroll } from '@/components/ui/horizontal-table-scroll';
 import type { AppLocale } from '@/i18n/routing';
 import { evaluationsApi } from '@/lib/api/evaluations';
 import { useEvaluationRun } from '@/lib/evaluations/query';
@@ -111,7 +112,11 @@ function RunContent({
       {reportError ? <Alert>{t('reportUnavailable')}</Alert> : null}
       <section className="nordic-surface nordic-card">
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <DetailValue label={t('status')} value={t(`statusValue.${run.status}`)} />
+          <DetailValue
+            label={t('status')}
+            testId="evaluation-run-status"
+            value={t(`statusValue.${run.status}`)}
+          />
           <DetailValue label={t('passFail')} value={t(`passFailValue.${run.pass_fail}`)} />
           <DetailValue label={t('startedAt')} value={formatTimestamp(run.started_at, locale)} />
           <DetailValue
@@ -161,7 +166,11 @@ function RunContent({
       <section className="nordic-surface nordic-card">
         <h2 className="text-xl font-semibold">{t('results')}</h2>
         {results.length ? (
-          <div className="nordic-table-scroll-window mt-4">
+          <HorizontalTableScroll
+            ariaLabel={t('results')}
+            className="mt-4"
+            scrollHint={t('tableScrollHint')}
+          >
             <table className="nordic-table min-w-[44rem] text-left">
               <thead className="border-b border-slate-200 text-sm text-slate-700">
                 <tr>
@@ -199,7 +208,7 @@ function RunContent({
                 ))}
               </tbody>
             </table>
-          </div>
+          </HorizontalTableScroll>
         ) : (
           <p className="mt-3 text-slate-700">{t('empty')}</p>
         )}
@@ -208,11 +217,13 @@ function RunContent({
   );
 }
 
-function DetailValue({ label, value }: { label: string; value: string }) {
+function DetailValue({ label, testId, value }: { label: string; testId?: string; value: string }) {
   return (
     <div>
       <dt className="text-sm font-medium text-slate-700">{label}</dt>
-      <dd className="mt-1 text-slate-950">{value}</dd>
+      <dd className="mt-1 text-slate-950" data-testid={testId}>
+        {value}
+      </dd>
     </div>
   );
 }

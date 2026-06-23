@@ -95,6 +95,7 @@ describe('Evaluation run detail', () => {
       `/nb/evaluations/runs/${runId}/results/${resultId}`,
     );
     expect(screen.getByTestId('evaluation-report-download')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-run-status')).toHaveTextContent('Fullført');
     expect(screen.getByText('citation_mismatch')).toBeInTheDocument();
   });
 });

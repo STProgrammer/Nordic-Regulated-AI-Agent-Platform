@@ -41,6 +41,26 @@ implementation, tests, and validation checks pass within its defined scope.
 | 34    | Demo Data, Demo Scenario, and Local Demo Video Guide | DONE   |
 | 35    | Demo Data Cleanup, Deployment-Ready Data Mode, and Cloud Deployment Planned Notes | DONE |
 | 36    | Documentation and Portfolio Presentation | DONE |
+| 37    | Final Repository Quality Review | DONE |
+
+## Phase 37 — Final Repository Quality Review (DONE)
+
+Completed on 2026-06-23.
+
+Final review removed the stale root-level Phase 22 working patch, retained truthful text-only portfolio
+presentation and planned-cloud boundaries, and confirmed that tracked future-work language is either
+historical phase context or explicitly scoped. A shared, accessible top-and-bottom horizontal scrollbar
+now covers every production data table while preserving the existing Cases-table behavior.
+
+Validation: frozen pnpm/uv installs, workspace validation, documentation links, formatting, lint,
+strict type checks, secret/security checks, backend unit/integration/API suites (207 passed; 28 passed,
+1 intentional skip; 80 passed), web tests (52 passed), and agent/evaluation checks (40 passed plus all
+4 canonical cases) passed. A deterministic clean local stack migrated to `a30c6f4d9e12`, returned valid
+OpenAPI, and passed local-stack verification. The full browser suite passed 7 of 8 scenarios before a
+test-selector correction; the permitted focused retry then hit the login limiter after the prior fixture
+run, so the user completed and confirmed the documented manual browser fallback. Production images built,
+and `pnpm release:validate` passed with clean runtime data, health, proxy, worker, and non-root checks.
+Final scope review and `git diff --check` passed.
 
 ## Phase 36 — Documentation and Portfolio Presentation (DONE)
 

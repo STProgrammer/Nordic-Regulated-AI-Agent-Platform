@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { HorizontalTableScroll } from '@/components/ui/horizontal-table-scroll';
 import type { AppLocale } from '@/i18n/routing';
 import { documentsApi } from '@/lib/api/documents';
 import type { WorkflowTrace } from '@/lib/api/contracts';
@@ -293,8 +294,9 @@ function TraceSection({ children, title }: { children: ReactNode; title: string 
 }
 
 function TraceTable({ children, headings }: { children: ReactNode; headings: string[] }) {
+  const t = useTranslations('workflowTrace');
   return (
-    <div className="nordic-table-scroll-window">
+    <HorizontalTableScroll ariaLabel={t('tableCaption')} scrollHint={t('tableScrollHint')}>
       <table className="nordic-table min-w-[48rem] text-left text-sm">
         <thead className="border-b border-slate-200 text-slate-700">
           <tr>
@@ -307,7 +309,7 @@ function TraceTable({ children, headings }: { children: ReactNode; headings: str
         </thead>
         <tbody>{children}</tbody>
       </table>
-    </div>
+    </HorizontalTableScroll>
   );
 }
 

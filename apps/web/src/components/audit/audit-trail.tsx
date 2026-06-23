@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { ProtectedPage } from '@/components/auth/protected-page';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { HorizontalTableScroll } from '@/components/ui/horizontal-table-scroll';
 import type { AppLocale } from '@/i18n/routing';
 import type { AuditFilterInput } from '@/lib/api/audit';
 import { useAuditEvents } from '@/lib/audit/query';
@@ -149,7 +150,11 @@ export function AuditTrail() {
           <p className="text-sm text-slate-700">{t('results', { count: data.total })}</p>
         </div>
         {data.items.length ? (
-          <div className="nordic-table-scroll-window mt-4">
+          <HorizontalTableScroll
+            ariaLabel={t('tableCaption')}
+            className="mt-4"
+            scrollHint={t('tableScrollHint')}
+          >
             <table className="nordic-table min-w-[52rem] text-left text-sm">
               <caption className="sr-only">{t('tableCaption')}</caption>
               <thead className="border-b border-slate-200">
@@ -179,7 +184,7 @@ export function AuditTrail() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </HorizontalTableScroll>
         ) : (
           <p className="mt-4">{t('empty')}</p>
         )}
