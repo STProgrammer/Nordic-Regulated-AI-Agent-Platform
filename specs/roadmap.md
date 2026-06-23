@@ -263,7 +263,7 @@ Every phase must include at least one validation method. A phase is not complete
 ## Phase 37 — Final Repository Quality Review
 
 * Final review of repository cleanliness, documentation, tests, local setup, production Docker build, demo data, demo video guide, screenshots or placeholders, and portfolio readiness.
+* Run one more full-test if possible
 * Remove stale TODOs or clearly mark future work.
 * Ensure no secrets, unsafe data, broken instructions, misleading deployment claims, or obsolete roadmap references remain.
-* Run one more full-test if possible
 * Validation: Final checklist passes and the project is ready to show to employers.
