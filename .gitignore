@@ -14,9 +14,6 @@ dist/
 build/
 apps/web/test-results/
 
-# Local-only recording instructions
-/docs/local-demo-video-guide.md
-
 # Python environments, caches, and build output
 .venv/
 venv/
