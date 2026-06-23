@@ -1,4 +1,4 @@
-# Lokal demo og én-minutts videogjennomgang
+# Lokal demo og stille én-minutts videoguide
 
 Denne guiden viser én sikker, syntetisk porteføljedemo av en norsk regulert saksflyt. Den bruker
 bare `demo.invalid`-kontoer og oppdiktet innhold. Ikke bruk ekte personopplysninger, passord eller
@@ -61,40 +61,21 @@ pnpm dev:down
 
 ## Opptaksrekkefølge — omtrent 60 sekunder
 
-1. **0–7 s: Innlogging og innboks.** Åpne `http://127.0.0.1:3000/nb/login` og logg inn som
-   `kari.eksempel+caseworker@demo.invalid`. Du kommer til **Saker**. Åpne den nyeste saken med
-   tittelen _Syntetisk søknad om tilrettelegging_. Noter det korte `DEMO-34-…`-saksnummeret som
-   vises øverst på sakssiden; det brukes bare for å finne samme sak i godkjenningskøen. Si: «Dette
-   er en rollebasert, norsk saksflate. Kontoen og dataene er syntetiske.»
-2. **7–17 s: Sak og dokument.** Vis _Venter på manuell vurdering_ og høy risiko. I seksjonen
-   **Dokumenter**, velg _Syntetisk rutine for saksbehandling_ og klikk **Se metadata**. Pek på
-   ferdig tolking, indeksering og godkjent kildestatus. Si: «Råfiler eksponeres ikke i nettleseren;
-   flaten viser styrt metadata og kildegovernance.»
-3. **17–28 s: Evidens og spor.** Skroll til **Strukturerte opplysninger**, som allerede er fylt fra
-   den seedede saken, og klikk **Åpne arbeidsflytspor**. Vis status, tidslinje og avgrenset
-   slutt-tilstand. Si: «Flyten er sporbar med avgrensede metadata og timing — ikke hemmeligheter,
-   promptinnhold eller rå dokumenttekst.»
-4. **28–38 s: Direkte RAG med sitat.** Åpne API-dokumentasjonen i en ny nettleserfane på
-   `http://127.0.0.1:8000/docs`. Åpne `POST /api/retrieval/answer`, velg **Try it out**, marker hele
-   eksempelkroppen og erstatt den med det ene forberedte JSON-objektet fra utklippstavlen. Velg
-   **Execute**. Vis `answered`, `[S1]` og kildeobjektet i svaret. Si: «I denne lokale demoen er
-   svaret deterministisk og viser bare grounding- og siteringsmekanikken; det er ikke en
-   kvalitetsmåling eller et eksternt modellkall.»
-5. **38–50 s: Menneskelig beslutning.** Gå tilbake til applikasjonsfanen, logg ut og logg inn som
-   `ole.eksempel+reviewer@demo.invalid`. Velg **Godkjenninger** i menyen, åpne vurderingspakken med
-   det samme korte `DEMO-34-…`-saksnummeret, velg **Rediger og godkjenn**, skriv en kort syntetisk
-   slutttekst og bekreft. Si: «Høy risiko kan ikke omgå menneskelig godkjenning; KI-utkast og
-   menneskelig slutttekst bevares separat.»
-6. **50–60 s: Kontroll og kvalitet.** Logg ut og inn som `per.eksempel+admin@demo.invalid`. Velg
-   **Revisjon** i menyen og vis de nye hendelsene. Velg deretter **Evalueringer** og åpne den nyeste
-   kjøringen via **Åpne kjøring**. Si: «Beslutninger kan revideres, og deterministiske
-   evalueringsresultater er tilgjengelige for regresjonskontroll.»
+Opptaket skal være helt uten lyd. Vis bare handlingene under i angitt rekkefølge og tidsrom.
 
-## Ærlighetsmerking og avgrensning
-
-- Saks-, dokument-, evidens-, trace- og evalueringshistorikken er forhåndsseedet syntetisk for et
-  kort og repeterbart opptak.
-- RAG-kallet og reviewer-godkjenningen utføres live i den lokale stakken. Det lokale RAG-svaret er
-  deterministisk fixture-plumbing og må omtales slik.
-- Denne guiden er ikke en video-fil, en skydeployering eller en påstand om at Azure-ressurser er
-  provisjonert. Produksjons- og deploy-klargjøring beskrives separat i senere faser.
+1. **0–7 s:** Åpne `http://127.0.0.1:3000/nb/login`, logg inn som
+   `kari.eksempel+caseworker@demo.invalid`, og åpne den nyeste saken med tittelen
+   _Syntetisk søknad om tilrettelegging_.
+2. **7–17 s:** Vis _Venter på manuell vurdering_ og høy risiko. Åpne **Dokumenter**, velg
+   _Syntetisk rutine for saksbehandling_, og klikk **Se metadata**. Vis tolking, indeksering og
+   godkjent kildestatus.
+3. **17–28 s:** Skroll til **Strukturerte opplysninger** og klikk **Åpne arbeidsflytspor**. Vis
+   status, tidslinje og slutt-tilstand.
+4. **28–38 s:** Åpne `http://127.0.0.1:8000/docs` i en ny fane. Åpne
+   `POST /api/retrieval/answer`, velg **Try it out**, erstatt eksempelkroppen med det forberedte
+   JSON-objektet, og velg **Execute**. Vis `answered`, `[S1]` og kildeobjektet i svaret.
+5. **38–50 s:** Gå tilbake til applikasjonsfanen, logg ut, og logg inn som
+   `ole.eksempel+reviewer@demo.invalid`. Åpne **Godkjenninger**, velg vurderingspakken for samme
+   `DEMO-34-…`-sak, velg **Rediger og godkjenn**, skriv en kort syntetisk slutttekst, og bekreft.
+6. **50–60 s:** Logg ut, logg inn som `per.eksempel+admin@demo.invalid`, åpne **Revisjon**, og vis
+   de nye hendelsene. Åpne deretter **Evalueringer** og den nyeste kjøringen via **Åpne kjøring**.

@@ -13,6 +13,7 @@ node_modules/
 dist/
 build/
 apps/web/test-results/
+/docs/local-demo-video-guide.md
 
 # Python environments, caches, and build output
 .venv/
