@@ -106,8 +106,8 @@ def get_health_probes(
     return RuntimeHealthProbes.from_settings(settings)
 
 
-def create_health_router() -> APIRouter:
-    """Create only the Phase 2 liveness and readiness endpoints."""
+def build_health_router() -> APIRouter:
+    """Build only the Phase 2 liveness and readiness endpoints."""
 
     router = APIRouter(prefix="/health", tags=["health"])
 

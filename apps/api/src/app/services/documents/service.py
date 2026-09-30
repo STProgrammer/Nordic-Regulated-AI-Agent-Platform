@@ -15,7 +15,7 @@ from app.db.repositories.document import (
     DocumentRepository,
     DocumentUpdateValues,
 )
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.auth.policy import (
     CaseAction,
     DocumentAction,
@@ -145,12 +145,12 @@ class DocumentService:
             indexing_status="not_ready",
         )
         try:
-            created = await stage_write(
+            uploaded_document = await stage_write(
                 self.session,
-                lambda: self.repository.create(document),
+                lambda: self.repository.add(document),
                 resource="Document",
             )
-            await self._record_uploaded_event(created, principal)
+            await self._record_uploaded_event(uploaded_document, principal)
             # The request session normally commits in its dependency finalizer.
             # Parsing is different: dispatch must follow a durable upload so the
             # worker never races a transaction it cannot yet observe.
@@ -159,8 +159,8 @@ class DocumentService:
             await self.session.rollback()
             await self._compensate_storage(storage_key)
             raise
-        self._dispatch_after_upload(created.id)
-        return created
+        self._dispatch_after_upload(uploaded_document.id)
+        return uploaded_document
 
     async def get_for_principal(self, principal: Principal, document_id: UUID) -> Document:
         """Return tenant-scoped metadata only after the reusable document-read policy."""
@@ -209,7 +209,7 @@ class DocumentService:
         if updated is None:
             raise NotFoundError("Document")
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=updated.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="document.source_status_updated",
@@ -275,7 +275,7 @@ class DocumentService:
             # dispatch; do not disclose more state than the normal conflict contract.
             raise ConflictError("Document parsing")
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=updated.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="document.reprocess_requested",
@@ -316,7 +316,7 @@ class DocumentService:
         if updated is None:
             raise ConflictError("Document indexing")
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=updated.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="document.reindex_requested",
@@ -411,7 +411,7 @@ class DocumentService:
             "parsing_status": document.parsing_status,
         }
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=document.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="document.uploaded",

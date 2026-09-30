@@ -51,7 +51,7 @@ _FORBIDDEN_DATA_KEYS = frozenset(
 
 
 @dataclass(frozen=True)
-class AuditEventCreate:
+class AuditEventInput:
     """Deliberate audit event input; no request objects or raw exceptions are accepted."""
 
     organization_id: UUID
@@ -96,7 +96,7 @@ class AuditService:
         self.cases = CaseRepository(session)
         self.users = UserRepository(session)
 
-    async def record_event(self, command: AuditEventCreate) -> AuditEvent:
+    async def record_event(self, command: AuditEventInput) -> AuditEvent:
         """Append one validated event after all tenant-bound references are scoped."""
 
         if not command.event_type.strip() or not command.resource_type.strip():

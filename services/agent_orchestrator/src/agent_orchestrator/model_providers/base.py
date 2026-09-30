@@ -14,7 +14,7 @@ OutputModel = TypeVar("OutputModel", bound=BaseModel)
 
 
 class StructuredModelRequest(BaseModel):
-    """A graph-created request; callers cannot choose providers or prompt text."""
+    """A graph-built request; callers cannot choose providers or prompt text."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 

@@ -23,12 +23,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.document import Document
 from app.db.models.workflow import AgentMessage, RetrievedSource, RiskAssessment, WorkflowRun
 from app.db.repositories.case import CaseRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import CaseAction, authorize_case_action
 from app.services.auth.principal import Principal
 from app.services.errors import ConflictError, NotFoundError, WorkflowUnavailableError
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 RISK_WORKFLOW_NAME = "risk_compliance"
 RISK_WORKFLOW_VERSION = "phase21-v1"
@@ -93,8 +93,8 @@ class RiskWorkflowService:
         if await load_risk_prerequisites(self.session, principal.organization_id, case.id) is None:
             return await self._record_needs_more_evidence(principal, case.id)
 
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case.id,
                 started_by_user_id=principal.user_id,
@@ -111,7 +111,7 @@ class RiskWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.risk_compliance_queued",
@@ -193,8 +193,8 @@ class RiskWorkflowService:
         )
 
     async def _record_needs_more_evidence(self, principal: Principal, case_id: UUID) -> WorkflowRun:
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case_id,
                 started_by_user_id=principal.user_id,
@@ -213,7 +213,7 @@ class RiskWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.risk_compliance_needs_more_evidence",
@@ -238,7 +238,7 @@ class RiskWorkflowService:
             "status": "failed",
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.risk_compliance_failed",

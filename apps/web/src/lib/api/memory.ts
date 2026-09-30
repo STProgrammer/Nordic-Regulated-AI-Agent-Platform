@@ -32,7 +32,7 @@ export const memoryApi = {
     );
   },
 
-  createEntry(input: ControlledMemoryInput) {
+  addEntry(input: ControlledMemoryInput) {
     return apiRequest(
       memoryPath('/entries'),
       controlledMemoryEntrySchema,

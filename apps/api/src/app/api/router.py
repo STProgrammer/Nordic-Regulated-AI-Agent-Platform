@@ -79,7 +79,7 @@ ROUTE_GROUPS: tuple[RouteGroup, ...] = (
 )
 
 
-def create_api_router(prefix: str) -> APIRouter:
+def build_api_router(prefix: str) -> APIRouter:
     """Build the aggregate API router that mounts every product route group."""
 
     api_router = APIRouter(prefix=prefix)

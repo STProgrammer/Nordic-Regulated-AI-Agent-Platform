@@ -187,7 +187,7 @@ At minimum, tests must prove all of the following:
 - `document_chunks.embedding` has the documented dimension and both vector/full-text indexes are present and usable by PostgreSQL;
 - representative inserts exercise UUID/server timestamps, tenant FKs, one-to-one document text, unique document chunk positions, role membership uniqueness, case-number uniqueness within an organization, JSONB metadata, array tags, `INET`, and numeric values;
 - cross-tenant foreign-key/reference mistakes and duplicate constrained values fail safely at the database boundary;
-- the baseline downgrade returns an empty Phase 4 schema cleanly, and a subsequent upgrade recreates the same schema;
+- the baseline downgrade returns an empty Phase 4 schema cleanly, and a subsequent upgrade rebuilds the same schema;
 - local seeding succeeds on an empty upgraded database, is idempotent, adds all five roles and synthetic Norwegian tenant data, and adds no plaintext password;
 - models/metadata import cleanly and session/engine construction does not connect at module import time;
 - application settings and migration failures never render a database URL/password in captured logs or exceptions.

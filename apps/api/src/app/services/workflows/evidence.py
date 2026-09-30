@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.workflow import RetrievedSource, WorkflowRun
 from app.db.repositories.case import CaseRepository, CaseUpdateValues
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import (
     CaseAction,
     RetrievalAction,
@@ -28,7 +28,7 @@ from app.services.cases.policy import validate_case_transition
 from app.services.common.persistence import stage_write
 from app.services.errors import ConflictError, NotFoundError, WorkflowUnavailableError
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 EVIDENCE_WORKFLOW_NAME = "evidence"
 EVIDENCE_WORKFLOW_VERSION = "phase18-v1"
@@ -62,8 +62,8 @@ class EvidenceWorkflowService:
         if case.status in {"new", "needs_more_evidence", "failed"}:
             validate_case_transition(case.status, "processing")
             await self._cases.update(case, CaseUpdateValues(status="processing"))
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case.id,
                 started_by_user_id=principal.user_id,
@@ -80,7 +80,7 @@ class EvidenceWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.evidence_queued",
@@ -126,7 +126,7 @@ class EvidenceWorkflowService:
             "status": "failed",
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.evidence_failed",

@@ -83,7 +83,7 @@ def database_settings(
 
 @pytest.fixture
 def tenant_seed(database_settings: AppSettings) -> TenantSeed:
-    """Create two strictly isolated synthetic tenants and core Phase 5 records."""
+    """Seed two strictly isolated synthetic tenants and core Phase 5 records."""
 
     return asyncio.run(_seed_tenants(database_settings))
 

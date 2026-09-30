@@ -22,7 +22,7 @@ from app.db.repositories.evaluation import (
     EvaluationResultSnapshot,
     EvaluationRunSnapshot,
 )
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import EvaluationAction, authorize_evaluation_action
 from app.services.auth.principal import Principal
 from app.services.common.pagination import Page, Pagination
@@ -86,10 +86,10 @@ class EvaluationService:
             pass_fail="pending",
         )
         await stage_write(
-            self._session, lambda: self._records.create_run(run), resource="Evaluation run"
+            self._session, lambda: self._records.add_run(run), resource="Evaluation run"
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="evaluation.run_requested",
@@ -158,7 +158,7 @@ class EvaluationService:
         projection = await self._get_run_projection(principal.organization_id, run_id)
         report = render_markdown_report(projection, locale=locale)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="evaluation.report_exported",
@@ -291,7 +291,7 @@ class EvaluationService:
         )
         return await stage_write(
             self._session,
-            lambda: self._records.create_dataset(dataset),
+            lambda: self._records.add_dataset(dataset),
             resource="Evaluation dataset",
         )
 
@@ -311,7 +311,7 @@ class EvaluationService:
             pass_fail="pass" if report.passed else "fail",
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=organization_id,
                 event_type="evaluation.run_completed",
                 resource_type="evaluation_run",
@@ -339,7 +339,7 @@ class EvaluationService:
             pass_fail="fail",
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="evaluation.run_failed",
@@ -361,7 +361,7 @@ class EvaluationService:
             pass_fail="fail",
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=run.organization_id,
                 event_type="evaluation.run_failed",
                 resource_type="evaluation_run",

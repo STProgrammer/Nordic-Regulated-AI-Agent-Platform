@@ -13,7 +13,7 @@ from app.core.observability import get_telemetry
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.retrieval import RetrievalRepository
 from app.db.repositories.workflow import WorkflowRunRepository
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.auth.policy import (
     CaseAction,
     RetrievalAction,
@@ -264,7 +264,7 @@ class RetrievalService:
             "retrieval_methods": list(retrieval_methods),
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="retrieval.search_completed",

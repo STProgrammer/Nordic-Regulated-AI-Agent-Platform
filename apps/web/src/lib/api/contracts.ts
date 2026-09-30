@@ -327,7 +327,7 @@ export const retrievalSearchInputSchema = z
     }
   });
 
-export const caseCreateInputSchema = z.object({
+export const caseSubmissionInputSchema = z.object({
   title: z.string().trim().min(1).max(500),
   description: z.string().trim().min(1).max(20_000),
   domain: caseDomainSchema,
@@ -784,7 +784,7 @@ export type CaseSummary = z.infer<typeof caseSummarySchema>;
 export type CaseDetail = z.infer<typeof caseDetailSchema>;
 export type CaseList = z.infer<typeof caseListSchema>;
 export type CaseAssigneeList = z.infer<typeof caseAssigneeListSchema>;
-export type CaseCreateInput = z.infer<typeof caseCreateInputSchema>;
+export type CaseSubmissionInput = z.infer<typeof caseSubmissionInputSchema>;
 export type IntakeCaseType = z.infer<typeof intakeCaseTypeSchema>;
 export type WorkflowRunStatus = z.infer<typeof workflowRunStatusSchema>;
 export type IntakeResult = z.infer<typeof intakeResultSchema>;

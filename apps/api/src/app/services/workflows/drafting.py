@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.workflow import AgentMessage, RetrievedSource, WorkflowRun
 from app.db.repositories.case import CaseRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import (
     CaseAction,
     RetrievalAction,
@@ -28,7 +28,7 @@ from app.services.common.persistence import stage_write
 from app.services.errors import ConflictError, NotFoundError, WorkflowUnavailableError
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
 from app.services.workflows.extraction import load_eligible_evidence
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 DRAFTING_WORKFLOW_NAME = "drafting"
 DRAFTING_WORKFLOW_VERSION = "phase24-v1"
@@ -70,8 +70,8 @@ class DraftingWorkflowService:
             return await self._record_needs_more_evidence(principal, case.id)
 
         language = output_language or OutputLanguage(case.language)
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case.id,
                 started_by_user_id=principal.user_id,
@@ -92,7 +92,7 @@ class DraftingWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.drafting_queued",
@@ -188,8 +188,8 @@ class DraftingWorkflowService:
         )
 
     async def _record_needs_more_evidence(self, principal: Principal, case_id: UUID) -> WorkflowRun:
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case_id,
                 started_by_user_id=principal.user_id,
@@ -210,7 +210,7 @@ class DraftingWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.drafting_needs_more_evidence",
@@ -244,7 +244,7 @@ class DraftingWorkflowService:
             "draft_available": False,
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.drafting_failed",

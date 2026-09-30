@@ -22,7 +22,7 @@ from app.db.models.workflow import (
 )
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.rag_answer import RagAnswerRepository
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.auth.policy import RetrievalAction, authorize_retrieval_action
 from app.services.auth.principal import Principal
 from app.services.errors import NotFoundError, RagAnswerUnavailableError, RetrievalUnavailableError
@@ -89,7 +89,7 @@ class RagAnswerService:
         language = resolve_answer_language(command.answer_language, principal.preferred_language)
         started_at = datetime.now(UTC)
         started_clock = perf_counter()
-        run = await self._create_and_commit_run(principal, command.case_id, language, started_at)
+        run = await self._add_and_commit_run(principal, command.case_id, language, started_at)
         try:
             retrieved = await self._retrieval.search(
                 principal,
@@ -220,14 +220,14 @@ class RagAnswerService:
         )
         return result
 
-    async def _create_and_commit_run(
+    async def _add_and_commit_run(
         self,
         principal: Principal,
         case_id: UUID,
         language: AnswerLanguage,
         started_at: datetime,
     ) -> WorkflowRun:
-        # Validate active current-tenant case before creating the durable run; the
+        # Validate active current-tenant case before adding the durable run; the
         # retrieval service repeats this check as its own policy boundary.
         if await self._cases.get(principal.organization_id, case_id) is None:
             raise NotFoundError("Case")
@@ -242,7 +242,7 @@ class RagAnswerService:
             state_snapshot={"target_language": language.value, "model_called": False},
         )
         try:
-            await self._records.create_run(run)
+            await self._records.add_run(run)
             await self.session.flush()
             await self.session.commit()
         except SQLAlchemyError as error:
@@ -347,7 +347,7 @@ class RagAnswerService:
         run.error_summary = None
         run.state_snapshot = _state_snapshot(evidence, result, model_called=generation is not None)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type=(
@@ -446,7 +446,7 @@ class RagAnswerService:
             "model_called": model_failure is not None,
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="rag.answer_failed",

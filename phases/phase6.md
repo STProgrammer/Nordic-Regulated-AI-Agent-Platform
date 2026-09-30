@@ -207,7 +207,7 @@ current-user variable, or unscoped queries.
   `policy.py`, and `store.py` — authentication command handling, principal
   resolution, canonical roles, RBAC/action checks, tenant guard, and the
   high-risk separation-of-duties policy.
-- `apps/api/src/app/services/audit/service.py` — reuse `AuditEventCreate`; only
+- `apps/api/src/app/services/audit/service.py` — reuse `AuditEventInput`; only
   narrow supporting changes necessary for the documented auth event sequence.
 - `apps/api/src/app/api/dependencies.py` — current-principal, session store,
   role guard, and tenant guard dependencies that derive scope from the session.

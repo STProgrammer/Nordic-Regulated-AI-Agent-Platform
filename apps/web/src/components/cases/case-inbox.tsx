@@ -84,7 +84,7 @@ export function CaseInbox() {
     router.replace(routeWithFilters(locale, { ...filters, offset }));
   }
 
-  const hasCreatePermission = currentUser.data ? canSubmit(currentUser.data.roles) : false;
+  const hasSubmitPermission = currentUser.data ? canSubmit(currentUser.data.roles) : false;
   const visibleAssignees = assignees.data?.items ?? [];
 
   return (
@@ -101,7 +101,7 @@ export function CaseInbox() {
               </p>
             ) : null}
           </div>
-          {hasCreatePermission ? (
+          {hasSubmitPermission ? (
             <Link
               className="nordic-button nordic-button-primary inline-flex items-center"
               href={`/${locale}/cases/new`}
@@ -110,7 +110,7 @@ export function CaseInbox() {
             </Link>
           ) : null}
         </div>
-        {currentUser.data && !hasCreatePermission ? (
+        {currentUser.data && !hasSubmitPermission ? (
           <Alert tone="warning">
             <p>{t('permissionDescription')}</p>
           </Alert>

@@ -110,7 +110,7 @@ for path in "${required_paths[@]}"; do
 done
 
 if [[ "$missing" -ne 0 ]]; then
-  printf 'Workspace structure check failed. Create the paths listed above and run it again.\n' >&2
+  printf 'Workspace structure check failed. Add the paths listed above and run it again.\n' >&2
   exit 1
 fi
 

@@ -12,7 +12,7 @@ from app.core.config import AppSettings
 from app.db.models import AuditEvent, Case
 from app.db.session import dispose_database_engines, get_sessionmaker
 from app.services.auth.principal import Principal, RoleName
-from app.services.cases.service import CaseCreate, CasePatch, CaseService
+from app.services.cases.service import CasePatch, CaseService, CaseSubmission
 from app.services.documents.service import DocumentService, DocumentUpload
 from app.services.errors import ConflictError, InvalidCommandError, NotFoundError
 from app.services.identity.service import IdentityService
@@ -80,7 +80,7 @@ async def _exercise_services(settings: AppSettings, tenant_seed: TenantSeed) -> 
                     preferred_language="nb",
                     roles=frozenset({RoleName.CASE_WORKER}),
                 ),
-                CaseCreate(
+                CaseSubmission(
                     title="Duplicate synthetic case",
                     description="Synthetic conflict check.",
                     language="nb",
@@ -147,9 +147,9 @@ async def _exercise_case_lifecycle(settings: AppSettings, tenant_seed: TenantSee
     )
     async with sessionmaker() as session:
         cases = CaseService(session, today_provider=lambda: date(2030, 1, 1))
-        created = await cases.submit(
+        submitted_case = await cases.submit(
             principal,
-            CaseCreate(
+            CaseSubmission(
                 title="Synthetic lifecycle case",
                 description="Synthetic lifecycle test content.",
                 language="nb",
@@ -158,26 +158,26 @@ async def _exercise_case_lifecycle(settings: AppSettings, tenant_seed: TenantSee
                 due_date=date(2030, 1, 2),
             ),
         )
-        assert created.case_number.startswith("CASE-")
-        assert created.status == "new"
+        assert submitted_case.case_number.startswith("CASE-")
+        assert submitted_case.status == "new"
 
         with pytest.raises(InvalidCommandError):
-            await cases.patch(principal, created.id, CasePatch(status="approved"))
+            await cases.patch(principal, submitted_case.id, CasePatch(status="approved"))
         event_count = await session.scalar(select(func.count()).select_from(AuditEvent))
         assert event_count == 1
 
-        updated = await cases.patch(principal, created.id, CasePatch(status="processing"))
+        updated = await cases.patch(principal, submitted_case.id, CasePatch(status="processing"))
         assert updated.status == "processing"
-        archived = await cases.archive(principal, created.id)
+        archived = await cases.archive(principal, submitted_case.id)
         assert archived.status == "archived"
         assert archived.archived_at is not None
-        assert await cases.repository.get(principal.organization_id, created.id) is None
+        assert await cases.repository.get(principal.organization_id, submitted_case.id) is None
 
         events = tuple(
             (
                 await session.scalars(
                     select(AuditEvent)
-                    .where(AuditEvent.case_id == created.id)
+                    .where(AuditEvent.case_id == submitted_case.id)
                     .order_by(AuditEvent.inserted_at.asc())
                 )
             ).all()

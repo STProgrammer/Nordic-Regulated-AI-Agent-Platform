@@ -65,10 +65,10 @@ class MemoryRepository:
         )
         return tuple((await self.session.scalars(statement)).all())
 
-    async def create(self, entry: MemoryEntry) -> MemoryEntry:
+    async def add(self, entry: MemoryEntry) -> MemoryEntry:
         self.session.add(entry)
         return entry
 
-    async def create_usage(self, record: MemoryUsageRecord) -> MemoryUsageRecord:
+    async def add_usage(self, record: MemoryUsageRecord) -> MemoryUsageRecord:
         self.session.add(record)
         return record

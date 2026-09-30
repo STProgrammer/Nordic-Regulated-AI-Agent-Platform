@@ -1,5 +1,5 @@
 """Organization-root service exports."""
 
-from app.services.organization.service import OrganizationCreate, OrganizationService
+from app.services.organization.service import OrganizationRegistration, OrganizationService
 
-__all__ = ["OrganizationCreate", "OrganizationService"]
+__all__ = ["OrganizationRegistration", "OrganizationService"]

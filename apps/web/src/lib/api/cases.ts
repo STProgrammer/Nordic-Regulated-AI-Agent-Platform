@@ -1,12 +1,12 @@
 import {
   apiRequest,
   caseAssigneeListSchema,
-  caseCreateInputSchema,
+  caseSubmissionInputSchema,
   caseDetailSchema,
   caseListSchema,
   jsonRequest,
   type CaseAssigneeList,
-  type CaseCreateInput,
+  type CaseSubmissionInput,
   type CaseDetail,
   type CaseList,
 } from '@/lib/api/contracts';
@@ -21,8 +21,8 @@ function casePath(path = ''): string {
 }
 
 export const casesApi = {
-  create(input: CaseCreateInput): Promise<CaseDetail> {
-    const payload = caseCreateInputSchema.parse(input);
+  submit(input: CaseSubmissionInput): Promise<CaseDetail> {
+    const payload = caseSubmissionInputSchema.parse(input);
     return apiRequest(casePath(), caseDetailSchema, jsonRequest('POST', payload));
   },
 

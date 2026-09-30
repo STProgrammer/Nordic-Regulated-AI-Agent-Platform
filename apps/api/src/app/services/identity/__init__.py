@@ -1,5 +1,5 @@
 """Identity persistence service exports."""
 
-from app.services.identity.service import IdentityService, UserCreate
+from app.services.identity.service import IdentityService, UserRegistration
 
-__all__ = ["IdentityService", "UserCreate"]
+__all__ = ["IdentityService", "UserRegistration"]

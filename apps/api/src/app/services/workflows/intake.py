@@ -12,12 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.workflow import WorkflowRun
 from app.db.repositories.case import CaseRepository, CaseUpdateValues
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import CaseAction, authorize_case_action
 from app.services.auth.principal import Principal
 from app.services.errors import ConflictError, NotFoundError, WorkflowUnavailableError
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 INTAKE_WORKFLOW_NAME = "intake"
 INTAKE_WORKFLOW_VERSION = "v1"
@@ -53,8 +53,8 @@ class IntakeWorkflowService:
         case = await self._cases.get(principal.organization_id, case_id)
         if case is None:
             raise NotFoundError("Case")
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case.id,
                 started_by_user_id=principal.user_id,
@@ -71,7 +71,7 @@ class IntakeWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.intake_queued",
@@ -124,7 +124,7 @@ class IntakeWorkflowService:
         )
         run.state_snapshot = snapshot
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.intake_classification_corrected",
@@ -173,7 +173,7 @@ class IntakeWorkflowService:
             "status": "failed",
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.intake_failed",

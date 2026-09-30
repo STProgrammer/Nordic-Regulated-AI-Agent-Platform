@@ -121,21 +121,21 @@ def test_case_routes_require_a_session_and_backend_role() -> None:
 
     auditor, _cases = _client(RoleName.READ_ONLY_AUDITOR)
     with auditor:
-        forbidden = auditor.post("/api/cases", json=_create_payload())
+        forbidden = auditor.post("/api/cases", json=_submission_payload())
     assert forbidden.status_code == 403
 
 
 def test_case_submission_uses_a_safe_server_owned_view() -> None:
     client, _cases = _client(RoleName.CASE_WORKER)
     with client:
-        created = client.post("/api/cases", json=_create_payload())
+        submission = client.post("/api/cases", json=_submission_payload())
         forbidden_field = client.post(
             "/api/cases",
-            json={**_create_payload(), "organization_id": str(uuid4())},
+            json={**_submission_payload(), "organization_id": str(uuid4())},
         )
 
-    assert created.status_code == 201
-    data = created.json()["data"]
+    assert submission.status_code == 201
+    data = submission.json()["data"]
     assert data["case_number"].startswith("CASE-")
     assert data["status"] == "new"
     assert data["due_date"] == "2030-01-02"
@@ -192,7 +192,7 @@ def test_case_assignee_choices_are_case_read_protected_and_minimal() -> None:
     assert "roles" not in response.text
 
 
-def _create_payload() -> dict[str, str]:
+def _submission_payload() -> dict[str, str]:
     return {
         "title": "  Synthetic submission  ",
         "description": "  A safe synthetic description.  ",

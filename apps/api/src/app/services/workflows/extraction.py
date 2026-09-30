@@ -26,7 +26,7 @@ from app.db.models.document import Document
 from app.db.models.workflow import ExtractedField, RetrievedSource, WorkflowRun
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.extraction import ExtractedFieldRepository, ExtractedFieldWithDocument
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import (
     CaseAction,
     RetrievalAction,
@@ -37,7 +37,7 @@ from app.services.auth.principal import Principal
 from app.services.common.persistence import stage_write
 from app.services.errors import ConflictError, NotFoundError, WorkflowUnavailableError
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 EXTRACTION_WORKFLOW_NAME = "extraction"
 EXTRACTION_WORKFLOW_VERSION = "phase19-v1"
@@ -69,7 +69,7 @@ class ExtractionWorkflowService:
         self._dispatcher = dispatcher
 
     async def start(self, principal: Principal, case_id: UUID) -> WorkflowRun:
-        """Create a queued run only when an eligible Evidence package exists."""
+        """Add a queued run only when an eligible Evidence package exists."""
 
         authorize_case_action(principal, CaseAction.EDIT)
         authorize_retrieval_action(principal, RetrievalAction.SEARCH)
@@ -83,8 +83,8 @@ class ExtractionWorkflowService:
         evidence = await load_eligible_evidence(self.session, principal.organization_id, case.id)
         if evidence is None:
             return await self._record_needs_more_evidence(principal, case.id)
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case.id,
                 started_by_user_id=principal.user_id,
@@ -102,7 +102,7 @@ class ExtractionWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.extraction_queued",
@@ -162,7 +162,7 @@ class ExtractionWorkflowService:
         field.field_value = serialized_value(parsed)
         field.human_edited = True
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.extraction_field_edited",
@@ -216,8 +216,8 @@ class ExtractionWorkflowService:
         )
 
     async def _record_needs_more_evidence(self, principal: Principal, case_id: UUID) -> WorkflowRun:
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=principal.organization_id,
                 case_id=case_id,
                 started_by_user_id=principal.user_id,
@@ -237,7 +237,7 @@ class ExtractionWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.extraction_needs_more_evidence",
@@ -267,7 +267,7 @@ class ExtractionWorkflowService:
             "evidence_available": True,
         }
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="workflow.extraction_failed",

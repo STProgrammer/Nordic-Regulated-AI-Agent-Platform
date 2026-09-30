@@ -57,7 +57,7 @@ class _AdministrationFake:
             ),
         )
 
-    async def create_user(self, _principal: Principal, _command: object) -> _User:
+    async def add_user(self, _principal: Principal, _command: object) -> _User:
         return self.user
 
     async def update_user(self, _principal: Principal, user_id: UUID, _command: object) -> _User:
@@ -113,7 +113,7 @@ def test_admin_user_routes_are_tenant_scoped_and_safe() -> None:
         detail = client.get(f"/api/users/{user.id}")
         foreign = client.get(f"/api/users/{uuid4()}")
         roles = client.get("/api/roles")
-        invalid_create = client.post(
+        invalid_submission = client.post(
             "/api/users",
             json={
                 "email": "new.user@demo.invalid",
@@ -130,4 +130,4 @@ def test_admin_user_routes_are_tenant_scoped_and_safe() -> None:
     assert foreign.status_code == 404
     assert roles.status_code == 200
     assert roles.json()["data"][0]["name"] == "Admin"
-    assert invalid_create.status_code == 422
+    assert invalid_submission.status_code == 422

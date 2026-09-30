@@ -76,7 +76,7 @@ class CaseRepository(ArchivableTenantScopedRepository[Case]):
             archived_at_column=cast(ColumnElement[datetime | None], Case.archived_at),
         )
 
-    async def create(self, case: Case) -> Case:
+    async def add(self, case: Case) -> Case:
         self.session.add(case)
         return case
 

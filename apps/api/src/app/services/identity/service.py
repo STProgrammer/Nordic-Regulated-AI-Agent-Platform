@@ -16,7 +16,7 @@ from app.services.errors import ConflictError, InvalidCommandError, NotFoundErro
 
 
 @dataclass(frozen=True)
-class UserCreate:
+class UserRegistration:
     """Typed user persistence input without identifiers, timestamps, or credentials."""
 
     organization_id: UUID
@@ -48,7 +48,7 @@ class IdentityService:
         self.roles = RoleRepository(session)
         self.assignments = UserRoleRepository(session)
 
-    async def create_user(self, command: UserCreate) -> User:
+    async def add_user(self, command: UserRegistration) -> User:
         user = User(
             organization_id=command.organization_id,
             email=command.email,
@@ -59,7 +59,7 @@ class IdentityService:
             is_active=command.is_active,
             password_hash=command.password_hash,
         )
-        return await stage_write(self.session, lambda: self.users.create(user), resource="User")
+        return await stage_write(self.session, lambda: self.users.add(user), resource="User")
 
     async def get_user_required(self, organization_id: UUID, user_id: UUID) -> User:
         user = await self.users.get(organization_id, user_id)
@@ -159,7 +159,7 @@ class IdentityService:
             for assignment in existing:
                 if assignment.role_id not in selected_role_ids:
                     await self.session.delete(assignment)
-            created: list[UserRole] = []
+            assignments: list[UserRole] = []
             for role in selected_roles:
                 if role.id not in existing_role_ids:
                     assignment = UserRole(
@@ -168,8 +168,8 @@ class IdentityService:
                         role_id=role.id,
                     )
                     self.session.add(assignment)
-                    created.append(assignment)
-            return tuple(created)
+                    assignments.append(assignment)
+            return tuple(assignments)
 
         await stage_write(self.session, _replace, resource="User role assignment")
         return await self.assignments.list_for_user(organization_id, user_id)

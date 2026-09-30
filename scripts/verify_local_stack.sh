@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Verify the already-running local stack without creating business data or changing service state.
+# Verify the already-running local stack without adding business data or changing service state.
 set -euo pipefail
 
 compose_env_file="${COMPOSE_ENV_FILE:-}"
@@ -117,7 +117,7 @@ done
 
 azurite_init_id="$("${compose[@]}" ps -aq azurite-init)"
 if [[ -z "$azurite_init_id" ]]; then
-  printf 'azurite-init container was not created.\n' >&2
+  printf 'azurite-init container was not provisioned.\n' >&2
   exit 1
 fi
 

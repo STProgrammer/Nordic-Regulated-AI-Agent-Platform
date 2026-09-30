@@ -70,7 +70,7 @@ class EvaluationRepository:
         )
         return tuple((await self.session.scalars(statement)).all())
 
-    async def create_dataset(self, dataset: EvalDataset) -> EvalDataset:
+    async def add_dataset(self, dataset: EvalDataset) -> EvalDataset:
         self.session.add(dataset)
         return dataset
 
@@ -120,7 +120,7 @@ class EvaluationRepository:
             ),
         )
 
-    async def create_run(self, run: EvalRun) -> EvalRun:
+    async def add_run(self, run: EvalRun) -> EvalRun:
         self.session.add(run)
         return run
 

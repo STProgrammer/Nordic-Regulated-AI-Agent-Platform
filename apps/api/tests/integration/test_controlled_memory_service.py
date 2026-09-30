@@ -14,7 +14,7 @@ from app.core.config import AppSettings
 from app.db.models.memory import MemoryUsageRecord
 from app.db.session import dispose_database_engines, get_sessionmaker
 from app.services.auth.principal import Principal, RoleName
-from app.services.memory.service import ControlledMemoryService, MemoryEntryCreate
+from app.services.memory.service import ControlledMemoryService, MemoryEntryInput
 from sqlalchemy import select
 
 
@@ -50,9 +50,9 @@ async def _run(settings: AppSettings, tenant_seed: TenantSeed) -> None:
             service = ControlledMemoryService(session, store=store)
             assert await service.enabled_for_organization(principal.organization_id) is False
             await service.set_enabled(principal, enabled=True)
-            created = await service.create_organization_entry(
+            entry = await service.add_organization_entry(
                 principal,
-                MemoryEntryCreate(
+                MemoryEntryInput(
                     memory_type=MemoryType.APPROVED_TERMINOLOGY,
                     content={
                         "locale": "nb",
@@ -82,7 +82,7 @@ async def _run(settings: AppSettings, tenant_seed: TenantSeed) -> None:
             assert result.presentation.terminology == (("vedtak", "avgjørelse"),)
             assert result.applied_count == 1
             usage = tuple((await session.scalars(select(MemoryUsageRecord))).all())
-            assert usage and usage[0].memory_entry_id == created.id
+            assert usage and usage[0].memory_entry_id == entry.id
             assert "vedtak" not in str(usage[0].__dict__)
             await session.commit()
 

@@ -1,4 +1,4 @@
-"""Create one safe, local-only Phase 34 portfolio-demo scenario."""
+"""Build one safe, local-only Phase 34 portfolio-demo scenario."""
 
 from __future__ import annotations
 

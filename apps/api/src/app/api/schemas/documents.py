@@ -48,7 +48,7 @@ class DocumentIndexingStatus(StrEnum):
 
 
 class DocumentData(BaseModel):
-    """Safe created-document response with no content or storage implementation data."""
+    """Safe uploaded-document response with no content or storage implementation data."""
 
     model_config = ConfigDict(frozen=True)
 

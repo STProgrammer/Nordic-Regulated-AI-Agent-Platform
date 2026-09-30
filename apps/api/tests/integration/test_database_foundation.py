@@ -79,7 +79,7 @@ def _alembic_config() -> Config:
     return Config(str(ROOT / "apps" / "api" / "alembic.ini"))
 
 
-def test_baseline_migration_creates_postgresql_contract(
+def test_baseline_migration_establishes_postgresql_contract(
     database_settings: AppSettings,
 ) -> None:
     """The baseline must include every table, extension, and retrieval index."""

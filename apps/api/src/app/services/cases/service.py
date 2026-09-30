@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, CaseRepository, CaseUpdateValues, Unset
 from app.db.repositories.identity import UserRepository
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.auth.policy import CaseAction, authorize_case_action
 from app.services.auth.principal import Principal
 from app.services.cases.policy import is_approval_status, validate_case_transition
@@ -23,7 +23,7 @@ from app.services.errors import InvalidCommandError, InvalidQueryError, NotFound
 
 
 @dataclass(frozen=True)
-class CaseCreate:
+class CaseSubmission:
     """Trusted submission values; tenant, submitter, number, and status are server-owned."""
 
     title: str
@@ -88,8 +88,8 @@ class CaseService:
         self._case_number_factory = case_number_factory or _new_case_number
         self._today_provider = today_provider or date.today
 
-    async def submit(self, principal: Principal, command: CaseCreate) -> Case:
-        """Create one new case with trusted tenant ownership and a minimal audit row."""
+    async def submit(self, principal: Principal, command: CaseSubmission) -> Case:
+        """Submit one new case with trusted tenant ownership and a minimal audit row."""
 
         authorize_case_action(principal, CaseAction.SUBMIT)
         self._validate_due_date(command.due_date)
@@ -106,16 +106,16 @@ class CaseService:
             due_date=command.due_date,
             external_reference=command.external_reference,
         )
-        created = await stage_write(
-            self.session, lambda: self.repository.create(case), resource="Case"
+        submitted_case = await stage_write(
+            self.session, lambda: self.repository.add(case), resource="Case"
         )
         await self._record_case_event(
-            created,
+            submitted_case,
             principal,
             event_type="case.created",
-            event_data={"case_number": created.case_number},
+            event_data={"case_number": submitted_case.case_number},
         )
-        return created
+        return submitted_case
 
     async def get_required(self, principal: Principal, case_id: UUID) -> Case:
         """Load a current-tenant, active case only for a role that may read it."""
@@ -261,7 +261,7 @@ class CaseService:
         include_archived_case: bool = False,
     ) -> None:
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=case.organization_id,
                 actor_user_id=principal.user_id,
                 event_type=event_type,

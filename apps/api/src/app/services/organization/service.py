@@ -14,7 +14,7 @@ from app.services.errors import NotFoundError
 
 
 @dataclass(frozen=True)
-class OrganizationCreate:
+class OrganizationRegistration:
     """Server-owned organization fields are intentionally absent from this command."""
 
     name: str
@@ -31,7 +31,7 @@ class OrganizationService:
         self.session = session
         self.repository = OrganizationRepository(session)
 
-    async def create(self, command: OrganizationCreate) -> Organization:
+    async def add(self, command: OrganizationRegistration) -> Organization:
         organization = Organization(
             name=command.name,
             slug=command.slug,
@@ -41,7 +41,7 @@ class OrganizationService:
         )
         return await stage_write(
             self.session,
-            lambda: self.repository.create(organization),
+            lambda: self.repository.add(organization),
             resource="Organization",
         )
 

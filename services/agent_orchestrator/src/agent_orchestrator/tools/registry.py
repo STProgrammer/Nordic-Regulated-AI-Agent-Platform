@@ -54,7 +54,7 @@ class ToolRegistry:
         """Invoke a registered tool and persist only its schema shape and outcome.
 
         Payloads and result values deliberately never reach the recorder.  Callers
-        must pass a workflow context supplied by the server to create a trace row.
+        must pass a workflow context supplied by the server to add a trace row.
         """
 
         if retry_count < 0:

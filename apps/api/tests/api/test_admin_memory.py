@@ -13,7 +13,7 @@ from app.db.models.memory import MemoryEntry
 from app.main import create_api_app
 from app.services.auth.principal import Principal, RoleName
 from app.services.errors import NotFoundError
-from app.services.memory.service import MemoryEntryCreate, MemoryEntryRevision
+from app.services.memory.service import MemoryEntryInput, MemoryEntryRevision
 from fastapi.testclient import TestClient
 
 _SESSION_ID = "synthetic_session_handle_012345678901234567890123456789"
@@ -48,8 +48,8 @@ class _MemoryFake:
             return ()
         return (self.entry,)
 
-    async def create_organization_entry(
-        self, principal: Principal, command: MemoryEntryCreate
+    async def add_organization_entry(
+        self, principal: Principal, command: MemoryEntryInput
     ) -> MemoryEntry:
         payload = validate_memory_payload(
             memory_scope=MemoryScope.ORGANIZATION,
@@ -131,7 +131,7 @@ def test_memory_admin_operations_are_role_protected_and_strict() -> None:
     with client:
         initial = client.get("/api/admin/memory/settings")
         enabled = client.put("/api/admin/memory/settings", json={"enabled": True})
-        created = client.post(
+        response = client.post(
             "/api/admin/memory/entries",
             json={
                 "memory_type": "approved_terminology",
@@ -159,8 +159,8 @@ def test_memory_admin_operations_are_role_protected_and_strict() -> None:
 
     assert initial.json()["data"] == {"enabled": False}
     assert enabled.json()["data"] == {"enabled": True}
-    assert created.status_code == 201
-    assert created.json()["data"]["memory_scope"] == "organization"
-    assert "store_key" not in created.text
+    assert response.status_code == 201
+    assert response.json()["data"]["memory_scope"] == "organization"
+    assert "store_key" not in response.text
     assert invalid.status_code == 422
     assert extra.status_code == 422

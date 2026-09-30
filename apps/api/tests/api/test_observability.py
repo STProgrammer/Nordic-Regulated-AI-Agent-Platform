@@ -15,7 +15,7 @@ def test_metrics_route_reports_a_triggered_api_observation() -> None:
         create_api_app(AppSettings(environment="test", metrics_enabled=True))
     ) as client:
         # The health call is the explicit trigger; startup alone must not be
-        # expected to create a request observation.
+        # expected to record a request observation.
         assert client.get("/health/live").status_code == 200
         response = client.get("/metrics")
 

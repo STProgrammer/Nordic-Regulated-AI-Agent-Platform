@@ -13,7 +13,7 @@ vi.mock('@/lib/api/auth', () => ({
   authApi: { getCurrentUser: vi.fn(), login: vi.fn(), logout: vi.fn() },
 }));
 vi.mock('@/lib/api/cases', () => ({
-  casesApi: { create: vi.fn(), get: vi.fn(), list: vi.fn(), listAssignees: vi.fn() },
+  casesApi: { submit: vi.fn(), get: vi.fn(), list: vi.fn(), listAssignees: vi.fn() },
 }));
 const mockedAuthApi = vi.mocked(authApi);
 const mockedCasesApi = vi.mocked(casesApi);

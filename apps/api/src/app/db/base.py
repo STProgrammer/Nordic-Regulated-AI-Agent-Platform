@@ -46,7 +46,7 @@ class InsertedAtMixin:
 
 
 class TimestampMixin(InsertedAtMixin):
-    """UTC creation/update timestamps backed by the migration trigger."""
+    """UTC insertion/update timestamps backed by the migration trigger."""
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -46,7 +46,7 @@ def _arguments() -> argparse.Namespace:
 
 
 async def main() -> int:
-    """Create a pending review without exercising prerequisite workflows in the browser."""
+    """Seed a pending review without exercising prerequisite workflows in the browser."""
 
     arguments = _arguments()
     settings = get_settings()

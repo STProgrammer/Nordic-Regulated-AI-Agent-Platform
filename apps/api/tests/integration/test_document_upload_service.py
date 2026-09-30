@@ -10,7 +10,7 @@ import pytest
 from app.core.config import AppSettings
 from app.db.models import AuditEvent, Document
 from app.db.session import dispose_database_engines, get_sessionmaker
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.principal import Principal, RoleName
 from app.services.documents.service import DocumentService, DocumentUpload
 from app.services.errors import InvalidCommandError
@@ -41,7 +41,7 @@ class _StorageFake:
 
 
 class _FailingAuditService(AuditService):
-    async def record_event(self, command: AuditEventCreate) -> AuditEvent:
+    async def record_event(self, command: AuditEventInput) -> AuditEvent:
         del command
         raise InvalidCommandError("Synthetic audit failure.")
 

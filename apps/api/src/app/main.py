@@ -14,7 +14,7 @@ from fastapi import FastAPI, Response
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.middleware import RequestContextMiddleware
-from app.api.router import create_api_router, openapi_tags
+from app.api.router import build_api_router, openapi_tags
 from app.api.security_middleware import (
     CsrfOriginMiddleware,
     SecurityHeadersMiddleware,
@@ -26,7 +26,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.observability import configure_observability, metrics_payload
 from app.core.session_store import dispose_redis_clients
 from app.db.session import dispose_database_engines
-from app.health import create_health_router
+from app.health import build_health_router
 
 API_DESCRIPTION = (
     "Backend API for the Nordic Regulated AI Agent Platform. Local password authentication, "
@@ -38,7 +38,7 @@ API_DESCRIPTION = (
 
 
 def create_api_app(settings: AppSettings | None = None) -> FastAPI:
-    """Create the configurable API application.
+    """Build the configurable API application.
 
     Tests may inject an :class:`AppSettings` instance to exercise alternative
     configuration without mutating process environment variables. Production
@@ -124,8 +124,8 @@ def create_api_app(settings: AppSettings | None = None) -> FastAPI:
                 media_type="text/plain; version=0.0.4; charset=utf-8",
             )
 
-    app.include_router(create_health_router())
-    app.include_router(create_api_router(resolved_settings.api_prefix))
+    app.include_router(build_health_router())
+    app.include_router(build_api_router(resolved_settings.api_prefix))
 
     return app
 

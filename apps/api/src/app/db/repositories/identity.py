@@ -33,7 +33,7 @@ class UserRepository(TenantScopedRepository[User]):
             archived_at_column=None,
         )
 
-    async def create(self, user: User) -> User:
+    async def add(self, user: User) -> User:
         """Stage a user in the caller-owned transaction."""
 
         self.session.add(user)

@@ -25,7 +25,7 @@ class PasswordVerification:
 
 
 def _build_hasher() -> PasswordHasher:
-    """Create the one Argon2id parameter profile used by this application."""
+    """Build the one Argon2id parameter profile used by this application."""
 
     return PasswordHasher(
         time_cost=3,
@@ -66,7 +66,7 @@ class PasswordSecurity:
             raise PasswordInputError("Password exceeds the maximum length.")
 
     def hash(self, password: str) -> str:
-        """Validate and create a non-reversible Argon2id password hash."""
+        """Validate and generate a non-reversible Argon2id password hash."""
 
         self.validate_input(password)
         return self._hasher.hash(password)

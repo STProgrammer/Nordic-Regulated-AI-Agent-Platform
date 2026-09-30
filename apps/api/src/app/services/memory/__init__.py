@@ -2,14 +2,14 @@
 
 from app.services.memory.service import (
     ControlledMemoryService,
-    MemoryEntryCreate,
+    MemoryEntryInput,
     MemoryEntryRevision,
     MemoryReadResult,
 )
 
 __all__ = [
     "ControlledMemoryService",
-    "MemoryEntryCreate",
+    "MemoryEntryInput",
     "MemoryEntryRevision",
     "MemoryReadResult",
 ]

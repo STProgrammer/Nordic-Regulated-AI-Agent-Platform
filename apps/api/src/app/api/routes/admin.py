@@ -30,7 +30,7 @@ from app.api.schemas.common import (
 from app.db.models.memory import MemoryEntry
 from app.services.errors import InvalidCommandError, MemoryStoreUnavailableError
 from app.services.memory.service import (
-    MemoryEntryCreate,
+    MemoryEntryInput,
     MemoryEntryRevision,
 )
 from app.services.memory.service import (
@@ -110,7 +110,7 @@ async def list_memory_entries(
     status_code=status.HTTP_201_CREATED,
     response_model=SuccessResponse[MemoryEntryData],
     responses=_MEMORY_ERRORS,
-    summary="Create one safe organization-level controlled-memory entry",
+    summary="Add one safe organization-level controlled-memory entry",
 )
 async def create_memory_entry(
     payload: OrganizationMemoryEntryCreateRequest,
@@ -119,8 +119,8 @@ async def create_memory_entry(
     memory: ControlledMemoryServiceDependency,
 ) -> SuccessResponse[MemoryEntryData]:
     try:
-        entry = await memory.create_organization_entry(
-            principal, MemoryEntryCreate(memory_type=payload.memory_type, content=payload.content)
+        entry = await memory.add_organization_entry(
+            principal, MemoryEntryInput(memory_type=payload.memory_type, content=payload.content)
         )
     except MemoryPolicyError as error:
         await memory.record_rejected_write(

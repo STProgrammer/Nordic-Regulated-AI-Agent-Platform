@@ -27,7 +27,7 @@ from app.db.models.workflow import (
 )
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.workflow import ApprovalRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import ApprovalAuthorizationInput, authorize_approval, ensure_roles
 from app.services.auth.principal import Principal, RoleName
 from app.services.cases.policy import validate_case_transition
@@ -39,7 +39,7 @@ from app.services.errors import (
     WorkflowUnavailableError,
 )
 from app.services.workflows.dispatch import WorkflowTaskDispatcher
-from app.services.workflows.service import WorkflowRunCreate, WorkflowRunService
+from app.services.workflows.service import WorkflowRunInput, WorkflowRunService
 
 APPROVAL_WORKFLOW_NAME = "human_approval"
 APPROVAL_WORKFLOW_VERSION = "phase22-v1"
@@ -102,8 +102,8 @@ class ApprovalWorkflowService:
         self._audit = AuditService(session)
         self._dispatcher = dispatcher
 
-    async def create_required_run(self, risk_context: WorkflowContext) -> WorkflowRun | None:
-        """Create one server-selected review run after the exact completed risk run requires it."""
+    async def add_required_run(self, risk_context: WorkflowContext) -> WorkflowRun | None:
+        """Add one server-selected review run after the exact completed risk run requires it."""
 
         assessment = cast(
             RiskAssessment | None,
@@ -133,8 +133,8 @@ class ApprovalWorkflowService:
         )
         if existing is not None:
             return existing
-        run = await self._workflows.create(
-            WorkflowRunCreate(
+        run = await self._workflows.add(
+            WorkflowRunInput(
                 organization_id=risk_context.organization_id,
                 case_id=risk_context.case_id,
                 started_by_user_id=risk_context.initiated_by_user_id,
@@ -152,7 +152,7 @@ class ApprovalWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=risk_context.organization_id,
                 actor_user_id=risk_context.initiated_by_user_id,
                 event_type="approval.workflow_queued",
@@ -189,11 +189,11 @@ class ApprovalWorkflowService:
         )
         await stage_write(
             self.session,
-            lambda: self._approvals.create(approval),
+            lambda: self._approvals.add(approval),
             resource="Approval",
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type="approval.review_packet_created",
@@ -236,7 +236,7 @@ class ApprovalWorkflowService:
             approval.interrupted_at = approval.interrupted_at or datetime.now(UTC)
             await self.session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type="approval.interrupted_for_human_review",
@@ -343,7 +343,7 @@ class ApprovalWorkflowService:
             approval.decision_at = datetime.now(UTC)
             await self.session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="approval.decision_submitted",
@@ -386,7 +386,7 @@ class ApprovalWorkflowService:
             approval.status = ApprovalLifecycle.ASSIGNED.value
             await self.session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="approval.reassigned",
@@ -436,7 +436,7 @@ class ApprovalWorkflowService:
             case.status = target_status
             await self.session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=approval.reviewer_user_id,
                 event_type="approval.workflow_resumed",
@@ -447,7 +447,7 @@ class ApprovalWorkflowService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=approval.reviewer_user_id,
                 event_type=f"approval.{_lifecycle_for_decision(decision).value}",

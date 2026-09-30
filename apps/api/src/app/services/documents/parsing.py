@@ -13,7 +13,7 @@ from app.core.logging import get_logger
 from app.core.observability import get_telemetry
 from app.db.models.document import Document
 from app.db.repositories.document import DocumentRepository
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.documents.parsers.language import detect_language
 from app.services.documents.parsers.registry import DocumentParserRegistry
 from app.services.documents.parsers.types import ParseFailure, SafeParseErrorCode
@@ -213,7 +213,7 @@ class DocumentParseCoordinator:
         event_data: dict[str, JSONValue],
     ) -> None:
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=document.organization_id,
                 event_type=event_type,
                 resource_type="document",

@@ -19,7 +19,7 @@ class FinalRiskLevel(StrEnum):
 
 
 class RiskSafeNextState(StrEnum):
-    """Routing-only outcomes; this phase neither creates nor resumes approval work."""
+    """Routing-only outcomes; this phase neither starts nor resumes approval work."""
 
     ASSESSMENT_COMPLETE = "assessment_complete"
     HUMAN_REVIEW_REQUIRED = "human_review_required"

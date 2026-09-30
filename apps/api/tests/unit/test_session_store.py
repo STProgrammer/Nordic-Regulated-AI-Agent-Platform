@@ -17,8 +17,8 @@ def test_session_expiry_logout_and_user_wide_invalidation() -> None:
         store = InMemorySessionStore(now=now)
         user_id = uuid4()
         organization_id = uuid4()
-        first = await store.create(user_id, organization_id, ttl_seconds=60)
-        second = await store.create(user_id, organization_id, ttl_seconds=60)
+        first = await store.issue(user_id, organization_id, ttl_seconds=60)
+        second = await store.issue(user_id, organization_id, ttl_seconds=60)
 
         assert await store.get(first) is not None
         await store.delete(first)
@@ -26,7 +26,7 @@ def test_session_expiry_logout_and_user_wide_invalidation() -> None:
         await store.delete_all_for_user(user_id)
         assert await store.get(second) is None
 
-        expired = await store.create(user_id, organization_id, ttl_seconds=60)
+        expired = await store.issue(user_id, organization_id, ttl_seconds=60)
         current += timedelta(seconds=61)
         assert await store.get(expired) is None
 

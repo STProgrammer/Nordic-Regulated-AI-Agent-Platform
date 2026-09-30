@@ -1,4 +1,4 @@
-from app.api.router import ROUTE_GROUPS, create_api_router, openapi_tags
+from app.api.router import ROUTE_GROUPS, build_api_router, openapi_tags
 from fastapi import APIRouter, FastAPI
 
 EXPECTED_PREFIXES: dict[str, str] = {
@@ -59,7 +59,7 @@ def test_only_implemented_route_modules_define_operations() -> None:
 
 
 def test_aggregate_router_mounts_the_phase_twenty_eight_business_operations() -> None:
-    api_router = create_api_router("/api")
+    api_router = build_api_router("/api")
     assert isinstance(api_router, APIRouter)
 
     app = FastAPI()

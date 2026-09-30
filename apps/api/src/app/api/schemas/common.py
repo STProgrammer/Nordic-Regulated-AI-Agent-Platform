@@ -71,7 +71,7 @@ class ErrorResponse(BaseModel):
 
 # Reusable OpenAPI ``responses`` declarations. They are applied only to real
 # endpoints as those endpoints are implemented by their owning phases; the route
-# modules created in Phase 3 intentionally expose no operations yet.
+# modules added in Phase 3 intentionally expose no operations yet.
 ErrorResponseSpec = dict[str, object]
 ErrorResponses = dict[int | str, ErrorResponseSpec]
 

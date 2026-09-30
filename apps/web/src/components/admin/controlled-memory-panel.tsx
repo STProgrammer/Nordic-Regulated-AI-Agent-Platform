@@ -66,7 +66,7 @@ export function ControlledMemoryPanel() {
         await actions.revise.mutateAsync({ entryId: editor.entryId, input });
         setNotice(t('updated'));
       } else {
-        await actions.create.mutateAsync(input);
+        await actions.add.mutateAsync(input);
         setNotice(t('added'));
       }
       setEditor(initialEditor);
@@ -102,7 +102,7 @@ export function ControlledMemoryPanel() {
     return <Alert>{t('denied')}</Alert>;
   }
 
-  const isBusy = actions.create.isPending || actions.revise.isPending || actions.settings.isPending;
+  const isBusy = actions.add.isPending || actions.revise.isPending || actions.settings.isPending;
   return (
     <section
       aria-labelledby="controlled-memory-title"

@@ -32,7 +32,7 @@ from app.db.models.workflow import (
     WorkflowToolCall,
 )
 from app.db.repositories.workflow import ApprovalRepository, WorkflowToolCallRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import ensure_roles
 from app.services.auth.principal import Principal, RoleName
 from app.services.errors import ConflictError, NotFoundError
@@ -126,7 +126,7 @@ class ApprovedOutputService:
         projection = await self._projection(principal, approval_id)
         rendered = render_approved_output(projection, export_format)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="approved_output.exported",
@@ -153,7 +153,7 @@ class ApprovedOutputService:
 
         projection = await self._projection(principal, approval_id)
         recorded_at = datetime.now(UTC)
-        await self._tool_calls.create(
+        await self._tool_calls.add(
             WorkflowToolCall(
                 workflow_run_id=projection.approval_workflow_run_id,
                 workflow_node_run_id=None,
@@ -173,7 +173,7 @@ class ApprovedOutputService:
             )
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="approved_output.mock_handoff_recorded",

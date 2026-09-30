@@ -15,14 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.prompt import ModelUsageRecord, PromptVersion
 from app.db.repositories.case import CaseRepository, CaseUpdateValues
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.common.persistence import stage_write
 from app.services.workflows.service import (
     WorkflowNodeFinish,
     WorkflowNodeStart,
     WorkflowRunFinalize,
     WorkflowRunService,
-    WorkflowToolCallCreate,
+    WorkflowToolCallInput,
 )
 
 
@@ -85,7 +85,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         ):
             return False
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type=f"workflow.{context.workflow_name}_started",
@@ -177,7 +177,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         if completed is None:
             return
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type=(
@@ -212,7 +212,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         if paused is None:
             return
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type=f"workflow.{context.workflow_name}_interrupted",
@@ -247,7 +247,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         if failed is None:
             return
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type=f"workflow.{context.workflow_name}_failed",
@@ -304,7 +304,7 @@ class SqlAlchemyWorkflowPersistence(WorkflowPersistence):
         """Persist a ToolRegistry event without accepting tool payloads or result bodies."""
 
         await self._workflows.record_tool_call(
-            WorkflowToolCallCreate(
+            WorkflowToolCallInput(
                 organization_id=context.organization_id,
                 workflow_run_id=context.workflow_run_id,
                 workflow_node_run_id=node_run_id,

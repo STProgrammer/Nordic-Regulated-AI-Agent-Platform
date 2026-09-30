@@ -62,7 +62,7 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 
 
 async def dispose_database_engines() -> None:
-    """Dispose lazily-created pools during process shutdown and isolated tests."""
+    """Dispose lazily-initialized pools during process shutdown and isolated tests."""
 
     engines = tuple(_engines.values())
     _engines.clear()

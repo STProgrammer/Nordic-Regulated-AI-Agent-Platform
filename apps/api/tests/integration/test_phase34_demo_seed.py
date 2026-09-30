@@ -28,7 +28,7 @@ if str(ROOT) not in sys.path:
 from scripts.seed_phase34_demo import seed_phase34_demo  # noqa: E402
 
 
-def test_phase34_demo_seed_creates_a_safe_runnable_bundle(database_settings: AppSettings) -> None:
+def test_phase34_demo_seed_builds_a_safe_runnable_bundle(database_settings: AppSettings) -> None:
     asyncio.run(_assert_demo_bundle(database_settings))
 
 

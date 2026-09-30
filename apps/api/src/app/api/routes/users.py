@@ -23,7 +23,7 @@ from app.api.schemas.users import (
     UserUpdateRequest,
 )
 from app.services.auth.principal import Principal, RoleName, canonical_roles
-from app.services.auth.service import UserAdminCreateCommand, UserAdminUpdateCommand
+from app.services.auth.service import UserAdminAddCommand, UserAdminUpdateCommand
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
 
@@ -85,7 +85,7 @@ async def list_users(
     status_code=status.HTTP_201_CREATED,
     response_model=SuccessResponse[UserData],
     responses=_USER_ERROR_RESPONSES,
-    summary="Create a user in the current organization",
+    summary="Add a user in the current organization",
 )
 async def create_user(
     payload: UserCreateRequest,
@@ -93,11 +93,11 @@ async def create_user(
     principal: AdminPrincipalDependency,
     administration: UserAdministrationServiceDependency,
 ) -> SuccessResponse[UserData]:
-    """Create a local/passwordless user without accepting a caller organization ID."""
+    """Add a local/passwordless user without accepting a caller organization ID."""
 
-    user = await administration.create_user(
+    user = await administration.add_user(
         principal,
-        UserAdminCreateCommand(
+        UserAdminAddCommand(
             email=payload.email,
             display_name=payload.display_name,
             preferred_language=payload.preferred_language,

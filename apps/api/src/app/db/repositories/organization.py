@@ -17,7 +17,7 @@ class OrganizationRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create(self, organization: Organization) -> Organization:
+    async def add(self, organization: Organization) -> Organization:
         """Stage an organization in the caller-owned transaction."""
 
         self.session.add(organization)

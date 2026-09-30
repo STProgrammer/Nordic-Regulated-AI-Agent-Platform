@@ -43,7 +43,7 @@ class WorkflowRunRepository(TenantScopedRepository[WorkflowRun]):
             archived_at_column=None,
         )
 
-    async def create(self, workflow_run: WorkflowRun) -> WorkflowRun:
+    async def add(self, workflow_run: WorkflowRun) -> WorkflowRun:
         self.session.add(workflow_run)
         return workflow_run
 
@@ -85,7 +85,7 @@ class WorkflowNodeRunRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create(self, node_run: WorkflowNodeRun) -> WorkflowNodeRun:
+    async def add(self, node_run: WorkflowNodeRun) -> WorkflowNodeRun:
         self.session.add(node_run)
         return node_run
 
@@ -128,7 +128,7 @@ class WorkflowToolCallRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create(self, tool_call: WorkflowToolCall) -> WorkflowToolCall:
+    async def add(self, tool_call: WorkflowToolCall) -> WorkflowToolCall:
         self.session.add(tool_call)
         return tool_call
 
@@ -243,7 +243,7 @@ class ApprovalRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create(self, approval: Approval) -> Approval:
+    async def add(self, approval: Approval) -> Approval:
         self.session.add(approval)
         return approval
 

@@ -56,7 +56,7 @@ from app.api.schemas.workflows import (
 from app.core.rate_limit import RouteRateLimitPolicy
 from app.db.models.case import Case
 from app.db.repositories.case import CaseFilters, Unset
-from app.services.cases.service import CaseCreate, CasePatch
+from app.services.cases.service import CasePatch, CaseSubmission
 from app.services.common.pagination import Pagination
 from app.services.common.querying import SortDirection, SortSpec
 from app.services.workflows.drafting import DraftingWorkflowService
@@ -98,7 +98,7 @@ async def create_case(
 
     case = await cases.submit(
         principal,
-        CaseCreate(
+        CaseSubmission(
             title=payload.title,
             description=payload.description,
             language=payload.language.value,

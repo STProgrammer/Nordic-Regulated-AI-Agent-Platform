@@ -43,7 +43,7 @@ class SessionRecord:
 class SessionStore(Protocol):
     """Minimal session operations used by the authentication service."""
 
-    async def create(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str: ...
+    async def issue(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str: ...
 
     async def get(self, session_id: str) -> SessionRecord | None: ...
 
@@ -74,7 +74,7 @@ def get_redis_client(settings: AppSettings | None = None) -> RedisClient:
 
 
 async def dispose_redis_clients() -> None:
-    """Close every lazily-created Redis client during shutdown/tests."""
+    """Close every lazily-initialized Redis client during shutdown/tests."""
 
     clients = tuple(_redis_clients.values())
     _redis_clients.clear()
@@ -130,7 +130,7 @@ class RedisSessionStore:
     def __init__(self, client: RedisClient) -> None:
         self._client = client
 
-    async def create(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str:
+    async def issue(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str:
         session_id = secrets.token_urlsafe(32)
         now = datetime.now(UTC)
         record = SessionRecord(
@@ -200,7 +200,7 @@ class InMemorySessionStore:
         self._records: dict[str, SessionRecord] = {}
         self._user_sessions: dict[UUID, set[str]] = {}
 
-    async def create(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str:
+    async def issue(self, user_id: UUID, organization_id: UUID, *, ttl_seconds: int) -> str:
         session_id = secrets.token_urlsafe(32)
         now = self._now()
         self._records[session_id] = SessionRecord(

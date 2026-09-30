@@ -43,8 +43,8 @@ export function useControlledMemoryActions() {
       mutationFn: memoryApi.archiveEntry,
       onSuccess: refresh,
     }),
-    create: useMutation({
-      mutationFn: (input: ControlledMemoryInput) => memoryApi.createEntry(input),
+    add: useMutation({
+      mutationFn: (input: ControlledMemoryInput) => memoryApi.addEntry(input),
       onSuccess: refresh,
     }),
     revise: useMutation({

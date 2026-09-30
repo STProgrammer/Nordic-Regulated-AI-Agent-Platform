@@ -214,7 +214,7 @@ def get_retrieval_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[AppSettings, Depends(get_settings)],
 ) -> RetrievalService:
-    """Construct Phase 13 retrieval without creating a provider client eagerly."""
+    """Construct Phase 13 retrieval without initializing a provider client eagerly."""
 
     return RetrievalService(
         session,
@@ -235,7 +235,7 @@ def get_rag_answer_service(
     settings: Annotated[AppSettings, Depends(get_settings)],
     retrieval: Annotated[RetrievalService, Depends(get_retrieval_service)],
 ) -> RagAnswerService:
-    """Construct direct RAG answering without eagerly creating a provider client."""
+    """Construct direct RAG answering without eagerly initializing a provider client."""
 
     return RagAnswerService(
         session,

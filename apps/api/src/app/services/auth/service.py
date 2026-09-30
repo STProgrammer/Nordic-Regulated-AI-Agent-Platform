@@ -11,12 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import PasswordInputError, PasswordSecurity
 from app.core.session_store import SessionStore
 from app.db.models.identity import Role, User, UserRole
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.auth.principal import Principal, RoleName, canonical_roles
 from app.services.common.pagination import Page, Pagination
 from app.services.common.querying import SortSpec
 from app.services.errors import ConflictError, InvalidCommandError
-from app.services.identity.service import IdentityService, UserCreate, UserUpdate
+from app.services.identity.service import IdentityService, UserRegistration, UserUpdate
 
 
 def normalize_email(email: str) -> str:
@@ -50,7 +50,7 @@ LoginResult = LoginSucceeded | LoginRejected
 
 
 @dataclass(frozen=True)
-class UserAdminCreateCommand:
+class UserAdminAddCommand:
     email: str
     display_name: str
     preferred_language: str
@@ -108,7 +108,7 @@ class AuthenticationService:
         role_names = await self._identity.list_role_names_for_user(user.organization_id, user.id)
         principal = _principal_from_user(user, role_names)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=user.organization_id,
                 actor_user_id=user.id,
                 event_type="auth.login_succeeded",
@@ -119,7 +119,7 @@ class AuthenticationService:
         # Flush prior writes before issuing an external session. The request-owned
         # transaction still owns the final commit/rollback decision.
         await self._session.flush()
-        session_id = await self._session_store.create(
+        session_id = await self._session_store.issue(
             user.id,
             user.organization_id,
             ttl_seconds=self._session_ttl_seconds,
@@ -148,7 +148,7 @@ class AuthenticationService:
 
         await self._session_store.delete(session_id)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="auth.logout",
@@ -159,7 +159,7 @@ class AuthenticationService:
 
     async def _record_login_failure(self, user: User) -> None:
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=user.organization_id,
                 actor_user_id=user.id,
                 event_type="auth.login_failed",
@@ -200,10 +200,10 @@ class UserAdministrationService:
     async def list_roles(self) -> tuple[Role, ...]:
         return await self._identity.list_roles()
 
-    async def create_user(self, principal: Principal, command: UserAdminCreateCommand) -> User:
+    async def add_user(self, principal: Principal, command: UserAdminAddCommand) -> User:
         password_hash = self._hash_optional_password(command.password)
-        user = await self._identity.create_user(
-            UserCreate(
+        user = await self._identity.add_user(
+            UserRegistration(
                 organization_id=principal.organization_id,
                 email=normalize_email(command.email),
                 display_name=command.display_name.strip(),
@@ -217,7 +217,7 @@ class UserAdministrationService:
             tuple(role.value for role in command.role_names),
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="identity.user_created",
@@ -258,7 +258,7 @@ class UserAdministrationService:
             await self._session_store.delete_all_for_user(user.id)
         changed_fields = _changed_identity_fields(command)
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type=(
@@ -289,7 +289,7 @@ class UserAdministrationService:
             principal.organization_id, user_id, requested_names
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="identity.roles_replaced",

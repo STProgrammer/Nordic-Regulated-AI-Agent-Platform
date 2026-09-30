@@ -76,11 +76,11 @@ export function CaseForm() {
     resolver: zodResolver(formSchema),
   });
   const mutation = useMutation({
-    mutationFn: casesApi.create,
-    onSuccess: async (created) => {
+    mutationFn: casesApi.submit,
+    onSuccess: async (submittedCase) => {
       await queryClient.invalidateQueries({ queryKey: caseQueryKeys.lists() });
-      queryClient.setQueryData(caseQueryKeys.detail(created.case_id), created);
-      router.replace(`/${locale}/cases/${created.case_id}`);
+      queryClient.setQueryData(caseQueryKeys.detail(submittedCase.case_id), submittedCase);
+      router.replace(`/${locale}/cases/${submittedCase.case_id}`);
     },
   });
 

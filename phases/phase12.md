@@ -91,7 +91,7 @@ document being parsed or re-indexed must never yield a partly replaced chunk set
 | Existing component | Required Phase 12 evolution |
 | --- | --- |
 | `apps/api/src/app/db/models/document.py` | Reuse `DocumentText` and `DocumentChunk` exactly as the parsed-text and retrieval-record boundary. Add only the indexing lifecycle fields needed on `Document`; preserve the fixed `1536` vector contract and existing database indexes. |
-| `apps/api/migrations/versions/d69ce722c102_database_foundation.py` | Treat this as the immutable baseline. Add a forward Alembic migration for new `documents` indexing-state fields/backfill only; do not rewrite the baseline or recreate the HNSW/GIN indexes. |
+| `apps/api/migrations/versions/d69ce722c102_database_foundation.py` | Treat this as the immutable baseline. Add a forward Alembic migration for new `documents` indexing-state fields/backfill only; do not rewrite the baseline or rebuild the HNSW/GIN indexes. |
 | `apps/api/src/app/db/repositories/document.py` | Add focused conditional index claims, state transitions, candidate reconciliation, and atomic chunk replacement operations. Repository queries remain tenant-aware and contain no provider calls or chunking policy. |
 | `apps/api/src/app/services/documents/parsing.py` | On a successful canonical-text replacement, make the document durably eligible for indexing. Preserve a previously good index when parsing a reprocess attempt fails. |
 | `apps/api/src/app/services/documents/` | Add typed tokenizer/chunker, embedding-provider protocol/adapters, indexing coordinator, safe index errors, and UUID-only dispatch. Keep raw-storage parsing and document upload validation separate. |

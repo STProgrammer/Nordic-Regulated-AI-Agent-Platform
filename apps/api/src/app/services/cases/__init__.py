@@ -1,5 +1,5 @@
 """Case Management service exports."""
 
-from app.services.cases.service import CaseCreate, CasePatch, CaseService
+from app.services.cases.service import CasePatch, CaseService, CaseSubmission
 
-__all__ = ["CaseCreate", "CasePatch", "CaseService"]
+__all__ = ["CaseSubmission", "CasePatch", "CaseService"]

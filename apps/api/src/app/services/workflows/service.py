@@ -25,7 +25,7 @@ from app.services.errors import NotFoundError
 
 
 @dataclass(frozen=True)
-class WorkflowRunCreate:
+class WorkflowRunInput:
     """Typed persistence command for a future orchestrator-owned workflow run."""
 
     organization_id: UUID
@@ -84,7 +84,7 @@ class WorkflowRunFinalize:
 
 
 @dataclass(frozen=True)
-class WorkflowToolCallCreate:
+class WorkflowToolCallInput:
     """Trusted server-side metadata for a registered tool invocation only."""
 
     organization_id: UUID
@@ -117,7 +117,7 @@ class WorkflowRunService:
         self.cases = CaseRepository(session)
         self.users = UserRepository(session)
 
-    async def create(self, command: WorkflowRunCreate) -> WorkflowRun:
+    async def add(self, command: WorkflowRunInput) -> WorkflowRun:
         if await self.cases.get(command.organization_id, command.case_id) is None:
             raise NotFoundError("Case")
         if await self.users.get(command.organization_id, command.started_by_user_id) is None:
@@ -139,7 +139,7 @@ class WorkflowRunService:
         )
         return await stage_write(
             self.session,
-            lambda: self.repository.create(workflow_run),
+            lambda: self.repository.add(workflow_run),
             resource="Workflow run",
         )
 
@@ -204,7 +204,7 @@ class WorkflowRunService:
             return run
 
     async def start_node(self, command: WorkflowNodeStart) -> WorkflowNodeRun:
-        """Create one trace row after validating the tenant-owned parent run."""
+        """Add one trace row after validating the tenant-owned parent run."""
 
         run = await self.get_required(command.organization_id, command.workflow_run_id)
         if run.status != "running":
@@ -221,7 +221,7 @@ class WorkflowRunService:
             retry_count=command.retry_count,
         )
         return await stage_write(
-            self.session, lambda: self.nodes.create(node), resource="Workflow node"
+            self.session, lambda: self.nodes.add(node), resource="Workflow node"
         )
 
     async def finish_node(self, command: WorkflowNodeFinish) -> WorkflowNodeRun:
@@ -243,7 +243,7 @@ class WorkflowRunService:
             error_summary=command.error_summary,
         )
 
-    async def record_tool_call(self, command: WorkflowToolCallCreate) -> WorkflowToolCall:
+    async def record_tool_call(self, command: WorkflowToolCallInput) -> WorkflowToolCall:
         """Persist a bounded server-owned tool event under a tenant-owned workflow run."""
 
         run = await self.get_required(command.organization_id, command.workflow_run_id)
@@ -273,7 +273,7 @@ class WorkflowRunService:
         )
         return await stage_write(
             self.session,
-            lambda: self.tool_calls.create(tool_call),
+            lambda: self.tool_calls.add(tool_call),
             resource="Workflow tool call",
         )
 

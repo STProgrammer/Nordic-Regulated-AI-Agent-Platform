@@ -115,7 +115,7 @@ class Telemetry:
     def span(
         self, name: str, attributes: Mapping[str, str | int | float] | None = None
     ) -> Iterator[None]:
-        """Create an optional internal span without ever recording exception bodies."""
+        """Start an optional internal span without ever recording exception bodies."""
 
         with self._tracer.start_as_current_span(name) as span:
             if attributes is not None:

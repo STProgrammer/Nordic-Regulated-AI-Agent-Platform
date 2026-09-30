@@ -14,7 +14,7 @@ vi.mock('@/lib/api/auth', () => ({
 vi.mock('@/lib/api/memory', () => ({
   memoryApi: {
     archiveEntry: vi.fn(),
-    createEntry: vi.fn(),
+    addEntry: vi.fn(),
     getSettings: vi.fn(),
     listEntries: vi.fn(),
     reviseEntry: vi.fn(),
@@ -36,7 +36,7 @@ beforeEach(() => {
   vi.mocked(memoryApi.getSettings).mockResolvedValue({ enabled: false });
   vi.mocked(memoryApi.listEntries).mockResolvedValue({ items: [] });
   vi.mocked(memoryApi.updateSettings).mockResolvedValue({ enabled: true });
-  vi.mocked(memoryApi.createEntry).mockResolvedValue({
+  vi.mocked(memoryApi.addEntry).mockResolvedValue({
     archived_at: null,
     content: { locale: 'nb', preferred_term: 'avgjørelse', source_term: 'vedtak' },
     inserted_at: '2026-06-21T00:00:00Z',

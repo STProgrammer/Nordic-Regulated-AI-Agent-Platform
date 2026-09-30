@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.db.repositories.document import DocumentChunkInsert, DocumentRepository
-from app.services.audit.service import AuditEventCreate, AuditService, JSONValue
+from app.services.audit.service import AuditEventInput, AuditService, JSONValue
 from app.services.documents.chunking import CanonicalTextChunker, ChunkingError
 from app.services.documents.embeddings import EmbeddingError, EmbeddingProvider, embed_in_batches
 
@@ -189,7 +189,7 @@ class DocumentIndexCoordinator:
         if not isinstance(document, Document):
             raise TypeError("Expected document metadata")
         await self.audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=document.organization_id,
                 event_type=event_type,
                 resource_type="document",

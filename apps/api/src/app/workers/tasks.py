@@ -703,9 +703,7 @@ async def _process_risk_compliance_workflow(workflow_run_id: UUID, settings: App
                     result.outcome.status is RuntimeStatus.COMPLETED
                     and result.state.approval_required
                 ):
-                    approval_run = await ApprovalWorkflowService(session).create_required_run(
-                        context
-                    )
+                    approval_run = await ApprovalWorkflowService(session).add_required_run(context)
                 await session.commit()
                 if approval_run is not None:
                     try:

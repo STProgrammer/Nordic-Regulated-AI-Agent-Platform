@@ -14,7 +14,7 @@ class RagAnswerRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_run(self, run: WorkflowRun) -> WorkflowRun:
+    async def add_run(self, run: WorkflowRun) -> WorkflowRun:
         self.session.add(run)
         return run
 

@@ -32,7 +32,7 @@ from app.db.models.memory import MemoryEntry, MemoryUsageRecord
 from app.db.repositories.identity import UserRepository
 from app.db.repositories.memory import MemoryRepository
 from app.db.repositories.organization import OrganizationRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.policy import MemoryAction, authorize_memory_action
 from app.services.auth.principal import Principal
 from app.services.common.persistence import stage_write
@@ -48,7 +48,7 @@ class MemoryStoreUnavailableError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class MemoryEntryCreate:
+class MemoryEntryInput:
     memory_type: MemoryType
     content: object
 
@@ -95,7 +95,7 @@ class ControlledMemoryService:
         settings[_SETTINGS_KEY] = {"enabled": enabled}
         organization.settings = settings
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.organization_enabled"
@@ -116,8 +116,8 @@ class ControlledMemoryService:
             principal.organization_id, include_archived=include_archived
         )
 
-    async def create_organization_entry(
-        self, principal: Principal, command: MemoryEntryCreate
+    async def add_organization_entry(
+        self, principal: Principal, command: MemoryEntryInput
     ) -> MemoryEntry:
         authorize_memory_action(principal, MemoryAction.MANAGE)
         payload = validate_memory_payload(
@@ -137,9 +137,7 @@ class ControlledMemoryService:
             natural_key=memory_natural_key(command.memory_type, payload),
             is_active=True,
         )
-        await stage_write(
-            self._session, lambda: self._entries.create(entry), resource="Memory entry"
-        )
+        await stage_write(self._session, lambda: self._entries.add(entry), resource="Memory entry")
         try:
             await self._store.put(
                 organization_id=entry.organization_id,
@@ -151,7 +149,7 @@ class ControlledMemoryService:
             await self._session.rollback()
             raise MemoryStoreUnavailableError() from error
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.entry_created",
@@ -192,7 +190,7 @@ class ControlledMemoryService:
         entry.natural_key = natural_key
         await self._session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.entry_revised",
@@ -218,7 +216,7 @@ class ControlledMemoryService:
         entry.archived_at = datetime.now(UTC)
         await self._session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.entry_archived",
@@ -253,7 +251,7 @@ class ControlledMemoryService:
                 is_active=True,
             )
             await stage_write(
-                self._session, lambda: self._entries.create(entry), resource="Language preference"
+                self._session, lambda: self._entries.add(entry), resource="Language preference"
             )
         else:
             entry.content = content
@@ -272,7 +270,7 @@ class ControlledMemoryService:
         user.preferred_language = language.value
         await self._session.flush()
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.self_language_changed",
@@ -289,7 +287,7 @@ class ControlledMemoryService:
         """Persist the compact rejection audit event before an HTTP validation error exits."""
 
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=principal.organization_id,
                 actor_user_id=principal.user_id,
                 event_type="memory.write_rejected",
@@ -430,11 +428,11 @@ class ControlledMemoryService:
         )
         await stage_write(
             self._session,
-            lambda: self._entries.create_usage(record),
+            lambda: self._entries.add_usage(record),
             resource="Memory usage record",
         )
         await self._audit.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=context.organization_id,
                 actor_user_id=context.initiated_by_user_id,
                 event_type="memory.use_recorded",

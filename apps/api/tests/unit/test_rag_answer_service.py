@@ -13,7 +13,7 @@ from app.db.models.workflow import AgentMessage, WorkflowRun
 from app.db.models.workflow import RetrievedSource as PersistedRetrievedSource
 from app.db.repositories.case import CaseRepository
 from app.db.repositories.rag_answer import RagAnswerRepository
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.auth.principal import Principal, RoleName
 from app.services.errors import RagAnswerUnavailableError
 from app.services.retrieval.answering import RagAnswerService, resolve_answer_language
@@ -40,7 +40,7 @@ class _Records:
     messages: list[AgentMessage] = field(default_factory=list)
     usages: list[ModelUsageRecord] = field(default_factory=list)
 
-    async def create_run(self, run: WorkflowRun) -> WorkflowRun:
+    async def add_run(self, run: WorkflowRun) -> WorkflowRun:
         run.id = uuid4()
         self.runs.append(run)
         return run
@@ -60,9 +60,9 @@ class _Records:
 
 @dataclass
 class _Audit:
-    commands: list[AuditEventCreate] = field(default_factory=list)
+    commands: list[AuditEventInput] = field(default_factory=list)
 
-    async def record_event(self, command: AuditEventCreate) -> None:
+    async def record_event(self, command: AuditEventInput) -> None:
         self.commands.append(command)
 
 
@@ -186,7 +186,7 @@ def test_answer_persists_complete_cited_run_and_content_free_terminal_audit() ->
     assert generator.closed is True
 
 
-def test_preliminary_refusal_never_calls_a_model_or_creates_model_records() -> None:
+def test_preliminary_refusal_never_calls_a_model_or_adds_model_records() -> None:
     generator = _Generator(
         result=RagGenerationResult(
             answer="Should not run [S1]",

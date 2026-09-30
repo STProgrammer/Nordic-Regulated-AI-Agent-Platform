@@ -87,7 +87,7 @@ class DocumentRepository(ArchivableTenantScopedRepository[Document]):
             archived_at_column=cast(ColumnElement[datetime | None], Document.archived_at),
         )
 
-    async def create(self, document: Document) -> Document:
+    async def add(self, document: Document) -> Document:
         self.session.add(document)
         return document
 

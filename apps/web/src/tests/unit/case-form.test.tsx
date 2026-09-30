@@ -8,10 +8,10 @@ import { router } from '@/tests/test-navigation';
 import { renderWithProviders } from '@/tests/test-utils';
 
 vi.mock('@/lib/api/cases', () => ({
-  casesApi: { create: vi.fn(), get: vi.fn(), list: vi.fn(), listAssignees: vi.fn() },
+  casesApi: { submit: vi.fn(), get: vi.fn(), list: vi.fn(), listAssignees: vi.fn() },
 }));
 const mockedCasesApi = vi.mocked(casesApi);
-const created = {
+const submittedCase = {
   assigned_user_id: null,
   archived_at: null,
   case_id: '33333333-3333-4333-8333-333333333333',
@@ -33,7 +33,7 @@ const created = {
 
 describe('CaseForm', () => {
   it('validates required fields and submits only supported case input', async () => {
-    mockedCasesApi.create.mockResolvedValue(created);
+    mockedCasesApi.submit.mockResolvedValue(submittedCase);
     const actor = userEvent.setup();
     renderWithProviders(<CaseForm />);
     await actor.click(screen.getByRole('button', { name: 'Opprett sak' }));
@@ -42,7 +42,7 @@ describe('CaseForm', () => {
     await actor.type(screen.getByLabelText('Beskrivelse'), 'Syntetisk beskrivelse');
     await actor.click(screen.getByRole('button', { name: 'Opprett sak' }));
     await waitFor(() =>
-      expect(mockedCasesApi.create).toHaveBeenCalledWith(
+      expect(mockedCasesApi.submit).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Syntetisk sak',
           description: 'Syntetisk beskrivelse',
@@ -53,7 +53,7 @@ describe('CaseForm', () => {
       ),
     );
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(`/nb/cases/${created.case_id}`),
+      expect(router.replace).toHaveBeenCalledWith(`/nb/cases/${submittedCase.case_id}`),
     );
   });
 });

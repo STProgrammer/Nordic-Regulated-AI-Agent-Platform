@@ -10,7 +10,7 @@ import pytest
 from app.core.config import AppSettings
 from app.db.repositories.audit import AuditEventFilters
 from app.db.session import dispose_database_engines, get_sessionmaker
-from app.services.audit.service import AuditEventCreate, AuditService
+from app.services.audit.service import AuditEventInput, AuditService
 from app.services.common.pagination import Pagination
 from app.services.errors import InvalidCommandError, NotFoundError
 
@@ -45,7 +45,7 @@ async def _exercise_audit_service(settings: AppSettings, tenant_seed: TenantSeed
     async with sessionmaker() as session:
         service = AuditService(session)
         event = await service.record_event(
-            AuditEventCreate(
+            AuditEventInput(
                 organization_id=primary_organization_id,
                 actor_user_id=primary_user_id,
                 case_id=primary_case_id,
@@ -82,7 +82,7 @@ async def _exercise_audit_service(settings: AppSettings, tenant_seed: TenantSeed
 
         with pytest.raises(InvalidCommandError):
             await service.record_event(
-                AuditEventCreate(
+                AuditEventInput(
                     organization_id=primary_organization_id,
                     event_type="synthetic.unsafe",
                     resource_type="case",
