@@ -569,7 +569,7 @@ async def _exercise_records(settings: AppSettings) -> None:
                     AuditEvent(
                         organization_id=organization.id,
                         actor_user_id=user.id,
-                        event_type="synthetic.created",
+                        event_type="synthetic.added",
                         resource_type="case",
                         resource_id=case.id,
                         case_id=case.id,
